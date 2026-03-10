@@ -1,0 +1,315 @@
+AI_PROMPT=[
+	You are a UI/UX designer. Design UI/UX interfaces for a Vietnamese hospital appointment booking website: “Hệ thống đặt lịch khám bệnh ABC”.
+	Tech context: React (web) + Laravel API + MySQL. This is a university demo, but the UI must look modern, clean, trustworthy, and easy to use.
+
+	OUTPUT REQUIREMENTS (very important)
+	- Produce HIGH-FIDELITY screens (not wireframes) with consistent spacing, typography, and component variants.
+	- Deliver 2 parts:
+	  (1) A shared UI kit / design system (tokens + core components + patterns)
+	  (2) Role-based screens (Public, Patient, Staff, Doctor, Admin) with key states (empty/loading/error/disabled)
+	- Use realistic Vietnamese labels, helper text, validation messages, and empty-state copy.
+	- Include interaction notes per screen: primary actions, disabled logic, errors, and success toasts.
+
+	LANGUAGE
+	- All UI text is Vietnamese (Vietnam locale). Use clear healthcare terminology.
+	- Date format: dd/mm/yyyy. Time format: HH:mm.
+	
+	DESIGN GOALS
+	- Trustworthy medical brand: calm, clinical, professional.
+	- Optimize for task completion: đặt lịch, đổi/hủy theo quy định, check-in, khám bệnh, chỉ định, kê đơn, quản trị danh mục.
+	- Responsive:
+	  - Desktop-first for Admin/Nhân viên/Bác sĩ.
+	  - Mobile-first for Bệnh nhân.
+
+	DESIGN TOKENS (define and apply consistently)
+	- Grid:
+	  - Desktop: 12 columns, 1200–1320px max container, 24px gutters.
+	  - Tablet: 8 columns.
+	  - Mobile: 4 columns, 16px gutters.
+	- Spacing scale: 4, 8, 12, 16, 24, 32, 48.
+	- Radius: 10px cards, 8px inputs, 999px pills/chips.
+	- Shadows: subtle (elevation 1/2/3), no heavy drop shadows.
+	- Dividers: 1px neutral borders.
+	
+	PALETTE (choose one and apply consistently)
+	Option A (recommended - Calm Healthcare):
+	- Primary: Teal #0F766E
+	- Secondary: Blue #2563EB
+	- Accent: Cyan #06B6D4
+	- Success: Green #16A34A
+	- Warning: Amber #F59E0B
+	- Danger: Red #DC2626
+	- Neutral: Slate scale (bg #F8FAFC, surface #FFFFFF, border #E2E8F0, text #0F172A, muted #64748B)
+	Option B (Blue Clinical):
+	- Primary: Blue #1D4ED8
+	- Accent: Teal #14B8A6
+	- Same status colors as above
+	
+	TYPOGRAPHY
+	- Sans-serif: Inter (or similar).
+	- Type scale:
+	  - H1 28/36 700
+	  - H2 24/32 700
+	  - H3 20/28 600
+	  - Body 16/24 400–500
+	  - Small 14/20 400–500
+	  - Caption 12/16 400
+	
+	ICONS & IMAGERY
+	- Use a consistent outline icon set (medical-friendly).
+	- Avoid overly playful illustrations; use subtle healthcare illustrations on public pages.
+
+	COMPONENT SYSTEM (deliver as a UI kit)
+	A) Buttons
+	- Variants: Primary, Secondary, Tertiary (ghost), Destructive.
+	- Sizes: sm/md/lg.
+	- States: default, hover, active, disabled, loading (spinner + label).
+	- Examples of labels: “Tiếp tục”, “Quay lại”, “Xác nhận”, “Hủy lịch”, “Đổi lịch”, “Sinh khung giờ”.
+
+	B) Form inputs (specify types + behaviors)
+	- Text input, Email input, Password input (show/hide), Phone input (mask), Number input (stepper for quantity), Textarea.
+	- Date picker (calendar), Time picker (HH:mm), Date range picker (filters).
+	- Select:
+	  - Standard select
+	  - Searchable select (for doctor/service)
+	  - Multi-select with tags/chips
+	- Radio group (gender), segmented control (view mode), checkbox.
+	- File upload (avatar/document): drag & drop + preview.
+	- Validation:
+	  - Inline error under field
+	  - Error summary banner at top of form
+	  - Helper text + required markers
+	- Common validations copy examples:
+	  - “Vui lòng nhập email hợp lệ.”
+	  - “Số điện thoại phải gồm 10 chữ số.”
+	  - “Vui lòng chọn ít nhất 1 mục dịch vụ/gói khám.”
+
+	C) Data display
+	- Cards, key-value list, timeline.
+	- Tables: sticky header, row hover, sortable columns, pagination, empty state.
+	- Filters bar: search + status + date range + reset.
+	- Chips/tags for selected filters.
+
+	D) Navigation & layout
+	- Public layout: top navbar + footer.
+	- Authenticated app shell:
+	  - Desktop: left sidebar + top bar.
+	  - Mobile patient: bottom nav + top bar.
+	- Breadcrumbs for Admin sections.
+	- RBAC menu: show only permitted items.
+
+	E) Patterns
+	- Stepper (booking): 4 steps with progress + validation per step.
+	- Confirm modals: destructive action emphasis (Hủy lịch).
+	- Toast notifications: success/info/warn/error.
+	- Skeleton loaders for list pages.
+	- Empty states with CTA.
+
+	STATUS BADGES (must be consistent colors)
+	- Appointment `lich_hen.trang_thai`:
+	  - `dang_cho`, `da_thanh_toan`, `da_xac_nhan`, `da_hoan_tat`, `da_huy`, `khong_den`
+	- Slot `khung_gio_kham.trang_thai`:
+	  - `trong`, `da_dat`, `khoa`
+	
+	BUSINESS MODEL NOTES (for UI logic)
+	- Booking selects ONE slot (`khung_gio_id`) + a list of items (services/packages):
+	  - Step B4 allows selecting multiple services and/or packages.
+	  - Each selected item is either “Dịch vụ” OR “Gói khám” (not both), and has quantity.
+	- Scheduling uses:
+	  - Template shifts (`lich_lam_viec`)
+	  - Doctor-day assignments (`lich_lam_viec_bac_si`) → generate slots (`khung_gio_kham`)
+	
+	GLOBAL LAYOUT DETAILS
+	- Top bar contents (authenticated): page title, quick search, notifications bell, user menu.
+	- Sidebar (desktop): grouped sections with icons; collapsible.
+	- Mobile patient bottom nav: Trang chủ, Đặt lịch, Lịch hẹn, Hồ sơ.
+
+	PUBLIC LANDING PAGE (desktop + mobile)
+	- Header: logo + menu (Chuyên khoa, Bác sĩ, Dịch vụ, Hỗ trợ) + buttons (Đăng nhập, Đặt lịch).
+	- Hero:
+	  - Title, subtitle, 2 CTAs, trust indicators (e.g., “Bác sĩ giàu kinh nghiệm”, “Minh bạch lịch hẹn”).
+	- Sections:
+	  - Chuyên khoa nổi bật (card grid)
+	  - Bác sĩ nổi bật (profile cards)
+	  - Dịch vụ/Gói khám (tabs)
+	  - Quy trình 3 bước (icons + short text)
+	  - FAQ accordion
+	- Footer: address/phone, quick links.
+
+	AUTH & ACCOUNT SCREENS (desktop + mobile)
+	1) Đăng ký bệnh nhân
+	- Layout: centered card (desktop), full-page form (mobile)
+	- Fields & input types:
+	  - Họ tên (text), Email (email), Mật khẩu (password), Xác nhận mật khẩu (password)
+	  - SĐT (phone), Ngày sinh (date), Giới tính (radio)
+	  - Địa chỉ (textarea), CCCD (text numeric)
+	  - Nhóm máu (select: A+/A-/B+/B-/AB+/AB-/O+/O-)
+	- Buttons: “Tạo tài khoản” (primary), “Đã có tài khoản? Đăng nhập” (link)
+	- States: inline errors + disabled submit while loading
+
+	2) Đăng nhập
+	- Fields: Email, Mật khẩu, Ghi nhớ (checkbox)
+	- Buttons: “Đăng nhập” (primary), “Quên mật khẩu?” (link)
+
+	3) Hồ sơ cá nhân
+	- 2-column (desktop): avatar uploader left, profile form right
+	- Actions: “Lưu thay đổi”, “Đổi mật khẩu”
+
+	PATIENT (BENHNHAN) SCREENS
+	1) Đặt lịch khám (stepper 4 bước) (mobile-first)
+	- Header: back button + title + help link.
+	- Step B1: Chọn chuyên khoa + bác sĩ
+	  - Inputs: searchable select (chuyên khoa), doctor cards list (filter + sort)
+	  - Doctor card: avatar, tên, chuyên khoa, rating placeholder, CTA “Chọn bác sĩ”
+	- Step B2: Chọn ngày khám
+	  - Date picker + notice banners:
+	    - Holiday banner (warning)
+	    - Doctor off banner (warning)
+	    - Too-far-in-advance banner (error)
+	- Step B3: Chọn khung giờ trống
+	  - Layout: time-slot chips grid
+	  - Show only `trong`; `da_dat` disabled; `khoa` disabled + lock icon
+	- Step B4: Chọn dịch vụ và/hoặc gói khám
+	  - Layout: 2 tabs: “Dịch vụ” | “Gói khám”
+	  - Each tab: searchable list with add button
+	  - Selected items “Giỏ dịch vụ” sticky bottom sheet (mobile) / right panel (desktop)
+	  - Cart row:
+	    - Name + type badge (DV/GK)
+	    - Quantity stepper (- / +)
+	    - Remove icon button
+	  - Additional fields: Lý do khám (textarea), Ghi chú (textarea)
+	  - Validation: must have >= 1 item before continue
+	- Confirmation screen:
+	  - Summary card: bác sĩ, ngày/giờ, danh sách mục + quantities
+	  - Policy callouts: THOI_GIAN_HUY_TOI_THIEU, THOI_GIAN_DOI_TOI_THIEU
+	  - CTA: “Xác nhận đặt lịch” (primary)
+	  - Optional CTA: “Thanh toán” (secondary) if enabled
+
+	2) Lịch sử lịch hẹn
+	- Layout:
+	  - Mobile: cards list
+	  - Desktop: table with filters
+	- Filters: status select, date range
+	- Row/card actions: “Xem”, “Đổi lịch”, “Hủy lịch”
+	- Disabled logic for đổi/hủy: show tooltip “Không đủ thời gian theo quy định”
+
+	3) Hủy lịch (modal)
+	- Trigger: button “Hủy lịch”
+	- Modal content:
+	  - Reason select + conditional “Lý do khác” textarea
+	  - Warning text + highlight destructive
+	- Buttons: “Quay lại” (secondary), “Xác nhận hủy” (destructive)
+
+	4) Đổi lịch
+	- Left: current appointment summary
+	- Right: date picker + slot chips
+	- Button: “Xác nhận đổi lịch”
+
+	5) Tra cứu lịch hẹn nhanh (public-lite)
+	- Input: mã lịch hẹn (text) + SĐT/email (text)
+	- Result: appointment summary card + status badge
+
+	STAFF/RECEPTION (NHANVIEN) SCREENS (desktop-first)
+	Dashboard
+	- KPI cards: tổng lịch hôm nay, chờ check-in, đã đến, đã hủy, không đến
+	- Today schedule table grouped by doctor
+	- Quick actions buttons: “Tạo walk-in”, “Đặt lịch hộ”, “Check-in nhanh”
+
+	1) Tạo bệnh nhân walk-in
+	- Form drawer or full page
+	- Fields: Họ tên, SĐT, ngày sinh, giới tính, địa chỉ, CCCD (optional)
+	- Buttons: “Tạo bệnh nhân”
+
+	2) Tra cứu bệnh nhân
+	- Search bar + results table
+	- Actions: “Xem”, “Đặt lịch hộ”
+
+	3) Đặt lịch hộ bệnh nhân
+	- Same stepper as patient, but pre-filled patient card at top
+	- Extra: choose existing patient via searchable select
+
+	4) Danh sách lịch hẹn trong ngày
+	- Toggle: Kanban | Table
+	- Kanban columns by status with drag disabled (only server transitions)
+	- Table row actions: check-in, cancel, reschedule
+
+	5) Check-in
+	- Search appointment by mã lịch hẹn / patient phone
+	- Detail panel + input time “Giờ đến thực tế” (time picker)
+	- Button: “Xác nhận check-in”
+	- Note banner: “Check-in sẽ tạo Phiếu khám trạng thái ‘tiếp nhận’”
+
+	DOCTOR (BACSI) SCREENS (desktop-first)
+	Dashboard
+	- Today timeline by slot + highlight “đã đến”
+	- Quick buttons: “Mở phiếu khám”, “Chỉ định”, “Kê đơn”
+
+	1) Lịch làm việc theo ngày (phân công ca)
+	- Calendar/week view + list view
+	- Create assignment drawer:
+	  - Date (date picker)
+	  - Template shift (searchable select)
+	  - Phòng khám (select, optional)
+	  - Notes (textarea)
+	- Actions per assignment row:
+	  - “Sinh khung giờ” (primary)
+	  - “Xem khung giờ” (secondary)
+	  - “Hủy phân công” (destructive, if allowed)
+	- Conflict UI: show error banner when duplicate assignment
+
+	2) Danh sách lịch hẹn theo ngày
+	- Date picker + table grouped by slot
+	- Row actions: open appointment detail, start exam
+
+	3) Phiếu khám bệnh
+	- Layout: 2-column
+	  - Left: patient summary card (dị ứng, bệnh nền, nhóm máu)
+	  - Right: clinical form
+	- Clinical inputs:
+	  - Triệu chứng (textarea)
+	  - Chẩn đoán (text + ICD10 searchable select, lấy từ static lookup `icd10`)
+	  - Ghi chú (textarea)
+	  - Tình trạng (select)
+	- Actions: “Lưu tạm”, “Hoàn tất khám”
+
+	4) Phiếu chỉ định dịch vụ
+	- Table-like repeater rows:
+	  - Dịch vụ (searchable select)
+	  - Số lượng (number stepper)
+	  - Ghi chú (text)
+	- Button: “Thêm dòng”, “Lưu chỉ định”
+	- Status visualization: pending/doing/done pill badges
+
+	5) Kê đơn thuốc
+	- Medication search + add to prescription table
+	- Columns: thuốc, liều lượng, đường dùng, thời điểm, số ngày, ghi chú
+	- Actions: “Lưu đơn”, “In đơn” (optional)
+
+	ADMIN SCREENS (desktop-first)
+	- Dashboard KPIs + charts placeholder
+	- Management pages use consistent pattern:
+	  - Header: title + primary CTA “Thêm mới”
+	  - Filters bar + table
+	  - Create/Edit in right drawer
+	- Modules:
+	  - Người dùng / Bác sĩ / Nhân viên
+	  - Vai trò & Quyền (RBAC)
+	  - Chuyên khoa, Phòng khám
+	  - Dịch vụ, Gói khám (+ chi tiết gói)
+	  - Ca mẫu (template shifts)
+	  - Cấu hình hệ thống
+	  - Báo cáo
+
+	DATA DISPLAY & INTERACTIONS
+	- Always show policy hints for hủy/đổi and disable buttons when not allowed.
+	- Prefer drawers for create/edit; modals for confirm actions.
+	- Provide clear empty states with CTA: “Chưa có dữ liệu. Thêm mới ngay”.
+
+	ACCESSIBILITY
+	- WCAG-friendly contrast, focus rings, keyboard navigation.
+	- Form errors: inline + summary at top.
+
+	DELIVERABLE
+	- Produce a cohesive set of screens + shared UI kit.
+	- Keep consistent visual language across all roles.
+]

@@ -1,0 +1,61 @@
+// Tai lieu dbdiagram tham chieu (rut gon)
+// Nguon chi tiet: .github/context-and-instruction-for-AI/dbdiagram-sql.txt
+
+Table vai_tro {
+	id INT [pk, increment]
+	ma_vai_tro VARCHAR(20) [unique, not null]
+	ten_vai_tro VARCHAR(100) [not null]
+}
+
+Table quyen {
+	id INT [pk, increment]
+	ma_quyen VARCHAR(50) [unique, not null]
+	ten_quyen VARCHAR(100) [not null]
+}
+
+Table vai_tro_quyen {
+	id INT [pk, increment]
+	vai_tro_id INT [not null, ref: > vai_tro.id]
+	quyen_id INT [not null, ref: > quyen.id]
+}
+
+Table nguoi_dung {
+	id INT [pk, increment]
+	email VARCHAR(255) [unique, not null]
+	mat_khau VARCHAR(255) [not null]
+	vai_tro_id INT [not null, ref: > vai_tro.id]
+}
+
+Table benh_nhan {
+	id INT [pk, increment]
+	ma_benh_nhan VARCHAR(20) [unique, not null]
+	nguoi_dung_id INT [ref: - nguoi_dung.id]
+}
+
+Table bac_si {
+	id INT [pk, increment]
+	ma_bac_si VARCHAR(20) [unique, not null]
+	nguoi_dung_id INT [unique, not null, ref: - nguoi_dung.id]
+}
+
+Table khung_gio_kham {
+	id INT [pk, increment]
+	trang_thai ENUM('trong', 'da_dat', 'khoa')
+}
+
+Table lich_hen {
+	id INT [pk, increment]
+	ma_lich_hen VARCHAR(20) [unique, not null]
+	benh_nhan_id INT [not null, ref: > benh_nhan.id]
+	bac_si_id INT [not null, ref: > bac_si.id]
+	khung_gio_id INT [unique, ref: > khung_gio_kham.id]
+}
+
+Table phieu_kham {
+	id INT [pk, increment]
+	ma_phieu_kham VARCHAR(20) [unique, not null]
+	lich_hen_id INT [unique, ref: - lich_hen.id]
+	benh_nhan_id INT [not null, ref: > benh_nhan.id]
+	bac_si_id INT [not null, ref: > bac_si.id]
+}
+

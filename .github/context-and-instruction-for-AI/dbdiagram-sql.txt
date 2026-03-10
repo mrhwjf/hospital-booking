@@ -1,0 +1,673 @@
+// Hospital Booking System - Database Schema (dbdiagram.io)
+// Generated/updated to match schema.sql (MySQL)
+
+// ============================================
+// BẢNG QUẢN LÝ NGƯỜI DÙNG VÀ PHÂN QUYỀN
+// ============================================
+
+Table vai_tro {
+  id INT [pk, increment]
+  ma_vai_tro VARCHAR(20) [unique, not null, note: 'ADMIN, BACSI, BENHNHAN, NHANVIEN']
+  ten_vai_tro VARCHAR(100) [not null]
+  mo_ta TEXT
+  trang_thai ENUM('hoat_dong', 'khoa') [default: 'hoat_dong']
+  created_at TIMESTAMP [default: `CURRENT_TIMESTAMP`]
+  updated_at TIMESTAMP [default: `CURRENT_TIMESTAMP`]
+
+  indexes {
+    ma_vai_tro [unique]
+    trang_thai
+  }
+}
+
+Table quyen {
+  id INT [pk, increment]
+  ma_quyen VARCHAR(50) [unique, not null, note: 'VD: QUAN_LY_NGUOI_DUNG, XEM_BAO_CAO']
+  ten_quyen VARCHAR(100) [not null]
+  mo_ta TEXT
+  nhom_quyen VARCHAR(50) [note: 'Nhóm quyền để phân loại']
+  created_at TIMESTAMP [default: `CURRENT_TIMESTAMP`]
+
+  indexes {
+    ma_quyen [unique]
+    nhom_quyen
+  }
+}
+
+Table vai_tro_quyen {
+  id INT [pk, increment]
+  vai_tro_id INT [not null, ref: > vai_tro.id]
+  quyen_id INT [not null, ref: > quyen.id]
+  created_at TIMESTAMP [default: `CURRENT_TIMESTAMP`]
+
+  indexes {
+    (vai_tro_id, quyen_id) [unique]
+  }
+}
+
+Table nguoi_dung {
+  id INT [pk, increment]
+  email VARCHAR(255) [unique, not null]
+  mat_khau VARCHAR(255) [not null, note: 'Mật khẩu đã hash']
+  vai_tro_id INT [not null, ref: > vai_tro.id]
+  hinh_anh VARCHAR(255) [note: 'Đường dẫn ảnh đại diện']
+  trang_thai ENUM('hoat_dong', 'tam_khoa', 'khoa') [default: 'hoat_dong']
+  lan_dang_nhap_cuoi TIMESTAMP
+  created_at TIMESTAMP [default: `CURRENT_TIMESTAMP`]
+  updated_at TIMESTAMP [default: `CURRENT_TIMESTAMP`]
+
+  indexes {
+    email [unique]
+    vai_tro_id
+    trang_thai
+  }
+}
+
+// ============================================
+// BẢNG CHUYÊN KHOA VÀ PHÒNG KHÁM
+// ============================================
+
+Table chuyen_khoa {
+  id INT [pk, increment]
+  ma_chuyen_khoa VARCHAR(20) [unique, not null, note: 'VD: CK001']
+  ten_chuyen_khoa VARCHAR(100) [not null]
+  mo_ta TEXT
+  hinh_anh VARCHAR(255)
+  vi_tri VARCHAR(100) [note: 'Vị trí: Tầng/Khu']
+  so_dien_thoai VARCHAR(15)
+  truong_khoa_id INT [ref: > bac_si.id, note: 'NULL nếu chưa gán trưởng khoa']
+  thu_tu_hien_thi INT [default: 0]
+  trang_thai ENUM('hoat_dong', 'tam_ngung') [default: 'hoat_dong']
+  created_at TIMESTAMP [default: `CURRENT_TIMESTAMP`]
+  updated_at TIMESTAMP [default: `CURRENT_TIMESTAMP`]
+
+  indexes {
+    ma_chuyen_khoa [unique]
+    ten_chuyen_khoa
+    trang_thai
+    thu_tu_hien_thi
+  }
+}
+
+Table phong_kham {
+  id INT [pk, increment]
+  ma_phong VARCHAR(20) [unique, not null, note: 'VD: P101']
+  ten_phong VARCHAR(100) [not null]
+  chuyen_khoa_id INT [ref: > chuyen_khoa.id]
+  vi_tri VARCHAR(100) [not null, note: 'VD: Tầng 1, Khu A']
+  trang_thiet_bi TEXT [note: 'Danh sách trang thiết bị trong phòng']
+  trang_thai ENUM('hoat_dong', 'bao_tri', 'ngung_su_dung') [default: 'hoat_dong']
+  ghi_chu TEXT
+  created_at TIMESTAMP [default: `CURRENT_TIMESTAMP`]
+  updated_at TIMESTAMP [default: `CURRENT_TIMESTAMP`]
+
+  indexes {
+    ma_phong [unique]
+    chuyen_khoa_id
+    trang_thai
+  }
+}
+
+// ============================================
+// BẢNG DỊCH VỤ, GÓI KHÁM, CHI TIẾT GÓI
+// ============================================
+
+Table dich_vu {
+  id INT [pk, increment]
+  ma_dich_vu VARCHAR(20) [unique, not null, note: 'VD: DV001']
+  ten_dich_vu VARCHAR(200) [not null]
+  chuyen_khoa_id INT [not null, ref: > chuyen_khoa.id]
+  mo_ta TEXT
+  gia_dich_vu DECIMAL(12,0) [not null, default: 0, note: 'Giá VNĐ']
+  thoi_gian_du_kien INT [note: 'Thời gian dự kiến (phút) để hoàn thành dịch vụ']
+  yeu_cau_dac_biet TEXT [note: 'VD: Nhịn ăn trước khi khám']
+  trang_thai ENUM('hoat_dong', 'tam_ngung') [default: 'hoat_dong']
+  loai_dich_vu ENUM('kham_benh', 'xet_nghiem', 'chan_doan_hinh_anh', 'thu_thuat', 'phau_thuat', 'khac') [not null]
+  created_at TIMESTAMP [default: `CURRENT_TIMESTAMP`]
+  updated_at TIMESTAMP [default: `CURRENT_TIMESTAMP`]
+
+  indexes {
+    ma_dich_vu [unique]
+    chuyen_khoa_id
+    trang_thai
+    ten_dich_vu
+  }
+}
+
+Table goi_kham {
+  id INT [pk, increment]
+  ma_goi_kham VARCHAR(20) [unique, not null, note: 'VD: GK001']
+  ten_goi_kham VARCHAR(200) [not null]
+  mo_ta TEXT
+  gia_goi_kham DECIMAL(12,0) [not null, default: 0, note: 'Giá VNĐ']
+  thoi_gian_du_kien INT [note: 'Thời gian dự kiến (phút) để hoàn thành gói khám']
+  trang_thai ENUM('hoat_dong', 'tam_ngung') [default: 'hoat_dong']
+  created_at TIMESTAMP [default: `CURRENT_TIMESTAMP`]
+  updated_at TIMESTAMP [default: `CURRENT_TIMESTAMP`]
+
+  indexes {
+    ma_goi_kham [unique]
+    trang_thai
+    ten_goi_kham
+  }
+}
+
+Table chi_tiet_goi_kham {
+  id INT [pk, increment]
+  goi_kham_id INT [not null, ref: > goi_kham.id]
+  dich_vu_id INT [not null, ref: > dich_vu.id]
+  thu_tu_hien_thi INT [default: 0]
+  created_at TIMESTAMP [default: `CURRENT_TIMESTAMP`]
+  updated_at TIMESTAMP [default: `CURRENT_TIMESTAMP`]
+
+  indexes {
+    (goi_kham_id, dich_vu_id) [unique]
+    thu_tu_hien_thi
+  }
+}
+
+// ============================================
+// BẢNG BỆNH NHÂN
+// ============================================
+
+Table benh_nhan {
+  id INT [pk, increment]
+  ma_benh_nhan VARCHAR(20) [unique, not null, note: 'VD: BN000001']
+  nguoi_dung_id INT [unique, ref: - nguoi_dung.id, note: 'NULL nếu là walk-in patient']
+  ho_ten VARCHAR(100) [not null]
+  ngay_sinh DATE [not null]
+  gioi_tinh ENUM('nam', 'nu', 'khac') [not null]
+  so_dien_thoai VARCHAR(15) [not null]
+  email VARCHAR(255)
+  so_cccd VARCHAR(12) [unique]
+  dia_chi TEXT
+  nguoi_lien_he VARCHAR(100) [note: 'Người liên hệ khẩn cấp']
+  sdt_nguoi_lien_he VARCHAR(15)
+  nhom_mau ENUM('A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-')
+  tien_su_di_ung TEXT
+  tien_su_benh TEXT [note: 'Tiền sử bệnh mãn tính']
+  ghi_chu TEXT
+  trang_thai ENUM('hoat_dong', 'khoa') [default: 'hoat_dong']
+  created_at TIMESTAMP [default: `CURRENT_TIMESTAMP`]
+  updated_at TIMESTAMP [default: `CURRENT_TIMESTAMP`]
+
+  indexes {
+    ma_benh_nhan [unique]
+    nguoi_dung_id [unique]
+    so_dien_thoai
+    ho_ten
+    trang_thai
+  }
+}
+
+// ============================================
+// BẢNG NHÂN VIÊN
+// ============================================
+
+Table nhan_vien {
+  id INT [pk, increment]
+  ma_nhan_vien VARCHAR(20) [unique, not null, note: 'VD: NV001']
+  nguoi_dung_id INT [unique, not null, ref: - nguoi_dung.id]
+  ho_ten VARCHAR(100) [not null]
+  so_dien_thoai VARCHAR(15) [not null]
+  chuc_vu ENUM('le_tan', 'nhan_vien_y_te', 'dieu_duong') [not null]
+  phong_ban VARCHAR(100)
+  ngay_vao_lam DATE [not null]
+  trang_thai ENUM('hoat_dong', 'tam_khoa', 'nghi_viec') [default: 'hoat_dong']
+  ghi_chu TEXT
+  created_at TIMESTAMP [default: `CURRENT_TIMESTAMP`]
+  updated_at TIMESTAMP [default: `CURRENT_TIMESTAMP`]
+
+  indexes {
+    ma_nhan_vien [unique]
+    nguoi_dung_id [unique]
+    chuc_vu
+    trang_thai
+  }
+}
+
+// ============================================
+// BẢNG BÁC SĨ
+// ============================================
+
+Table bac_si {
+  id INT [pk, increment]
+  ma_bac_si VARCHAR(20) [unique, not null, note: 'VD: BS001']
+  nguoi_dung_id INT [unique, not null, ref: - nguoi_dung.id]
+  ho_ten VARCHAR(100) [not null]
+  so_dien_thoai VARCHAR(15) [not null]
+  hoc_vi ENUM('bac_si', 'thac_si', 'tien_si', 'pgs', 'gs') [default: 'bac_si']
+  chung_chi_hanh_nghe VARCHAR(50) [not null]
+  kinh_nghiem INT [note: 'Số năm kinh nghiệm']
+  gioi_thieu TEXT
+  trang_thai ENUM('hoat_dong', 'tam_nghi', 'nghi_viec') [default: 'hoat_dong']
+  created_at TIMESTAMP [default: `CURRENT_TIMESTAMP`]
+  updated_at TIMESTAMP [default: `CURRENT_TIMESTAMP`]
+
+  indexes {
+    ma_bac_si [unique]
+    nguoi_dung_id [unique]
+    hoc_vi
+    trang_thai
+  }
+}
+
+// ============================================
+// BẢNG PHÂN BỔ BÁC SĨ - CHUYÊN KHOA
+// ============================================
+
+Table bac_si_chuyen_khoa {
+  id INT [pk, increment]
+  bac_si_id INT [not null, ref: > bac_si.id]
+  chuyen_khoa_id INT [not null, ref: > chuyen_khoa.id]
+  la_chuyen_khoa_chinh BOOLEAN [default: false, note: 'Đánh dấu chuyên khoa chính']
+  ghi_chu TEXT
+  created_at TIMESTAMP [default: `CURRENT_TIMESTAMP`]
+  updated_at TIMESTAMP [default: `CURRENT_TIMESTAMP`]
+
+  indexes {
+    (bac_si_id, chuyen_khoa_id) [unique]
+    la_chuyen_khoa_chinh
+  }
+}
+
+// ===========================================
+// BẢNG NGÀY NGHỈ
+// ===========================================
+
+Table ngay_nghi_le {
+  id INT [pk, increment]
+  ten_ngay_nghi VARCHAR(100) [not null]
+  ngay DATE [unique, not null]
+  mo_ta TEXT
+  trang_thai ENUM('hoat_dong', 'huy') [default: 'hoat_dong']
+  created_at TIMESTAMP [default: `CURRENT_TIMESTAMP`]
+
+  indexes {
+    ngay [unique]
+    trang_thai
+  }
+}
+
+Table bac_si_nghi {
+  id INT [pk, increment]
+  bac_si_id INT [not null, ref: > bac_si.id]
+  ngay DATE [not null]
+  gio_bat_dau TIME [note: 'NULL = nghỉ cả ngày']
+  gio_ket_thuc TIME
+  ly_do TEXT
+  trang_thai ENUM('hoat_dong', 'huy') [default: 'hoat_dong']
+  created_at TIMESTAMP [default: `CURRENT_TIMESTAMP`]
+
+  indexes {
+    (bac_si_id, ngay)
+    trang_thai
+  }
+}
+
+// ============================================
+// BẢNG CA LÀM VIỆC (TEMPLATE), LỊCH BÁC SĨ & KHUNG GIỜ
+// ============================================
+
+Table lich_lam_viec {
+  id INT [pk, increment]
+  ma_ca VARCHAR(20) [unique, not null, note: 'VD: CA_SANG, CA_CHIEU']
+  ten_ca VARCHAR(100) [not null]
+  thu_trong_tuan TINYINT [not null, note: '1=Thứ 2 ... 7=Chủ nhật']
+  gio_bat_dau TIME [not null]
+  gio_ket_thuc TIME [not null]
+  thoi_luong_kham INT [not null, default: 30, note: 'Phút/ca khám (khi sinh khung giờ)']
+  ghi_chu TEXT
+  trang_thai ENUM('hoat_dong', 'tam_ngung', 'huy') [default: 'hoat_dong']
+  created_at TIMESTAMP [default: `CURRENT_TIMESTAMP`]
+  updated_at TIMESTAMP [default: `CURRENT_TIMESTAMP`]
+
+  indexes {
+    ma_ca [unique]
+    thu_trong_tuan
+    trang_thai
+  }
+}
+
+Table lich_lam_viec_bac_si {
+  id INT [pk, increment]
+  bac_si_id INT [not null, ref: > bac_si.id]
+  lich_lam_viec_id INT [not null, ref: > lich_lam_viec.id]
+  phong_kham_id INT [ref: > phong_kham.id]
+  ngay_lam_viec DATE [not null]
+  ghi_chu TEXT
+  trang_thai ENUM('hoat_dong', 'tam_ngung', 'huy') [default: 'hoat_dong']
+  created_at TIMESTAMP [default: `CURRENT_TIMESTAMP`]
+  updated_at TIMESTAMP [default: `CURRENT_TIMESTAMP`]
+
+  indexes {
+    (bac_si_id, ngay_lam_viec, lich_lam_viec_id) [unique]
+    bac_si_id
+    ngay_lam_viec
+    trang_thai
+    phong_kham_id
+  }
+}
+
+Table khung_gio_kham {
+  id INT [pk, increment]
+  lich_lam_viec_bac_si_id INT [not null, ref: > lich_lam_viec_bac_si.id]
+  gio_bat_dau TIME [not null]
+  gio_ket_thuc TIME [not null]
+  trang_thai ENUM('trong', 'da_dat', 'khoa') [default: 'trong']
+  created_at TIMESTAMP [default: `CURRENT_TIMESTAMP`]
+  updated_at TIMESTAMP [default: `CURRENT_TIMESTAMP`]
+
+  indexes {
+    lich_lam_viec_bac_si_id
+    (lich_lam_viec_bac_si_id, gio_bat_dau) [unique]
+    trang_thai
+  }
+}
+
+// ============================================
+// BẢNG LÝ DO HỦY LỊCH (DANH MỤC)
+// ============================================
+
+Table ly_do_huy {
+  id INT [pk, increment]
+  ma_ly_do VARCHAR(20) [unique, not null]
+  ten_ly_do VARCHAR(200) [not null]
+  loai ENUM('benh_nhan', 'bac_si', 'he_thong') [not null]
+  thu_tu INT [default: 0]
+  trang_thai ENUM('hoat_dong', 'an') [default: 'hoat_dong']
+  created_at TIMESTAMP [default: `CURRENT_TIMESTAMP`]
+
+  indexes {
+    ma_ly_do [unique]
+    loai
+    trang_thai
+  }
+}
+
+// ============================================
+// BẢNG LỊCH HẸN
+// ============================================
+
+Table lich_hen {
+  id INT [pk, increment]
+  ma_lich_hen VARCHAR(20) [unique, not null, note: 'VD: LH20240116001']
+  benh_nhan_id INT [not null, ref: > benh_nhan.id]
+  bac_si_id INT [not null, ref: > bac_si.id]
+  chuyen_khoa_id INT [not null, ref: > chuyen_khoa.id]
+  khung_gio_id INT [unique, ref: > khung_gio_kham.id, note: '1 BN/khung giờ']
+
+  ngay_hen DATE [not null]
+  ly_do_kham TEXT
+  trang_thai ENUM('dang_cho', 'da_thanh_toan', 'da_xac_nhan', 'da_hoan_tat', 'da_huy', 'khong_den') [default: 'dang_cho']
+
+  nguoi_tao_id INT [ref: > nguoi_dung.id, note: 'BN hoặc lễ tân']
+  gio_den_thuc_te TIME [note: 'Giờ check-in thực tế']
+  nguoi_tiep_nhan_id INT [ref: > nguoi_dung.id, note: 'Nhân viên/lễ tân check-in']
+
+  ly_do_huy_id INT [ref: > ly_do_huy.id]
+  ly_do_huy_khac TEXT
+
+  ghi_chu TEXT
+  ghi_chu_noi_bo TEXT [note: 'Ghi chú chỉ nhân viên thấy']
+  created_at TIMESTAMP [default: `CURRENT_TIMESTAMP`]
+  updated_at TIMESTAMP [default: `CURRENT_TIMESTAMP`]
+
+  indexes {
+    ma_lich_hen [unique]
+    benh_nhan_id
+    bac_si_id
+    chuyen_khoa_id
+    khung_gio_id [unique]
+    ngay_hen
+    trang_thai
+    (bac_si_id, ngay_hen)
+    (benh_nhan_id, ngay_hen)
+    nguoi_tao_id
+    nguoi_tiep_nhan_id
+  }
+}
+
+// ============================================
+// BẢNG DỊCH VỤ/GÓI KHÁM CỦA LỊCH HẸN (N-N)
+// ============================================
+
+Table dich_vu_lich_hen {
+  id INT [pk, increment]
+  lich_hen_id INT [not null, ref: > lich_hen.id]
+  dich_vu_id INT [ref: > dich_vu.id]
+  goi_kham_id INT [ref: > goi_kham.id]
+  so_luong INT [not null, default: 1]
+  ghi_chu TEXT
+  created_at TIMESTAMP [default: `CURRENT_TIMESTAMP`]
+  updated_at TIMESTAMP [default: `CURRENT_TIMESTAMP`]
+
+  indexes {
+    (lich_hen_id, dich_vu_id) [unique]
+    (lich_hen_id, goi_kham_id) [unique]
+    lich_hen_id
+    dich_vu_id
+    goi_kham_id
+  }
+}
+
+// ============================================
+// BẢNG DANH MỤC ICD-10 (STATIC LOOKUP)
+// ============================================
+
+Table icd10 {
+  ma_icd10 VARCHAR(10) [pk, note: 'VD: R51']
+  ten_chan_doan VARCHAR(255) [not null, note: 'Tên chẩn đoán theo ICD-10']
+  nhom_chuong VARCHAR(20) [note: 'Nhóm/chương ICD-10, VD: VI']
+  mo_ta TEXT
+  trang_thai ENUM('hoat_dong', 'an') [default: 'hoat_dong']
+  created_at TIMESTAMP [default: `CURRENT_TIMESTAMP`]
+  updated_at TIMESTAMP [default: `CURRENT_TIMESTAMP`]
+
+  indexes {
+    ten_chan_doan
+    nhom_chuong
+    trang_thai
+  }
+}
+
+// ============================================
+// BẢNG PHIẾU KHÁM
+// ============================================
+
+Table phieu_kham {
+  id INT [pk, increment]
+  ma_phieu_kham VARCHAR(20) [unique, not null, note: 'VD: PK20240116001']
+  lich_hen_id INT [unique, ref: - lich_hen.id, note: 'NULL nếu walk-in patient']
+  benh_nhan_id INT [not null, ref: > benh_nhan.id]
+  bac_si_id INT [not null, ref: > bac_si.id]
+  nguoi_tao_id INT [ref: > nguoi_dung.id, note: 'Nhân viên/lễ tân tiếp nhận']
+  thoi_gian_tiep_nhan TIMESTAMP [note: 'Thời điểm tiếp nhận (check-in)']
+
+  mach INT [note: 'Mạch (lần/phút)']
+  nhiet_do DECIMAL(3,1) [note: 'Nhiệt độ (°C)']
+  huyet_ap VARCHAR(10) [note: 'VD: 120/80']
+  can_nang DECIMAL(5,2) [note: 'Cân nặng (kg)']
+  chieu_cao DECIMAL(5,2) [note: 'Chiều cao (cm)']
+
+  trieu_chung TEXT
+  ket_qua_kham TEXT
+
+  chan_doan VARCHAR(500) [note: 'Nếu nhiều chẩn đoán: cách nhau dấu ;']
+  ma_icd10_chinh VARCHAR(10) [ref: > icd10.ma_icd10, note: 'Mã ICD-10 chẩn đoán chính']
+  tinh_trang ENUM('nhe', 'trung_binh', 'nang')
+
+  huong_dieu_tri TEXT
+  loi_dan TEXT
+  hen_tai_kham DATE
+  ghi_chu_noi_bo TEXT
+
+  trang_thai ENUM('tiep_nhan', 'dang_kham', 'cho_ke_don', 'hoan_thanh') [default: 'tiep_nhan']
+  created_at TIMESTAMP [default: `CURRENT_TIMESTAMP`]
+  updated_at TIMESTAMP [default: `CURRENT_TIMESTAMP`]
+
+  indexes {
+    ma_phieu_kham [unique]
+    lich_hen_id [unique]
+    benh_nhan_id
+    bac_si_id
+    nguoi_tao_id
+    ma_icd10_chinh
+    (benh_nhan_id, created_at)
+    trang_thai
+    chan_doan
+  }
+}
+
+// ============================================
+// BẢNG CHỈ ĐỊNH DỊCH VỤ
+// ============================================
+
+Table chi_dinh {
+  id INT [pk, increment]
+  phieu_kham_id INT [not null, ref: > phieu_kham.id]
+  bac_si_id INT [not null, ref: > bac_si.id]
+  dich_vu_id INT [ref: > dich_vu.id]
+  so_luong INT [default: 1]
+  trang_thai ENUM('cho_thuc_hien', 'da_hoan_thanh', 'huy') [default: 'cho_thuc_hien']
+  ngay_chi_dinh DATE [not null]
+  ghi_chu TEXT
+  created_at TIMESTAMP [default: `CURRENT_TIMESTAMP`]
+  updated_at TIMESTAMP [default: `CURRENT_TIMESTAMP`]
+
+  indexes {
+    phieu_kham_id
+    bac_si_id
+    dich_vu_id
+    trang_thai
+    ngay_chi_dinh
+  }
+}
+
+// ============================================
+// BẢNG TÀI LIỆU HỒ SƠ BỆNH ÁN
+// ============================================
+
+Table tai_lieu_ho_so {
+  id INT [pk, increment]
+  ma_tai_lieu VARCHAR(20) [unique, not null, note: 'VD: TL20240116001']
+  phieu_kham_id INT [not null, ref: > phieu_kham.id]
+
+  loai_tai_lieu ENUM('ket_qua_xet_nghiem', 'ket_qua_sieu_am', 'ket_qua_xquang', 'ket_qua_ct_scan', 'ket_qua_mri', 'ket_qua_noi_soi', 'phieu_chi_dinh', 'bao_cao_phau_thuat', 'giay_ra_vien', 'khac') [not null]
+  ten_tai_lieu VARCHAR(200) [not null]
+  file_url VARCHAR(500) [not null, note: 'URL file trên cloud storage']
+  file_name VARCHAR(255) [not null, note: 'Tên file gốc']
+  ngay_tao DATE [not null]
+  ghi_chu TEXT
+  created_at TIMESTAMP [default: `CURRENT_TIMESTAMP`]
+  updated_at TIMESTAMP [default: `CURRENT_TIMESTAMP`]
+
+  indexes {
+    ma_tai_lieu [unique]
+    phieu_kham_id
+    loai_tai_lieu
+    ngay_tao
+  }
+}
+
+// ============================================
+// BẢNG THUỐC & ĐƠN THUỐC
+// ============================================
+
+Table thuoc {
+  id INT [pk, increment]
+  ma_thuoc VARCHAR(20) [unique, not null]
+  ten_thuoc VARCHAR(200) [not null]
+  hoat_chat VARCHAR(200) [note: 'Hoạt chất chính của thuốc']
+  don_vi ENUM('vien', 'goi', 'ong', 'ml', 'lo', 'hop', 'chai') [not null]
+  ham_luong VARCHAR(50)
+  duong_dung ENUM('uong', 'tiem', 'truyen', 'boi', 'nho', 'xit') [not null]
+  huong_dan_su_dung TEXT
+  trang_thai ENUM('hoat_dong', 'ngung_su_dung') [default: 'hoat_dong']
+  created_at TIMESTAMP [default: `CURRENT_TIMESTAMP`]
+  updated_at TIMESTAMP [default: `CURRENT_TIMESTAMP`]
+
+  indexes {
+    ma_thuoc [unique]
+    ten_thuoc
+    hoat_chat
+    trang_thai
+  }
+}
+
+Table don_thuoc {
+  id INT [pk, increment]
+  ma_don_thuoc VARCHAR(20) [unique, not null, note: 'VD: DT20240116001']
+  phieu_kham_id INT [unique, not null, ref: - phieu_kham.id]
+  ngay_ke DATE [not null]
+  ghi_chu TEXT
+  trang_thai ENUM('moi_tao', 'da_cap', 'huy') [default: 'moi_tao']
+  created_at TIMESTAMP [default: `CURRENT_TIMESTAMP`]
+  updated_at TIMESTAMP [default: `CURRENT_TIMESTAMP`]
+
+  indexes {
+    ma_don_thuoc [unique]
+    phieu_kham_id [unique]
+    ngay_ke
+    trang_thai
+  }
+}
+
+Table chi_tiet_don_thuoc {
+  id INT [pk, increment]
+  don_thuoc_id INT [not null, ref: > don_thuoc.id]
+  thuoc_id INT [not null, ref: > thuoc.id]
+  so_luong INT [not null]
+  lieu_dung VARCHAR(200) [not null, note: 'VD: 2 viên x 3 lần/ngày']
+  thoi_diem ENUM('truoc_an', 'sau_an', 'trong_an', 'khong_lien_quan') [default: 'khong_lien_quan']
+  so_ngay INT [not null, note: 'Số ngày dùng']
+  ghi_chu TEXT
+  created_at TIMESTAMP [default: `CURRENT_TIMESTAMP`]
+
+  indexes {
+    don_thuoc_id
+    thuoc_id
+  }
+}
+
+// ============================================
+// BẢNG CẤU HÌNH HỆ THỐNG
+// ============================================
+
+Table cau_hinh_he_thong {
+  id INT [pk, increment]
+  khoa VARCHAR(100) [unique, not null]
+  gia_tri TEXT [not null]
+  mo_ta TEXT
+  nhom VARCHAR(50)
+  created_at TIMESTAMP [default: `CURRENT_TIMESTAMP`]
+  updated_at TIMESTAMP [default: `CURRENT_TIMESTAMP`]
+
+  indexes {
+    khoa [unique]
+    nhom
+  }
+}
+
+// ============================================
+// BẢNG THÔNG BÁO
+// ============================================
+
+Table thong_bao {
+  id INT [pk, increment]
+  nguoi_nhan_id INT [not null, ref: > nguoi_dung.id]
+  tieu_de VARCHAR(200) [not null]
+  noi_dung TEXT [not null]
+  loai ENUM('lich_hen', 'he_thong', 'nhac_nho') [not null]
+  lien_ket VARCHAR(255) [note: 'link điều hướng khi người dùng click vào thông báo']
+  da_doc BOOLEAN [default: false]
+  created_at TIMESTAMP [default: `CURRENT_TIMESTAMP`]
+
+  indexes {
+    nguoi_nhan_id
+    da_doc
+    loai
+    created_at
+    (nguoi_nhan_id, da_doc)
+  }
+}

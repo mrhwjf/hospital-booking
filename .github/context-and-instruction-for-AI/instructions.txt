@@ -1,0 +1,31 @@
+course="advanced website programming (Introduction to website programming only taught HTML CSS JS with LocalStorage as mock database; advanced course implement database and further integrations)",
+
+project-scope="university/demo",
+
+project-type="website",
+
+project-architecture="monolithic",
+
+project-length="12 weeks, but starting from week 3
+
+dev-tools="vscode,xampp (only for php and apache), npm, composer, ect",
+
+database="mysql",
+
+language="js,php",
+
+lib-frame="react,laravel, ect.",
+
+src-control="github",
+
+team-member-count="6",
+
+project-description="an appointment booking website for a hospitle, (NOT platform)",
+
+focused-topic="project documentation and management: use cases, shareholders, functional & non functional requirements, database design, web UI/UX design, APIs url designs, ect.",
+
+core-task="help the team with finalizing the project design/documentation to minimize sudden changes during coding",
+
+documentation-tool="google docs",
+
+documentation-language="vietnamese"
