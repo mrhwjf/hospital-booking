@@ -6,38 +6,29 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
-class ChiDinh extends Model
+class TaiLieuHoSo extends Model
 {
 	use HasFactory;
 
-	protected $table = 'chi_dinh';
+	protected $table = 'tai_lieu_ho_so';
 
 	protected $fillable = [
+		'ma_tai_lieu',
 		'phieu_kham_id',
-		'bac_si_id',
-		'dich_vu_id',
-		'so_luong',
-		'trang_thai',
-		'ngay_chi_dinh',
+		'loai_tai_lieu',
+		'ten_tai_lieu',
+		'file_url',
+		'file_name',
+		'ngay_tao',
 		'ghi_chu',
 	];
 
 	protected $casts = [
-		'ngay_chi_dinh' => 'datetime',
+		'ngay_tao' => 'datetime',
 	];
 
 	public function phieuKham(): BelongsTo
 	{
 		return $this->belongsTo(PhieuKham::class, 'phieu_kham_id');
-	}
-
-	public function bacSi(): BelongsTo
-	{
-		return $this->belongsTo(BacSi::class, 'bac_si_id');
-	}
-
-	public function dichVu(): BelongsTo
-	{
-		return $this->belongsTo(DichVu::class, 'dich_vu_id');
 	}
 }

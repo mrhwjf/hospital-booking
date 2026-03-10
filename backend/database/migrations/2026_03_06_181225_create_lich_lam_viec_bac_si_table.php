@@ -28,7 +28,10 @@ return new class extends Migration {
 
             $table->timestamps();
 
-            $table->unique(['bac_si_id', 'ngay_lam_viec', 'lich_lam_viec_id']);
+            $table->unique(
+                ['bac_si_id', 'ngay_lam_viec', 'lich_lam_viec_id'],
+                'uniq_bacsi_ngay_lich'
+            );
             $table->index('bac_si_id');
             $table->index('ngay_lam_viec');
             $table->index('trang_thai');
