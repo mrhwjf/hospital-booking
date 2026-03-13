@@ -2,44 +2,39 @@ import { useEffect, useMemo, useState } from 'react'
 import dayjs from 'dayjs'
 import { Alert, Calendar, Card, Space, Typography, message, Segmented } from 'antd'
 import TimeSlotCard from './TimeSlotCard'
-import { doctorLeaveDates, generateDoctorTimeslots, holidays, workingSchedules } from '../mockData'
 import "../styles/scheduling-domain-styles.css"
 
 const { Text } = Typography
 
 const toIsoDate = (value) => dayjs(value).format('YYYY-MM-DD')
-const isSunday = (day) => dayjs(day).day() === 0
 
 export default function CalendarPicker({
-	doctorId,
 	selectedDate,
 	selectedSlotKey,
 	onDateChange,
 	onSlotChange,
 	onSlotsChange,
-	schedules = workingSchedules,
-	holidayRows = holidays,
-	leaveRows = doctorLeaveDates,
+	scheduleItems = [],
+	loading = false,
 }) {
 	const availableDates = useMemo(() => {
-		if (!doctorId) {
-			return []
-		}
+		return Array.from(new Set(scheduleItems.map((item) => item.ngay_lam_viec))).sort()
+	}, [scheduleItems])
 
-		const rows = schedules.filter(
-			(item) => item.bac_si_id === doctorId && item.trang_thai === 'hoat_dong',
-		)
-		return Array.from(new Set(rows.map((item) => item.ngay_lam_viec))).sort()
-	}, [doctorId, schedules])
-
-	const selectedSlots = useMemo(
-		() =>
-			generateDoctorTimeslots({
-				doctorId,
-				date: selectedDate,
-			}),
-		[doctorId, selectedDate],
+	const selectedSchedules = useMemo(
+		() => scheduleItems.filter((item) => item.ngay_lam_viec === selectedDate),
+		[scheduleItems, selectedDate],
 	)
+
+	const selectedSlots = useMemo(() => {
+		return selectedSchedules
+			.flatMap((schedule) => schedule.khung_gio || [])
+			.map((slot) => ({
+				...slot,
+				ngay_lam_viec: selectedDate,
+			}))
+			.sort((a, b) => String(a.gio_bat_dau).localeCompare(String(b.gio_bat_dau)))
+	}, [selectedDate, selectedSchedules])
 
 	const [slotPeriod, setSlotPeriod] = useState('morning')
 
@@ -47,24 +42,7 @@ export default function CalendarPicker({
 		onSlotsChange?.(selectedSlots)
 	}, [onSlotsChange, selectedSlots])
 
-	const holiday = useMemo(
-		() =>
-			holidayRows.find(
-				(item) => item.ngay === selectedDate && item.trang_thai === 'hoat_dong',
-			),
-		[holidayRows, selectedDate],
-	)
-
-	const leave = useMemo(
-		() =>
-			leaveRows.find(
-				(item) =>
-					item.bac_si_id === doctorId &&
-					item.ngay === selectedDate &&
-					item.trang_thai === 'hoat_dong',
-			),
-		[doctorId, leaveRows, selectedDate],
-	)
+	const holiday = selectedSchedules.find((item) => item.ngay_nghi_le)?.ngay_nghi_le || null
 
 	const filteredSlots = useMemo(() => {
 		return selectedSlots.filter((slot) => {
@@ -78,34 +56,15 @@ export default function CalendarPicker({
 		})
 	}, [selectedSlots, slotPeriod])
 
-	const isBlockedDate = Boolean(
-		holiday ||
-		isSunday(selectedDate) ||
-		(leave && !leave.gio_bat_dau && !leave.gio_ket_thuc)
-	)
-	const leaveDateMap = useMemo(() => {
-		const map = new Set()
-		leaveRows
-			.filter((item) => item.bac_si_id === doctorId && item.trang_thai === 'hoat_dong')
-			.forEach((item) => map.add(item.ngay))
-		return map
-	}, [doctorId, leaveRows])
-
 	const holidayDateMap = useMemo(() => {
 		const map = new Set()
-		holidayRows
-			.filter((item) => item.trang_thai === 'hoat_dong')
-			.forEach((item) => map.add(item.ngay))
+		scheduleItems.forEach((item) => {
+			if (item.ngay_nghi_le) {
+				map.add(item.ngay_lam_viec)
+			}
+		})
 		return map
-	}, [holidayRows])
-
-	const isBlocked = (iso) => {
-		return (
-			isSunday(iso) ||
-			holidayDateMap.has(iso) ||
-			leaveDateMap.has(iso)
-		)
-	}
+	}, [scheduleItems])
 
 	return (
 		<Space direction="vertical" size={12} className="w-full">
@@ -114,20 +73,19 @@ export default function CalendarPicker({
 				<Calendar
 					fullscreen={false}
 					value={selectedDate ? dayjs(selectedDate) : dayjs()}
+					disabledDate={(current) => !availableDates.includes(toIsoDate(current))}
 					onSelect={(value) => {
 						const iso = toIsoDate(value)
 						if (!availableDates.includes(iso)) {
 							message.info('Ngày này không có lịch làm việc của bác sĩ.')
+							return
 						}
 						onDateChange?.(iso)
 					}}
 					dateFullCellRender={(value) => {
 						const iso = toIsoDate(value)
-
-						const blocked = isBlocked(iso)
+						const blocked = !availableDates.includes(iso)
 						const isHoliday = holidayDateMap.has(iso)
-						const isLeave = leaveDateMap.has(iso)
-						// const sunday = value.day() === 0
 						const selected = selectedDate === iso
 
 						return (
@@ -142,20 +100,15 @@ export default function CalendarPicker({
 								<div className="font-medium">{value.date()}</div>
 
 								<div className="space-y-1">
-									{/* {sunday && (
-										<Text className="text-xs text-red-500">Chủ nhật</Text>
-									)} */}
 									{isHoliday && (
 										<Text className="text-xs text-amber-500">Nghỉ lễ</Text>
-									)}
-									{isLeave && (
-										<Text className="text-xs text-red-500">Bác sĩ nghỉ</Text>
 									)}
 								</div>
 							</div>
 						)
 					}}
 				/>
+				{loading && <Text className="text-slate-500">Dang tai lich lam viec...</Text>}
 			</Card>
 
 			{holiday && (
@@ -163,14 +116,6 @@ export default function CalendarPicker({
 					type="warning"
 					showIcon
 					message={`Bệnh viện nghỉ ngày ${selectedDate}: ${holiday.ten_ngay_nghi}`}
-				/>
-			)}
-
-			{leave && (
-				<Alert
-					type="warning"
-					showIcon
-					message={`Bác sĩ nghỉ ngày ${selectedDate}. Lý do: ${leave.ly_do}`}
 				/>
 			)}
 
@@ -187,10 +132,10 @@ export default function CalendarPicker({
 			<div className="grid gap-3 lg:grid-cols-2">
 				{filteredSlots.map((slot) => (
 					<TimeSlotCard
-						key={slot.id}
+						key={slot.slot_key}
 						date={selectedDate}
 						slot={slot}
-						blocked={isBlockedDate}
+						blocked={Boolean(holiday)}
 						selected={selectedSlotKey === slot.slot_key}
 						onSelect={(value) => onSlotChange?.(value)}
 					/>

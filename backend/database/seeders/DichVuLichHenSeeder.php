@@ -1,0 +1,47 @@
+<?php
+
+namespace Database\Seeders;
+
+use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\DB;
+
+class DichVuLichHenSeeder extends Seeder
+{
+    public function run(): void
+    {
+        $lichHen = DB::table('lich_hen')->pluck('id', 'ma_lich_hen');
+        $dichVu = DB::table('dich_vu')->pluck('id', 'ma_dich_vu');
+        $goiKham = DB::table('goi_kham')->pluck('id', 'ma_goi_kham');
+
+        $rows = [
+            [
+                'lich_hen_id' => $lichHen['LH0001'] ?? null,
+                'dich_vu_id' => null,
+                'goi_kham_id' => $goiKham['GK001'] ?? null,
+                'so_luong' => 1,
+                'ghi_chu' => 'Su dung goi kham co ban.',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'lich_hen_id' => $lichHen['LH0002'] ?? null,
+                'dich_vu_id' => $dichVu['DV004'] ?? null,
+                'goi_kham_id' => null,
+                'so_luong' => 1,
+                'ghi_chu' => null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        ];
+
+        $rows = array_values(array_filter($rows, function (array $row) {
+            if (is_null($row['lich_hen_id'])) {
+                return false;
+            }
+
+            return !is_null($row['dich_vu_id']) || !is_null($row['goi_kham_id']);
+        }));
+
+        DB::table('dich_vu_lich_hen')->upsert($rows, ['lich_hen_id', 'dich_vu_id'], ['goi_kham_id', 'so_luong', 'ghi_chu', 'updated_at']);
+    }
+}

@@ -1,4 +1,4 @@
-import { useMemo, useState, useCallback } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { EyeOutlined } from '@ant-design/icons'
 import {
 	Alert,
@@ -10,7 +10,6 @@ import {
 	Layout,
 	List,
 	Modal,
-	Pagination,
 	Select,
 	Segmented,
 	Space,
@@ -22,17 +21,20 @@ import {
 import DoctorCard from '../../components/DoctorCard'
 import CalendarPicker from '../../components/CalendarPicker'
 import {
-	doctorSpecialties,
-	doctors,
-	formatCurrency,
-	getPackageServiceNames,
-	packages,
-	services,
-	specialties,
-} from '../../mockData'
-import "../../styles/scheduling-domain-styles.css"
+	fetchDoctorSchedule,
+	fetchDoctorsBySpecialty,
+	fetchServicesAndPackages,
+	fetchSpecialties,
+	getApiErrorMessage,
+	submitAppointmentBooking,
+} from '../../../../services/schedulingService'
+import useDebounce from '../../../../hooks/useDebounce'
+import '../../styles/scheduling-domain-styles.css'
+
 const { Content } = Layout
 const { Paragraph, Text, Title } = Typography
+
+const DEMO_BENH_NHAN_ID = 1
 
 const stepItems = [
 	{ title: 'Bác sĩ', description: 'Chọn chuyên khoa và bác sĩ' },
@@ -41,16 +43,34 @@ const stepItems = [
 	{ title: 'Xác nhận', description: 'Kiểm tra và xác nhận lịch hẹn' },
 ]
 
+const formatCurrency = (value) =>
+	Number(value || 0).toLocaleString('vi-VN', {
+		style: 'currency',
+		currency: 'VND',
+		maximumFractionDigits: 0,
+	})
+
 export default function DatLichPage() {
 	const [step, setStep] = useState(0)
 	const [keyword, setKeyword] = useState('')
 	const [itemMode, setItemMode] = useState('dich_vu')
 	const [itemKeyword, setItemKeyword] = useState('')
-	const [currentPage, setCurrentPage] = useState(1)
 	const [activePackageDetail, setActivePackageDetail] = useState(null)
 	const [showReasonError, setShowReasonError] = useState(false)
+	const [isSubmitting, setIsSubmitting] = useState(false)
+	const [loadingDoctors, setLoadingDoctors] = useState(false)
+	const [loadingSchedule, setLoadingSchedule] = useState(false)
+	const [loadingItems, setLoadingItems] = useState(false)
+
+	const [specialties, setSpecialties] = useState([])
+	const [doctors, setDoctors] = useState([])
+	const [services, setServices] = useState([])
+	const [packages, setPackages] = useState([])
+	const [scheduleItems, setScheduleItems] = useState([])
+	const [calendarSlots, setCalendarSlots] = useState([])
+
 	const [booking, setBooking] = useState({
-		chuyen_khoa_id: specialties[0]?.id || null,
+		chuyen_khoa_id: null,
 		bac_si_id: null,
 		ngay_hen: null,
 		khung_gio_id: null,
@@ -59,45 +79,131 @@ export default function DatLichPage() {
 		items: { dich_vu: {}, goi_kham: {} },
 	})
 
-	const doctorIdsInSpecialty = useMemo(
-		() =>
-			doctorSpecialties
-				.filter((item) => item.chuyen_khoa_id === booking.chuyen_khoa_id)
-				.map((item) => item.bac_si_id),
-		[booking.chuyen_khoa_id],
+	const debouncedDoctorKeyword = useDebounce(keyword, 400)
+	const debouncedItemKeyword = useDebounce(itemKeyword, 400)
+
+	useEffect(() => {
+		const loadSpecialties = async () => {
+			try {
+				const items = await fetchSpecialties()
+				setSpecialties(items)
+
+				if (items.length > 0) {
+					setBooking((prev) => ({ ...prev, chuyen_khoa_id: items[0].id }))
+				}
+			} catch {
+				message.error('Không thể tải danh sách chuyên khoa.')
+			}
+		}
+
+		loadSpecialties()
+	}, [])
+
+	useEffect(() => {
+		if (!booking.chuyen_khoa_id) {
+			setDoctors([])
+			return
+		}
+
+		const loadDoctors = async () => {
+			setLoadingDoctors(true)
+			try {
+				const items = await fetchDoctorsBySpecialty({
+					chuyenKhoaId: booking.chuyen_khoa_id,
+					keyword: debouncedDoctorKeyword,
+				})
+				setDoctors(items)
+			} catch {
+				message.error('Không thể tải danh sách bác sĩ.')
+			} finally {
+				setLoadingDoctors(false)
+			}
+		}
+
+		loadDoctors()
+	}, [booking.chuyen_khoa_id, debouncedDoctorKeyword])
+
+	useEffect(() => {
+		if (!booking.chuyen_khoa_id) {
+			setServices([])
+			setPackages([])
+			return
+		}
+
+		const loadItems = async () => {
+			setLoadingItems(true)
+			try {
+				const { services: nextServices, packages: nextPackages } = await fetchServicesAndPackages({
+					chuyenKhoaId: booking.chuyen_khoa_id,
+					keyword: debouncedItemKeyword,
+				})
+
+				setServices(nextServices)
+				setPackages(nextPackages)
+			} catch {
+				message.error('Không thể tải danh sách dịch vụ/gói khám.')
+			} finally {
+				setLoadingItems(false)
+			}
+		}
+
+		loadItems()
+	}, [booking.chuyen_khoa_id, debouncedItemKeyword])
+
+	useEffect(() => {
+		if (!booking.bac_si_id) {
+			setScheduleItems([])
+			return
+		}
+
+		const loadSchedule = async () => {
+			setLoadingSchedule(true)
+			try {
+				const items = await fetchDoctorSchedule({
+					bacSiId: booking.bac_si_id,
+				})
+				setScheduleItems(items)
+			} catch {
+				message.error('Không thể tải lịch làm việc của bác sĩ.')
+			} finally {
+				setLoadingSchedule(false)
+			}
+		}
+
+		loadSchedule()
+	}, [booking.bac_si_id])
+
+	const selectedDoctor = useMemo(
+		() => doctors.find((doctor) => doctor.id === booking.bac_si_id),
+		[doctors, booking.bac_si_id],
 	)
 
-	const filteredDoctors = useMemo(() => {
-		const normalized = keyword.trim().toLowerCase()
-		return doctors.filter((doctor) => {
-			if (!doctorIdsInSpecialty.includes(doctor.id)) {
-				return false
-			}
-			if (!normalized) {
-				return true
-			}
-			return (
-				doctor.ho_ten.toLowerCase().includes(normalized) ||
-				doctor.gioi_thieu.toLowerCase().includes(normalized)
-			)
-		})
-	}, [doctorIdsInSpecialty, keyword])
+	const selectedSpecialty = useMemo(
+		() => specialties.find((specialty) => specialty.id === booking.chuyen_khoa_id),
+		[specialties, booking.chuyen_khoa_id],
+	)
 
-	const selectedDoctor = doctors.find((doctor) => doctor.id === booking.bac_si_id)
-	const selectedSpecialty = specialties.find((specialty) => specialty.id === booking.chuyen_khoa_id)
-
-	const [calendarSlots, setCalendarSlots] = useState([])
 	const selectedSlots = calendarSlots
 	const selectedSlot = selectedSlots.find((slot) => slot.slot_key === booking.khung_gio_id)
 
 	const selectedServiceRows = Object.entries(booking.items.dich_vu || {}).map(([id, qty]) => {
 		const item = services.find((service) => service.id === Number(id))
-		return { type: 'Dịch vụ', name: item?.ten_dich_vu, qty, unitPrice: item?.gia_dich_vu || 0 }
+		return {
+			type: 'Dich vu',
+			name: item?.ten_dich_vu,
+			qty,
+			unitPrice: item?.gia_dich_vu || 0,
+		}
 	})
 
 	const selectedPackageRows = Object.entries(booking.items.goi_kham || {}).map(([id, qty]) => {
 		const item = packages.find((pkg) => pkg.id === Number(id))
-		return { type: 'Gói khám', name: item?.ten_goi_kham, qty, unitPrice: item?.gia_goi_kham || 0 }
+		return {
+			type: 'Goi kham',
+			name: item?.ten_goi_kham,
+			qty,
+			unitPrice: item?.gia_goi_kham || 0,
+		}
 	})
 
 	const selectedRows = [...selectedServiceRows, ...selectedPackageRows]
@@ -117,7 +223,7 @@ export default function DatLichPage() {
 	})()
 
 	const updateItem = useCallback((type, id, delta) => {
-		setBooking(prev => {
+		setBooking((prev) => {
 			const current = prev.items[type]?.[id] ?? 0
 			const next = Math.max(0, current + delta)
 
@@ -153,7 +259,40 @@ export default function DatLichPage() {
 		setStep((current) => Math.max(current - 1, 0))
 	}
 
-	const handleConfirm = () => {
+	const buildPayload = () => {
+		const items = [
+			...Object.entries(booking.items.dich_vu || {}).map(([id, so_luong]) => ({
+				dich_vu_id: Number(id),
+				so_luong,
+			})),
+			...Object.entries(booking.items.goi_kham || {}).map(([id, so_luong]) => ({
+				goi_kham_id: Number(id),
+				so_luong,
+			})),
+		]
+
+		const payload = {
+			benh_nhan_id: DEMO_BENH_NHAN_ID,
+			bac_si_id: booking.bac_si_id,
+			chuyen_khoa_id: booking.chuyen_khoa_id,
+			ngay_hen: booking.ngay_hen,
+			ly_do_kham: booking.ly_do_kham,
+			ghi_chu: booking.ghi_chu,
+			items,
+		}
+
+		if (selectedSlot?.id) {
+			payload.khung_gio_id = selectedSlot.id
+		} else {
+			payload.lich_lam_viec_bac_si_id = selectedSlot?.lich_lam_viec_bac_si_id
+			payload.gio_bat_dau = selectedSlot?.gio_bat_dau
+			payload.gio_ket_thuc = selectedSlot?.gio_ket_thuc
+		}
+
+		return payload
+	}
+
+	const handleConfirm = async () => {
 		if (!booking.khung_gio_id || selectedRows.length === 0) {
 			message.error('Vui lòng chọn đủ khung giờ và dịch vụ/gói khám.')
 			return
@@ -163,54 +302,48 @@ export default function DatLichPage() {
 			return
 		}
 
-		if (selectedSlot && !selectedSlot.existsInDb) {
-			const createSlotPayload = {
-				lich_lam_viec_bac_si_id: selectedSlot.lich_lam_viec_bac_si_id,
-				gio_bat_dau: selectedSlot.gio_bat_dau,
-				gio_ket_thuc: selectedSlot.gio_ket_thuc,
-				trang_thai: 'da_dat',
-			}
-			console.info('Mock INSERT khung_gio_kham:', createSlotPayload)
+		setIsSubmitting(true)
+		try {
+			const lichHen = await submitAppointmentBooking(buildPayload())
+			const maLichHen = lichHen?.ma_lich_hen
+			message.success(`Đặt lịch thành công${maLichHen ? `: ${maLichHen}` : ''}.`)
+			setStep(0)
+			setBooking((prev) => ({
+				...prev,
+				bac_si_id: null,
+				ngay_hen: null,
+				khung_gio_id: null,
+				ly_do_kham: '',
+				ghi_chu: '',
+				items: { dich_vu: {}, goi_kham: {} },
+			}))
+		} catch (error) {
+			message.error(getApiErrorMessage(error, 'Đặt lịch thất bại. Vui lòng thử lại.'))
+		} finally {
+			setIsSubmitting(false)
 		}
-
-		message.success(`Đặt lịch thành công. Mã lịch dự kiến: LH${Date.now()}`)
 	}
 
-	const servicesData = useMemo(() => {
-		const normalized = itemKeyword.trim().toLowerCase()
-		return services
-			.filter((service) => service.chuyen_khoa_id === booking.chuyen_khoa_id)
-			.filter((service) => service.ten_dich_vu.toLowerCase().includes(normalized))
-			.map((service) => ({
-				key: `dv-${service.id}`,
-				id: service.id,
-				name: service.ten_dich_vu,
-				description: service.mo_ta,
-				amount: service.gia_dich_vu,
-				quantity: booking.items.dich_vu?.[service.id] ?? 0,
-				type: 'dich_vu',
-			}))
-	}, [booking.chuyen_khoa_id, booking.items.dich_vu, itemKeyword])
-
-	const packagesData = useMemo(() => {
-		const normalized = itemKeyword.trim().toLowerCase()
-		return packages
-			.filter((pkg) => pkg.ten_goi_kham.toLowerCase().includes(normalized))
-			.map((pkg) => ({
-				key: `gk-${pkg.id}`,
-				id: pkg.id,
-				name: pkg.ten_goi_kham,
-				description: pkg.mo_ta,
-				amount: pkg.gia_goi_kham,
-				quantity: booking.items.goi_kham?.[pkg.id] ?? 0,
-				type: 'goi_kham',
-				pkg,
-			}))
-	}, [booking.items.goi_kham, itemKeyword])
-
-	const activeData = itemMode === 'dich_vu' ? servicesData : packagesData
-	// const pageSize = 5
-	// const pagedData = activeData.slice((currentPage - 1) * pageSize, currentPage * pageSize)
+	const activeData = itemMode === 'dich_vu'
+		? services.map((service) => ({
+			key: `dv-${service.id}`,
+			id: service.id,
+			name: service.ten_dich_vu,
+			description: service.mo_ta,
+			amount: service.gia_dich_vu,
+			quantity: booking.items.dich_vu?.[service.id] ?? 0,
+			type: 'dich_vu',
+		}))
+		: packages.map((pkg) => ({
+			key: `gk-${pkg.id}`,
+			id: pkg.id,
+			name: pkg.ten_goi_kham,
+			description: pkg.mo_ta,
+			amount: pkg.gia_goi_kham,
+			quantity: booking.items.goi_kham?.[pkg.id] ?? 0,
+			type: 'goi_kham',
+			pkg,
+		}))
 
 	const columns = useMemo(() => {
 		const baseColumns = [
@@ -274,7 +407,7 @@ export default function DatLichPage() {
 		}
 
 		return baseColumns
-	}, [itemMode, updateItem, setActivePackageDetail])
+	}, [itemMode, updateItem])
 
 	return (
 		<ConfigProvider
@@ -324,13 +457,13 @@ export default function DatLichPage() {
 											}))}
 										/>
 										<Input
-											placeholder="Tìm bác sĩ theo tên hoặc mô tả"
+											placeholder="Tìm bác sĩ theo tên"
 											value={keyword}
 											onChange={(event) => setKeyword(event.target.value)}
 										/>
 									</div>
 									<div className="grid gap-3 lg:grid-cols-2">
-										{filteredDoctors.map((doctor) => (
+										{doctors.map((doctor) => (
 											<DoctorCard
 												key={doctor.id}
 												doctor={doctor}
@@ -343,15 +476,18 @@ export default function DatLichPage() {
 														khung_gio_id: null,
 													}))
 												}
+												specialtyNames={(doctor.bac_si_chuyen_khoas || [])
+													.map((row) => row?.chuyen_khoa?.ten_chuyen_khoa)
+													.filter(Boolean)}
 											/>
 										))}
 									</div>
+									{loadingDoctors && <Text className="text-slate-500">Đang tải danh sách bác sĩ...</Text>}
 								</Space>
 							)}
 
 							{step === 1 && (
 								<CalendarPicker
-									doctorId={booking.bac_si_id}
 									selectedDate={booking.ngay_hen}
 									selectedSlotKey={booking.khung_gio_id}
 									onDateChange={(iso) =>
@@ -361,9 +497,10 @@ export default function DatLichPage() {
 										setBooking((prev) => ({ ...prev, khung_gio_id: value.slot_key }))
 									}
 									onSlotsChange={setCalendarSlots}
+									scheduleItems={scheduleItems}
+									loading={loadingSchedule}
 								/>
 							)}
-
 
 							{step === 2 && (
 								<Space direction="vertical" size={12} className="w-full">
@@ -374,7 +511,6 @@ export default function DatLichPage() {
 												value={itemMode}
 												onChange={(value) => {
 													setItemMode(value)
-													setCurrentPage(1)
 												}}
 												options={[
 													{ label: 'Dịch vụ lẻ', value: 'dich_vu' },
@@ -390,13 +526,11 @@ export default function DatLichPage() {
 												value={itemKeyword}
 												onChange={(event) => {
 													setItemKeyword(event.target.value)
-													setCurrentPage(1)
 												}}
 												className="w-72"
 											/>
 										</div>
-										{console.log("activeData length:", activeData.length)}
-										{console.log(activeData)}
+
 										<Table
 											rowKey="key"
 											columns={columns}
@@ -404,24 +538,13 @@ export default function DatLichPage() {
 											pagination={{
 												pageSize: 5,
 												hideOnSinglePage: true,
-												// current: currentPage,
-												// onChange: setCurrentPage,
 											}}
+											loading={loadingItems}
 										/>
-										{/* <div className="mt-3 flex justify-end">
-											<Pagination
-												current={currentPage}
-												pageSize={pageSize}
-												total={activeData.length}
-												onChange={setCurrentPage}
-												size="small"
-											/>
-										</div> */}
-
 										<Divider className="my-3" />
 										<div className="flex items-center justify-between">
 											<Text strong>Tổng tạm tính đã chọn</Text>
-											<Text strong type="danger" className="!text-xl">
+											<Text strong type="danger" className="text-xl!">
 												{formatCurrency(selectedTotal)}
 											</Text>
 										</div>
@@ -461,7 +584,7 @@ export default function DatLichPage() {
 											<Text>Bác sĩ: <Text strong>{selectedDoctor?.ho_ten || '-'}</Text></Text>
 											<Text>Ngày khám: <Text strong>{booking.ngay_hen || 'Chưa chọn'}</Text></Text>
 											<Text>
-												Khung giờ: <Text strong>{selectedSlot ? `${selectedSlot.gio_bat_dau.slice(0, 5)} - ${selectedSlot.gio_ket_thuc.slice(0, 5)}` : 'Chưa chọn'}</Text>
+												Khung giờ: <Text strong>{selectedSlot ? `${String(selectedSlot.gio_bat_dau).slice(0, 5)} - ${String(selectedSlot.gio_ket_thuc).slice(0, 5)}` : 'Chưa chọn'}</Text>
 											</Text>
 										</div>
 									</Card>
@@ -521,7 +644,7 @@ export default function DatLichPage() {
 												Tổng tạm tính
 											</Text>
 
-											<Text strong type="danger" className="!text-xl">
+											<Text strong type="danger" className="text-xl!">
 												{formatCurrency(selectedTotal)}
 											</Text>
 										</div>
@@ -549,7 +672,7 @@ export default function DatLichPage() {
 										<Button type="primary" onClick={handleNext}>Tiếp tục</Button>
 									)}
 									{step === stepItems.length - 1 && (
-										<Button type="primary" onClick={handleConfirm}>Xác nhận đặt lịch</Button>
+										<Button type="primary" loading={isSubmitting} onClick={handleConfirm}>Xác nhận đặt lịch</Button>
 									)}
 								</div>
 							</div>
@@ -568,7 +691,11 @@ export default function DatLichPage() {
 			>
 				<List
 					size="small"
-					dataSource={activePackageDetail ? getPackageServiceNames(activePackageDetail.id) : []}
+					dataSource={
+						activePackageDetail
+							? (activePackageDetail.chi_tiet_goi_khams || []).map((row) => row?.dich_vu?.ten_dich_vu).filter(Boolean)
+							: []
+					}
 					renderItem={(item, index) => <List.Item>{index + 1}. {item}</List.Item>}
 					locale={{ emptyText: 'Chưa cấu hình dịch vụ trong gói' }}
 				/>

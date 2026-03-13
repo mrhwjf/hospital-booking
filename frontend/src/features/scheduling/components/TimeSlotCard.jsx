@@ -1,7 +1,20 @@
 import { Button, Card, Tag, Typography } from 'antd'
-import { formatDateLabel, formatTimeLabel } from '../mockData'
 
 const { Text } = Typography
+
+const formatDateLabel = (value) => {
+	if (!value) {
+		return '--'
+	}
+
+	return new Date(`${value}T00:00:00`).toLocaleDateString('vi-VN', {
+		weekday: 'short',
+		day: '2-digit',
+		month: '2-digit',
+	})
+}
+
+const formatTimeLabel = (timeString) => String(timeString || '').slice(0, 5)
 
 const statusLabel = {
 	trong: 'Còn trống',
