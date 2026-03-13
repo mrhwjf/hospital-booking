@@ -37,6 +37,12 @@ class VaiTroQuyenSeeder extends Seeder
 			$rows[] = ['vai_tro_id' => $benhNhanId, 'quyen_id' => $permissionId, 'created_at' => now()];
 		}
 
-		DB::table('vai_tro_quyen')->upsert($rows, ['vai_tro_id', 'quyen_id'], []);
+		$rows = collect($rows)
+			->filter(fn(array $row) => !is_null($row['vai_tro_id']) && !is_null($row['quyen_id']))
+			->unique(fn(array $row) => $row['vai_tro_id'] . '-' . $row['quyen_id'])
+			->values()
+			->all();
+
+		DB::table('vai_tro_quyen')->insertOrIgnore($rows);
 	}
 }
