@@ -31,7 +31,7 @@ function RegisterPage() {
             </span>
           </div>
 
-          <div className="mb-50 max-w-lg">
+          <div className="mb-30 max-w-lg">
             <h1 className="mb-4 text-4xl font-black leading-tight font-bold">
               Chào mừng đến với Hệ thống Y tế ABC
             </h1>
