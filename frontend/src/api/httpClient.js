@@ -1,0 +1,22 @@
+import axios from 'axios'
+
+const httpClient = axios.create({
+    baseURL: 'http://localhost:8000/api/v1',
+    timeout: 15000,
+})
+
+// Tự động đính kèm token vào mọi request nếu đã đăng nhập
+httpClient.interceptors.request.use((config) => {
+    const token = localStorage.getItem('auth_token')
+    if (token) {
+        config.headers.Authorization = `Bearer ${token}`
+    }
+    return config
+})
+
+httpClient.interceptors.response.use(
+    (response) => response.data,
+    (error) => Promise.reject(error),
+)
+
+export default httpClient

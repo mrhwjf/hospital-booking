@@ -1,15 +1,46 @@
 ﻿import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import HospitalIcon from "./icon/HospitalIcon";
 import MailIcon from "./icon/MailIcon";
 import LockIcon from "./icon/LockIcon";
 import EyeIcon from "./icon/EyeIcon";
 import EyeOffIcon from "./icon/EyeOffIcon";
+import { login } from "../../api/authApi";
 
 function LoginPage() {
+  const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
+  const [form, setForm] = useState({ email: "", mat_khau: "" });
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (event) => {
+  const handleChange = (e) => {
+    setForm((prev) => ({ ...prev, [e.target.id]: e.target.value }));
+  };
+
+  const handleSubmit = async (event) => {
     event.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      const data = await login(form.email, form.mat_khau);
+      localStorage.setItem("auth_token", data.token);
+      localStorage.setItem("vai_tro", data.nguoi_dung.vai_tro);
+
+      const vaiTro = data.nguoi_dung.vai_tro;
+      if (vaiTro === "BENHNHAN") {
+        navigate("/patient");
+      } else {
+        navigate("/admin");
+      }
+    } catch (err) {
+      const msg =
+        err?.response?.data?.message ||
+        "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.";
+      setError(msg);
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -78,6 +109,12 @@ function LoginPage() {
           </div>
 
           <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
+            {error && (
+              <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {error}
+              </div>
+            )}
+
             <div className="flex flex-col gap-2">
               <label
                 className="text-[#0e1b1a] text-base font-medium"
@@ -89,6 +126,9 @@ function LoginPage() {
                   id="email"
                   type="email"
                   placeholder="bacsi@benhvien.vn"
+                  value={form.email}
+                  onChange={handleChange}
+                  required
                   className="form-input flex w-full rounded-lg border border-[#d0e6e5] bg-[#f8fbfb] text-[#0e1b1a] h-14 px-4 pl-11 text-base placeholder:text-[#4f9690] focus:border-[#0f756d] focus:ring-1 focus:ring-[#0f756d] focus:outline-none transition-all"
                 />
                 <div className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-[#4f9690]">
@@ -100,14 +140,17 @@ function LoginPage() {
             <div className="flex flex-col gap-2">
               <label
                 className="text-[#0e1b1a] text-base font-medium"
-                htmlFor="password">
+                htmlFor="mat_khau">
                 Mật khẩu
               </label>
               <div className="relative flex w-full items-stretch rounded-lg">
                 <input
-                  id="password"
+                  id="mat_khau"
                   type={showPassword ? "text" : "password"}
                   placeholder="••••••••"
+                  value={form.mat_khau}
+                  onChange={handleChange}
+                  required
                   className="form-input flex w-full rounded-lg border border-[#d0e6e5] bg-[#f8fbfb] text-[#0e1b1a] h-14 px-4 pl-11 pr-12 text-base placeholder:text-[#4f9690] focus:border-[#0f756d] focus:ring-1 focus:ring-[#0f756d] focus:outline-none transition-all"
                 />
                 <div className="absolute inset-y-0 left-0 flex items-center pl-3.5 pointer-events-none text-[#4f9690]">
@@ -146,8 +189,9 @@ function LoginPage() {
 
             <button
               type="submit"
+              disabled={loading}
               className="mt-2 flex w-full items-center justify-center rounded-lg bg-[#0f756d] hover:bg-[#0a554f] text-white font-bold h-14 text-base transition-all shadow-sm hover:shadow-md focus:ring-2 focus:ring-offset-2 focus:ring-[#0f756d] cursor-pointer">
-              Đăng nhập
+              {loading ? "Đang đăng nhập..." : "Đăng nhập"}
             </button>
           </form>
 

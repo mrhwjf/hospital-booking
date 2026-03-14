@@ -16,30 +16,30 @@
 
                     <tr>
                         <td align="center" style="background:#0f766e; color:white; padding:15px; border-radius:6px">
-                            <h2>Bệnh viên y tế ABC</h2>
+                            <h2>Hệ thống Y tế ABC</h2>
                         </td>
                     </tr>
 
                     <tr>
                         <td style="padding:25px">
 
-                            <h3>Account Successfully Registered</h3>
+                            <h3>Tài khoản đã được đăng ký thành công</h3>
 
-                            <p>Hello,</p>
+                            <p>Xin chào {{ $hoTen }},</p>
 
-                            <p>Your account has been successfully registered in our Bệnh viên y tế ABC.</p>
+                            <p>Tài khoản của bạn đã được đăng ký thành công trong Hệ thống y tế ABC.</p>
 
-                            <p>You can now log in to your account and start booking appointments with our doctors.</p>
+                            <p>Bây giờ bạn có thể đăng nhập vào tài khoản của mình và bắt đầu đặt lịch hẹn với các bác sĩ của chúng tôi.</p>
 
                             <p style="margin-top:20px">
-                                <a href="http://localhost:3000/login"
+                                <a href="http://localhost:5173/login"
                                     style="background:#0f766e;color:white;padding:12px 20px;text-decoration:none;border-radius:5px;">
-                                    Login to your account
+                                    Đăng nhập vào tài khoản của bạn
                                 </a>
                             </p>
 
                             <p style="margin-top:30px">
-                                If you did not create this account, please ignore this email.
+                                Nếu bạn không tạo tài khoản này, vui lòng bỏ qua email này.
                             </p>
 
                         </td>
@@ -47,7 +47,7 @@
 
                     <tr>
                         <td align="center" style="font-size:12px;color:gray;padding-top:20px">
-                            © 2026 Bệnh viên y tế ABC
+                            © 2026 Hệ thống Y tế ABC
                         </td>
                     </tr>
 

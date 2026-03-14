@@ -17,3 +17,8 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
+
+// Nhóm phiên bản API v1
+Route::prefix('v1')->group(function () {
+    Route::prefix('auth')->group(base_path('routes/api/v1/auth.php'));
+});

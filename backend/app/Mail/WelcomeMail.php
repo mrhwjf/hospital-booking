@@ -3,22 +3,17 @@
 namespace App\Mail;
 
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
 use Illuminate\Queue\SerializesModels;
 
-class sendingMails extends Mailable
+class WelcomeMail extends Mailable
 {
     use Queueable, SerializesModels;
 
-    /**
-     * Create a new message instance.
-     */
-    public function __construct()
+    public function __construct(public readonly string $hoTen)
     {
-        //
     }
 
     /**
@@ -27,7 +22,7 @@ class sendingMails extends Mailable
     public function envelope(): Envelope
     {
         return new Envelope(
-            subject: 'Hệ Thống Y Tế ABC',
+            subject: 'Hệ Thống Y tế ABC',
         );
     }
 
@@ -37,7 +32,10 @@ class sendingMails extends Mailable
     public function content(): Content
     {
         return new Content(
-            view: 'mailSending.mail',
+            view: 'emails.welcome',
+            with: [
+                'hoTen' => $this->hoTen, // Truyền tên người dùng vào view
+            ],
         );
     }
 

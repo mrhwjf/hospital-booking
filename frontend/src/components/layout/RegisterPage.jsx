@@ -1,12 +1,58 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import HospitalIcon from "./icon/HospitalIcon";
+import { register } from "../../api/authApi";
 
 function RegisterPage() {
   const navigate = useNavigate();
+  const [form, setForm] = useState({
+    ho_ten: "",
+    so_dien_thoai: "",
+    email: "",
+    mat_khau: "",
+    mat_khau_confirmation: "",
+    ngay_sinh: "",
+    so_cccd: "",
+    gioi_tinh: "nam",
+  });
+  const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (event) => {
-    event.preventDefault();
+  const handleChange = (e) => {
+    const { id, name, value } = e.target;
+    const key = id || name;
+    setForm((prev) => ({ ...prev, [key]: value }));
   };
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setError("");
+    setFieldErrors({});
+    setLoading(true);
+    try {
+      const data = await register(form);
+      localStorage.setItem("auth_token", data.token);
+      localStorage.setItem("vai_tro", data.nguoi_dung.vai_tro);
+      alert(`Chào mừng ${form.ho_ten} đã đến với Hệ Thống Y Tế ABC`);
+      navigate("/login");
+    } catch (err) {
+      const resData = err?.response?.data;
+      if (resData?.errors) {
+        setFieldErrors(resData.errors);
+      }
+      setError(
+        resData?.message || "Đăng ký thất bại. Vui lòng thử lòng thử lại",
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fieldError = (field) =>
+    fieldErrors[field] ? (
+      <p className="mt-1 text-xs text-red-600">{fieldErrors[field][0]}</p>
+    ) : null;
 
   return (
     <div className="flex min-h-screen w-full bg-[#f6f8f8] text-slate-900 antialiased">
@@ -31,7 +77,7 @@ function RegisterPage() {
             </span>
           </div>
 
-          <div className="mb-50 max-w-lg">
+          <div className="mb-30 max-w-lg">
             <h1 className="mb-4 text-4xl font-black leading-tight font-bold">
               Chào mừng đến với Hệ thống Y tế ABC
             </h1>
@@ -60,33 +106,47 @@ function RegisterPage() {
           </div>
 
           <form className="space-y-4" onSubmit={handleSubmit}>
+            {error && (
+              <div className="rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+                {error}
+              </div>
+            )}
+
             <div className="flex flex-col gap-1.5">
               <label
                 className="text-sm font-semibold text-slate-700"
-                htmlFor="fullName">
+                htmlFor="ho_ten">
                 Họ và tên
               </label>
               <input
-                id="fullName"
+                id="ho_ten"
                 type="text"
                 placeholder="Nguyễn Văn A"
+                value={form.ho_ten}
+                onChange={handleChange}
+                required
                 className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 transition-all focus:border-[#0f756d] focus:ring-2 focus:ring-[#0f756d]"
               />
+              {fieldError("ho_ten")}
             </div>
 
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <div className="flex flex-col gap-1.5">
                 <label
                   className="text-sm font-semibold text-slate-700"
-                  htmlFor="phoneNumber">
+                  htmlFor="so_dien_thoai">
                   Số điện thoại
                 </label>
                 <input
-                  id="phoneNumber"
+                  id="so_dien_thoai"
                   type="tel"
                   placeholder="0123 456 789"
+                  value={form.so_dien_thoai}
+                  onChange={handleChange}
+                  required
                   className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 transition-all focus:border-[#0f756d] focus:ring-2 focus:ring-[#0f756d]"
                 />
+                {fieldError("so_dien_thoai")}
               </div>
               <div className="flex flex-col gap-1.5">
                 <label
@@ -98,8 +158,12 @@ function RegisterPage() {
                   id="email"
                   type="email"
                   placeholder="example@gmail.com"
+                  value={form.email}
+                  onChange={handleChange}
+                  required
                   className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 transition-all focus:border-[#0f756d] focus:ring-2 focus:ring-[#0f756d]"
                 />
+                {fieldError("email")}
               </div>
             </div>
 
@@ -107,26 +171,33 @@ function RegisterPage() {
               <div className="flex flex-col gap-1.5">
                 <label
                   className="text-sm font-semibold text-slate-700"
-                  htmlFor="password">
+                  htmlFor="mat_khau">
                   Mật khẩu
                 </label>
                 <input
-                  id="password"
+                  id="mat_khau"
                   type="password"
                   placeholder="********"
+                  value={form.mat_khau}
+                  onChange={handleChange}
+                  required
                   className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 transition-all focus:border-[#0f756d] focus:ring-2 focus:ring-[#0f756d]"
                 />
+                {fieldError("mat_khau")}
               </div>
               <div className="flex flex-col gap-1.5">
                 <label
                   className="text-sm font-semibold text-slate-700"
-                  htmlFor="confirmPassword">
+                  htmlFor="mat_khau_confirmation">
                   Xác nhận mật khẩu
                 </label>
                 <input
-                  id="confirmPassword"
+                  id="mat_khau_confirmation"
                   type="password"
                   placeholder="********"
+                  value={form.mat_khau_confirmation}
+                  onChange={handleChange}
+                  required
                   className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 transition-all focus:border-[#0f756d] focus:ring-2 focus:ring-[#0f756d]"
                 />
               </div>
@@ -136,27 +207,35 @@ function RegisterPage() {
               <div className="flex flex-col gap-1.5">
                 <label
                   className="text-sm font-semibold text-slate-700"
-                  htmlFor="dob">
+                  htmlFor="ngay_sinh">
                   Ngày sinh
                 </label>
                 <input
-                  id="dob"
+                  id="ngay_sinh"
                   type="date"
+                  value={form.ngay_sinh}
+                  onChange={handleChange}
+                  required
                   className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 transition-all focus:border-[#0f756d] focus:ring-2 focus:ring-[#0f756d]"
                 />
+                {fieldError("ngay_sinh")}
               </div>
               <div className="flex flex-col gap-1.5">
                 <label
                   className="text-sm font-semibold text-slate-700"
-                  htmlFor="idNumber">
+                  htmlFor="so_cccd">
                   CCCD/Số hộ chiếu
                 </label>
                 <input
-                  id="idNumber"
+                  id="so_cccd"
                   type="text"
                   placeholder="00120000xxxx"
+                  value={form.so_cccd}
+                  onChange={handleChange}
+                  required
                   className="w-full rounded-lg border border-slate-200 bg-slate-50 px-4 py-3 text-slate-900 transition-all focus:border-[#0f756d] focus:ring-2 focus:ring-[#0f756d]"
                 />
+                {fieldError("so_cccd")}
               </div>
             </div>
 
@@ -169,9 +248,10 @@ function RegisterPage() {
                   <input
                     className="h-4 w-4"
                     type="radio"
-                    name="gender"
-                    value="Nam"
-                    defaultChecked
+                    name="gioi_tinh"
+                    value="nam"
+                    checked={form.gioi_tinh === "nam"}
+                    onChange={handleChange}
                   />
                   <span className="text-sm font-medium text-slate-700">
                     Nam
@@ -181,8 +261,10 @@ function RegisterPage() {
                   <input
                     className="h-4 w-4"
                     type="radio"
-                    name="gender"
-                    value="Nu"
+                    name="gioi_tinh"
+                    value="nu"
+                    checked={form.gioi_tinh === "nu"}
+                    onChange={handleChange}
                   />
                   <span className="text-sm font-medium text-slate-700">Nữ</span>
                 </label>
@@ -190,8 +272,10 @@ function RegisterPage() {
                   <input
                     className="h-4 w-4"
                     type="radio"
-                    name="gender"
-                    value="Khac"
+                    name="gioi_tinh"
+                    value="khac"
+                    checked={form.gioi_tinh === "khac"}
+                    onChange={handleChange}
                   />
                   <span className="text-sm font-medium text-slate-700">
                     Khác
@@ -200,14 +284,14 @@ function RegisterPage() {
               </div>
             </div>
 
-            <div className="flex items-start gap-2 pt-2">
+            <div className="flex items-start gap-2 pt-2 ">
               <input
                 id="terms"
                 required
                 type="checkbox"
                 className="mt=0.5 h-4 w-4 rounded border-slate-300 cursor-pointer"
               />
-              <label className="text-xs text-slate-500" htmlFor="terms">
+              <label className="text-xs text-slate-500 cursor-pointer" htmlFor="terms">
                 Tôi đồng ý với các điều khoản dịch vụ và chính sách bảo mật của
                 ABC.
               </label>
@@ -215,8 +299,9 @@ function RegisterPage() {
 
             <button
               type="submit"
+              disabled={loading}
               className="mt-6 w-full rounded-lg bg-[#0f756d] py-4 font-bold text-white shadow-lg shadow-[#0f756d]/20 transition-all hover:bg-[#0c615b] cursor-pointer">
-              Đăng ký tài khoản
+              {loading ? "Đang đăng ký..." : "Đăng ký tài khoản"}
             </button>
 
             <div className="pt-4 text-center">
