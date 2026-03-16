@@ -2,6 +2,7 @@ import axios from 'axios'
 
 const httpClient = axios.create({
 	baseURL: 'http://localhost:8000/api/v1',
+	// baseURL: 'http://192.168.2.175:8000/api/v1',
 	timeout: 15000,
 })
 

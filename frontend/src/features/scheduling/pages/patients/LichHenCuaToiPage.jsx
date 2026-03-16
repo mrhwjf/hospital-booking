@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
 	Alert,
 	Badge,
@@ -15,35 +15,99 @@ import {
 	message,
 } from 'antd'
 import AppointmentDetails from '../../components/AppointmentDetails'
+import DoiLichForm from '../../components/DoiLichForm'
 import {
-	appointmentItems,
-	appointmentStatusMeta,
-	appointments as initialAppointments,
-	doctors,
-	formatCurrency,
-	formatTimeLabel,
-	packages,
-	services,
-	specialties,
-	timeSlots,
-} from '../../mockData'
+	fetchCancellationReasons,
+	fetchMyAppointments,
+	getApiErrorMessage,
+	submitCancelAppointment,
+	submitRescheduleAppointment,
+} from '../../../../services/schedulingService'
+import { MODAL_STYLES } from '../../styles/const-styles'
 
 const { useBreakpoint } = Grid
 const { Paragraph, Text, Title } = Typography
 
-const isActionAllowed = (dateValue) => {
-	const now = new Date()
-	const appointmentDate = new Date(`${dateValue}T00:00:00`)
-	const diffHours = (appointmentDate.getTime() - now.getTime()) / (1000 * 60 * 60)
-	return diffHours >= 24
+const resolvePatientId = () => {
+	const fromStorage = Number(window.localStorage.getItem('benh_nhan_id'))
+	if (Number.isInteger(fromStorage) && fromStorage > 0) {
+		return fromStorage
+	}
+
+	const fromEnv = Number(import.meta.env.VITE_DEFAULT_BENH_NHAN_ID)
+	if (Number.isInteger(fromEnv) && fromEnv > 0) {
+		return fromEnv
+	}
+
+	return 1
 }
 
+const appointmentStatusMeta = {
+	dang_cho: { label: 'Đang chờ', color: 'gold' },
+	da_thanh_toan: { label: 'Đã thanh toán', color: 'blue' },
+	da_xac_nhan: { label: 'Đã xác nhận', color: 'cyan' },
+	da_hoan_tat: { label: 'Đã hoàn tất', color: 'green' },
+	da_huy: { label: 'Đã hủy', color: 'red' },
+	khong_den: { label: 'Không đến', color: 'orange' },
+}
+
+const formatCurrency = (value) =>
+	Number(value || 0).toLocaleString('vi-VN', {
+		style: 'currency',
+		currency: 'VND',
+		maximumFractionDigits: 0,
+	})
+
+const formatTimeLabel = (timeString) => String(timeString || '').slice(0, 5)
+
 export default function LichHenCuaToiPage() {
-	const [appointments, setAppointments] = useState(initialAppointments)
+	const [loading, setLoading] = useState(false)
+	const [isCancelSubmitting, setIsCancelSubmitting] = useState(false)
+	const [isRescheduleSubmitting, setIsRescheduleSubmitting] = useState(false)
+	const [appointments, setAppointments] = useState([])
+	const [cancelReasons, setCancelReasons] = useState([])
 	const [statusFilter, setStatusFilter] = useState('all')
 	const [keyword, setKeyword] = useState('')
 	const [selectedAppointmentId, setSelectedAppointmentId] = useState(null)
+	const [cancelingAppointment, setCancelingAppointment] = useState(null)
+	const [reschedulingAppointment, setReschedulingAppointment] = useState(null)
+	const [lyDoHuyId, setLyDoHuyId] = useState(null)
+	const [lyDoHuyKhac, setLyDoHuyKhac] = useState('')
 	const screens = useBreakpoint()
+	const patientId = useMemo(() => resolvePatientId(), [])
+
+	const loadAppointments = useCallback(async () => {
+		setLoading(true)
+		try {
+			const { items } = await fetchMyAppointments({
+				benhNhanId: patientId,
+				page: 1,
+				pageSize: 100,
+			})
+			setAppointments(items)
+		} catch (error) {
+			message.error(getApiErrorMessage(error, 'Không thể tải danh sách lịch hẹn.'))
+		} finally {
+			setLoading(false)
+		}
+	}, [patientId])
+
+	useEffect(() => {
+		loadAppointments()
+	}, [loadAppointments])
+
+	useEffect(() => {
+		const loadReasons = async () => {
+			try {
+				const items = await fetchCancellationReasons()
+				setCancelReasons(items)
+			} catch (error) {
+				message.error(getApiErrorMessage(error, 'Không thể tải danh sách lý do hủy.'))
+			}
+		}
+
+		loadReasons()
+	}, [])
 
 	const selectedAppointment = useMemo(
 		() => appointments.find((item) => item.id === selectedAppointmentId) || null,
@@ -53,37 +117,24 @@ export default function LichHenCuaToiPage() {
 	const rows = useMemo(() => {
 		return appointments
 			.map((appointment) => {
-				const doctor = doctors.find((item) => item.id === appointment.bac_si_id)
-				const specialty = specialties.find((item) => item.id === appointment.chuyen_khoa_id)
-				const slot = timeSlots.find((item) => item.id === appointment.khung_gio_id)
+				const items = appointment.dich_vu_lich_hens || []
+				const total = items.reduce((sum, item) => {
+					if (item.dich_vu) {
+						return sum + (item.dich_vu.gia_dich_vu || 0) * (item.so_luong || 1)
+					}
+					return sum + (item.goi_kham?.gia_goi_kham || 0) * (item.so_luong || 1)
+				}, 0)
 
-				const items = appointmentItems
-					.filter((item) => item.lich_hen_id === appointment.id)
-					.map((item) => {
-						if (item.dich_vu_id) {
-							const service = services.find((sv) => sv.id === item.dich_vu_id)
-							return {
-								label: service?.ten_dich_vu,
-								price: (service?.gia_dich_vu || 0) * item.so_luong,
-							}
-						}
-
-						const pkg = packages.find((value) => value.id === item.goi_kham_id)
-						return {
-							label: pkg?.ten_goi_kham,
-							price: (pkg?.gia_goi_kham || 0) * item.so_luong,
-						}
-					})
+				const slot = appointment.khung_gio_kham
 
 				return {
 					...appointment,
-					doctorName: doctor?.ho_ten,
-					specialtyName: specialty?.ten_chuyen_khoa,
+					doctorName: appointment.bac_si?.ho_ten || '-',
+					specialtyName: appointment.chuyen_khoa?.ten_chuyen_khoa || '-',
 					slotLabel: slot
 						? `${formatTimeLabel(slot.gio_bat_dau)} - ${formatTimeLabel(slot.gio_ket_thuc)}`
 						: 'Chưa xác định',
-					total: items.reduce((sum, item) => sum + item.price, 0),
-					items,
+					total,
 				}
 			})
 			.filter((item) => {
@@ -91,49 +142,64 @@ export default function LichHenCuaToiPage() {
 				const normalizedKeyword = keyword.trim().toLowerCase()
 				const matchedKeyword =
 					normalizedKeyword.length === 0 ||
-					item.ma_lich_hen.toLowerCase().includes(normalizedKeyword) ||
-					item.doctorName?.toLowerCase().includes(normalizedKeyword)
+					String(item.ma_lich_hen || '').toLowerCase().includes(normalizedKeyword) ||
+					String(item.doctorName || '').toLowerCase().includes(normalizedKeyword)
 
 				return matchedStatus && matchedKeyword
 			})
 	}, [appointments, keyword, statusFilter])
 
-	const handleCancel = (record) => {
-		if (!isActionAllowed(record.ngay_hen)) {
-			message.error('Không thể hủy lịch trong vòng 24 giờ trước giờ hẹn.')
-			return
-		}
-
-		Modal.confirm({
-			title: `Hủy lịch ${record.ma_lich_hen}`,
-			content: 'Bạn có chắc muốn hủy lịch hẹn này?',
-			okText: 'Xác nhận hủy',
-			okButtonProps: { danger: true },
-			cancelText: 'Đóng',
-			onOk: () => {
-				setAppointments((prev) =>
-					prev.map((item) =>
-						item.id === record.id
-							? {
-								...item,
-								trang_thai: 'da_huy',
-								ly_do_huy_id: item.ly_do_huy_id || 1,
-								updated_at: new Date().toISOString().slice(0, 19).replace('T', ' '),
-							}
-							: item,
-					),
-				)
-				message.success('Đã hủy lịch thành công.')
-			},
-		})
+	const handleCancelClick = (record) => {
+		setCancelingAppointment(record)
+		setLyDoHuyId(null)
+		setLyDoHuyKhac('')
 	}
 
-	const handleReschedule = (record) => {
-		if (!isActionAllowed(record.ngay_hen)) {
-			message.error('Không thể đổi lịch trong vòng 24 giờ trước giờ hẹn.')
+	const handleCancelSubmit = async () => {
+		if (!cancelingAppointment) {
 			return
 		}
-		message.info('Luồng đổi lịch sẽ được tích hợp API ở bước sau.')
+		if (!lyDoHuyId && !lyDoHuyKhac.trim()) {
+			message.warning('Vui lòng chọn lý do hủy hoặc nhập lý do khác.')
+			return
+		}
+
+		setIsCancelSubmitting(true)
+		try {
+			await submitCancelAppointment({
+				lichHenId: cancelingAppointment.id,
+				lyDoHuyId,
+				lyDoHuyKhac,
+			})
+			message.success('Hủy lịch hẹn thành công.')
+			setCancelingAppointment(null)
+			await loadAppointments()
+		} catch (error) {
+			message.error(getApiErrorMessage(error, 'Không thể hủy lịch hẹn.'))
+		} finally {
+			setIsCancelSubmitting(false)
+		}
+	}
+
+	const handleRescheduleSubmit = async (payload) => {
+		if (!reschedulingAppointment) {
+			return
+		}
+
+		setIsRescheduleSubmitting(true)
+		try {
+			await submitRescheduleAppointment({
+				lichHenId: reschedulingAppointment.id,
+				payload,
+			})
+			message.success('Đổi lịch hẹn thành công.')
+			setReschedulingAppointment(null)
+			await loadAppointments()
+		} catch (error) {
+			message.error(getApiErrorMessage(error, 'Không thể đổi lịch hẹn.'))
+		} finally {
+			setIsRescheduleSubmitting(false)
+		}
 	}
 
 	const renderStatus = (status) => {
@@ -177,14 +243,33 @@ export default function LichHenCuaToiPage() {
 		{
 			title: 'Hành động',
 			key: 'actions',
-			render: (_, record) => (
-				<Space wrap>
-					<Button onClick={() => setSelectedAppointmentId(record.id)}>Xem chi tiết</Button>
-					<Button onClick={() => handleReschedule(record)}>Đổi lịch</Button>
-					<Button danger onClick={() => handleCancel(record)}>Hủy lịch</Button>
-				</Space>
-			),
-		},
+			render: (_, record) => {
+				const canModify = ['dang_cho', 'da_xac_nhan'].includes(record.trang_thai)
+
+				return (
+					<Space wrap>
+						<Button onClick={() => setSelectedAppointmentId(record.id)}>
+							Xem chi tiết
+						</Button>
+
+						<Button
+							disabled={!canModify}
+							onClick={() => setReschedulingAppointment(record)}
+						>
+							Đổi lịch
+						</Button>
+
+						<Button
+							danger
+							disabled={!canModify}
+							onClick={() => handleCancelClick(record)}
+						>
+							Hủy lịch
+						</Button>
+					</Space>
+				)
+			},
+		}
 	]
 
 	return (
@@ -205,7 +290,7 @@ export default function LichHenCuaToiPage() {
 						<Alert
 							type="info"
 							showIcon
-							message="Chỉ cho phép đổi/hủy lịch trước ít nhất 24 giờ so với ngày hẹn."
+							message="Thao tác đổi/hủy lịch được backend kiểm tra theo quy định thời gian cấu hình hệ thống."
 						/>
 
 						<div className="grid gap-3 md:grid-cols-2">
@@ -228,7 +313,13 @@ export default function LichHenCuaToiPage() {
 						</div>
 
 						{screens.md ? (
-							<Table rowKey="id" columns={columns} dataSource={rows} pagination={{ pageSize: 5 }} />
+							<Table
+								rowKey="id"
+								columns={columns}
+								dataSource={rows}
+								loading={loading}
+								pagination={{ pageSize: 5 }}
+							/>
 						) : (
 							<Space direction="vertical" className="w-full" size={10}>
 								{rows.map((row) => (
@@ -243,8 +334,23 @@ export default function LichHenCuaToiPage() {
 											<Text strong>{formatCurrency(row.total)}</Text>
 											<Space wrap>
 												<Button size="small" onClick={() => setSelectedAppointmentId(row.id)}>Xem chi tiết</Button>
-												<Button size="small" onClick={() => handleReschedule(row)}>Đổi lịch</Button>
-												<Button size="small" danger onClick={() => handleCancel(row)}>Hủy lịch</Button>
+
+												<Button
+													size="small"
+													disabled={!['dang_cho', 'da_xac_nhan'].includes(row.trang_thai)}
+													onClick={() => setReschedulingAppointment(row)}
+												>
+													Đổi lịch
+												</Button>
+
+												<Button
+													size="small"
+													disabled={!['dang_cho', 'da_xac_nhan'].includes(row.trang_thai)}
+													danger
+													onClick={() => handleCancelClick(row)}
+												>
+													Hủy lịch
+												</Button>
 											</Space>
 										</Space>
 									</Card>
@@ -261,9 +367,59 @@ export default function LichHenCuaToiPage() {
 				onCancel={() => setSelectedAppointmentId(null)}
 				footer={null}
 				width={820}
+				style={MODAL_STYLES.verticalStatic}
 				destroyOnClose
 			>
 				<AppointmentDetails appointment={selectedAppointment} />
+			</Modal>
+
+			<Modal
+				title={cancelingAppointment ? `Hủy lịch ${cancelingAppointment.ma_lich_hen}` : 'Hủy lịch hẹn'}
+				open={Boolean(cancelingAppointment)}
+				onCancel={() => setCancelingAppointment(null)}
+				onOk={handleCancelSubmit}
+				confirmLoading={isCancelSubmitting}
+				okButtonProps={{ danger: true }}
+				okText="Xác nhận hủy"
+				cancelText="Đóng"
+				centered
+				destroyOnClose
+			>
+				<Space direction="vertical" size={10} className="w-full">
+					<Select
+						allowClear
+						placeholder="Chọn lý do hủy"
+						value={lyDoHuyId}
+						onChange={setLyDoHuyId}
+						options={cancelReasons.map((reason) => ({
+							value: reason.id,
+							label: reason.ten_ly_do,
+						}))}
+					/>
+					<Input.TextArea
+						rows={3}
+						value={lyDoHuyKhac}
+						onChange={(event) => setLyDoHuyKhac(event.target.value)}
+						placeholder="Nhập lý do hủy khác (nếu có)"
+					/>
+				</Space>
+			</Modal>
+
+			<Modal
+				title={reschedulingAppointment ? `Đổi lịch ${reschedulingAppointment.ma_lich_hen}` : 'Đổi lịch hẹn'}
+				open={Boolean(reschedulingAppointment)}
+				onCancel={() => setReschedulingAppointment(null)}
+				footer={null}
+				width={900}
+				centered
+				destroyOnClose
+			>
+				<DoiLichForm
+					appointment={reschedulingAppointment}
+					onSubmit={handleRescheduleSubmit}
+					onCancel={() => setReschedulingAppointment(null)}
+					submitting={isRescheduleSubmitting}
+				/>
 			</Modal>
 		</div>
 	)

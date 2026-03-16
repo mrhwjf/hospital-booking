@@ -5,15 +5,19 @@ namespace App\Services;
 use App\Models\BacSiNghi;
 use App\Models\CauHinhHeThong;
 use App\Models\KhungGioKham;
+use App\Models\LichHen;
 use App\Models\LichLamViecBacSi;
 use App\Models\NgayNghiLe;
 use Carbon\Carbon;
 use Illuminate\Validation\ValidationException;
+use Illuminate\Support\Facades\Log;
 
 class BookingValidationService
 {
+	private const THOI_GIAN_HUY_TOI_THIEU = 'THOI_GIAN_HUY_TOI_THIEU';
 	private const THOI_GIAN_DOI_TOI_THIEU = 'THOI_GIAN_DOI_TOI_THIEU';
 	private const SO_NGAY_DAT_TRUOC_TOI_DA = 'SO_NGAY_DAT_TRUOC_TOI_DA';
+	private const ACTIVE_APPOINTMENT_STATUSES = ['dang_cho', 'da_thanh_toan', 'da_xac_nhan'];
 
 	public function validateCreatePayload(array $payload): array
 	{
@@ -40,10 +44,33 @@ class BookingValidationService
 		return $slotContext;
 	}
 
+	public function validateCancelPayload(LichHen $lichHen): void
+	{
+		$this->validateAppointmentCanBeUpdated($lichHen);
+
+		$minHours = (int) $this->getSystemConfig(self::THOI_GIAN_HUY_TOI_THIEU, 12);
+		$this->validateMinimumHoursBefore($lichHen, $minHours, 'lich_hen', "Chi duoc huy lich truoc it nhat $minHours gio.");
+	}
+
+	public function validateReschedulePayload(LichHen $lichHen, array $payload): array
+	{
+		$this->validateAppointmentCanBeUpdated($lichHen);
+
+		$minHours = (int) $this->getSystemConfig(self::THOI_GIAN_DOI_TOI_THIEU, 24);
+		$this->validateMinimumHoursBefore($lichHen, $minHours, 'lich_hen', "Chi duoc doi lich truoc it nhat $minHours gio.");
+
+		return $this->validateCreatePayload($payload);
+	}
+
 	private function validateBookingWindow(array $payload, Carbon $ngayHen): void
 	{
 		$maxDays = (int) $this->getSystemConfig(self::SO_NGAY_DAT_TRUOC_TOI_DA, 30);
-		$hoursBefore = (int) $this->getSystemConfig(self::THOI_GIAN_DOI_TOI_THIEU, 24);
+
+		if ($ngayHen->lt(now()->copy()->startOfDay())) {
+			throw ValidationException::withMessages([
+				'ngay_hen' => ['Khong the dat lich cho ngay trong qua khu.'],
+			]);
+		}
 
 		if ($ngayHen->greaterThan(now()->copy()->addDays($maxDays)->startOfDay())) {
 			throw ValidationException::withMessages([
@@ -62,9 +89,9 @@ class BookingValidationService
 		}
 
 		$appointmentAt = Carbon::createFromFormat('Y-m-d H:i:s', $ngayHen->format('Y-m-d') . ' ' . $gioBatDau);
-		if (now()->diffInHours($appointmentAt, false) < $hoursBefore) {
+		if ($appointmentAt->lte(now())) {
 			throw ValidationException::withMessages([
-				'ngay_hen' => ["Lich hen phai duoc dat truoc it nhat $hoursBefore gio."],
+				'ngay_hen' => ['Khong the dat lich cho thoi diem trong qua khu.'],
 			]);
 		}
 	}
@@ -87,12 +114,18 @@ class BookingValidationService
 	{
 		if (!empty($payload['khung_gio_id'])) {
 			$slot = KhungGioKham::query()
-				->with('lichLamViecBacSi')
+				->with('lichLamViecBacSi.lichLamViec')
 				->find($payload['khung_gio_id']);
 
 			if ($slot === null || $slot->lichLamViecBacSi === null) {
 				throw ValidationException::withMessages([
 					'khung_gio_id' => ['Khung gio kham khong hop le.'],
+				]);
+			}
+
+			if ($slot->lichLamViecBacSi->trang_thai !== 'hoat_dong') {
+				throw ValidationException::withMessages([
+					'khung_gio_id' => ['Lich lam viec cua khung gio khong con hoat dong.'],
 				]);
 			}
 
@@ -129,10 +162,27 @@ class BookingValidationService
 			]);
 		}
 
+		if ($schedule->lichLamViec === null) {
+			throw ValidationException::withMessages([
+				'lich_lam_viec_bac_si_id' => ['Khong tim thay thong tin ca lam viec cua bac si.'],
+			]);
+		}
+
 		$ngayLamViec = Carbon::parse($schedule->ngay_lam_viec)->format('Y-m-d');
 		if ($ngayLamViec !== $ngayHen->format('Y-m-d')) {
 			throw ValidationException::withMessages([
 				'ngay_hen' => ['Ngay hen khong trung voi ngay lam viec da chon.'],
+			]);
+		}
+
+		$slotStart = Carbon::createFromFormat('H:i:s', $payload['gio_bat_dau']);
+		$slotEnd = Carbon::createFromFormat('H:i:s', $payload['gio_ket_thuc']);
+		$shiftStart = Carbon::createFromFormat('H:i:s', $schedule->lichLamViec->gio_bat_dau);
+		$shiftEnd = Carbon::createFromFormat('H:i:s', $schedule->lichLamViec->gio_ket_thuc);
+
+		if ($slotStart->lt($shiftStart) || $slotEnd->gt($shiftEnd)) {
+			throw ValidationException::withMessages([
+				'gio_bat_dau' => ['Khung gio da chon nam ngoai ca lam viec cua bac si.'],
 			]);
 		}
 
@@ -211,5 +261,53 @@ class BookingValidationService
 	private function getSystemConfig(string $key, int $default): int
 	{
 		return (int) (CauHinhHeThong::query()->where('khoa', $key)->value('gia_tri') ?? $default);
+	}
+
+	private function validateAppointmentCanBeUpdated(LichHen $lichHen): void
+	{
+		if (!in_array($lichHen->trang_thai, self::ACTIVE_APPOINTMENT_STATUSES, true)) {
+			throw ValidationException::withMessages([
+				'lich_hen' => ['Lich hen hien tai khong the cap nhat huy/doi lich.'],
+			]);
+		}
+	}
+
+	private function validateMinimumHoursBefore(LichHen $lichHen, int $minHours, string $errorKey, string $errorMessage): void
+	{
+		$appointmentAt = $this->resolveAppointmentDateTime($lichHen);
+		if ($appointmentAt === null) {
+			throw ValidationException::withMessages([
+				'lich_hen' => ['Khong the xac dinh gio hen hien tai de thuc hien thao tac nay.'],
+			]);
+		}
+
+		if (now()->diffInHours($appointmentAt, false) < $minHours) {
+			throw ValidationException::withMessages([
+				$errorKey => [$errorMessage],
+			]);
+		}
+	}
+
+	private function resolveAppointmentDateTime(LichHen $lichHen): ?Carbon
+	{
+		$lichHen->loadMissing('khungGioKham:id,gio_bat_dau');
+
+		Log::debug('Resolving appointment datetime', [
+			'ngay_hen' => $lichHen->ngay_hen,
+			'khung_gio_kham' => $lichHen->khungGioKham,
+			'gio_bat_dau' => $lichHen->khungGioKham?->gio_bat_dau,
+		]);
+
+		if ($lichHen->khungGioKham === null || empty($lichHen->khungGioKham->gio_bat_dau)) {
+			Log::warning('Appointment time could not be resolved', [
+				'lich_hen_id' => $lichHen->id ?? null,
+			]);
+			return null;
+		}
+
+		return Carbon::createFromFormat(
+			'Y-m-d H:i:s',
+			Carbon::parse($lichHen->ngay_hen)->format('Y-m-d') . ' ' . $lichHen->khungGioKham->gio_bat_dau,
+		);
 	}
 }

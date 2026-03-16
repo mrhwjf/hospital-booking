@@ -17,9 +17,11 @@ import {
 	Table,
 	Typography,
 	message,
+	Grid,
 } from 'antd'
 import DoctorCard from '../../components/DoctorCard'
 import CalendarPicker from '../../components/CalendarPicker'
+import PackageDetailModal from '../../components/PackageDetail'
 import {
 	fetchDoctorSchedule,
 	fetchDoctorsBySpecialty,
@@ -29,12 +31,25 @@ import {
 	submitAppointmentBooking,
 } from '../../../../services/schedulingService'
 import useDebounce from '../../../../hooks/useDebounce'
-import '../../styles/scheduling-domain-styles.css'
+import { SEGMENTED_STYLES, TABLE_STYLES } from '../../styles/const-styles'
 
 const { Content } = Layout
 const { Paragraph, Text, Title } = Typography
+const { useBreakpoint } = Grid
 
-const DEMO_BENH_NHAN_ID = 1
+const resolvePatientId = () => {
+	const fromStorage = Number(window.localStorage.getItem('benh_nhan_id'))
+	if (Number.isInteger(fromStorage) && fromStorage > 0) {
+		return fromStorage
+	}
+
+	const fromEnv = Number(import.meta.env.VITE_DEFAULT_BENH_NHAN_ID)
+	if (Number.isInteger(fromEnv) && fromEnv > 0) {
+		return fromEnv
+	}
+
+	return 1
+}
 
 const stepItems = [
 	{ title: 'Bác sĩ', description: 'Chọn chuyên khoa và bác sĩ' },
@@ -50,8 +65,43 @@ const formatCurrency = (value) =>
 		maximumFractionDigits: 0,
 	})
 
+const confirmColumns = [
+	{
+		title: 'STT',
+		width: 70,
+		render: (_, __, index) => index + 1,
+	},
+	{
+		title: 'Tên dịch vụ / gói khám',
+		dataIndex: 'name',
+		key: 'name',
+		render: (value) => <Text strong>{value}</Text>,
+	},
+	{
+		title: 'Loại',
+		dataIndex: 'type',
+		width: 120,
+	},
+	{
+		title: 'Số lượng',
+		dataIndex: 'qty',
+		width: 120,
+		align: 'center',
+	},
+	{
+		title: 'Đơn giá',
+		key: 'price',
+		width: 160,
+		align: 'right',
+		render: (_, row) => formatCurrency(row.unitPrice * row.qty),
+	},
+]
+
+const BOOKING_FEE = 150000
+
 export default function DatLichPage() {
 	const [step, setStep] = useState(0)
+	const patientId = useMemo(() => resolvePatientId(), [])
 	const [keyword, setKeyword] = useState('')
 	const [itemMode, setItemMode] = useState('dich_vu')
 	const [itemKeyword, setItemKeyword] = useState('')
@@ -68,6 +118,8 @@ export default function DatLichPage() {
 	const [packages, setPackages] = useState([])
 	const [scheduleItems, setScheduleItems] = useState([])
 	const [calendarSlots, setCalendarSlots] = useState([])
+
+	const screen = useBreakpoint()
 
 	const [booking, setBooking] = useState({
 		chuyen_khoa_id: null,
@@ -207,6 +259,7 @@ export default function DatLichPage() {
 	})
 
 	const selectedRows = [...selectedServiceRows, ...selectedPackageRows]
+	const totalItemCount = selectedRows.reduce((sum, row) => sum + row.qty, 0)
 	const selectedTotal = selectedRows.reduce((sum, row) => sum + row.unitPrice * row.qty, 0)
 
 	const canMoveNext = (() => {
@@ -272,7 +325,7 @@ export default function DatLichPage() {
 		]
 
 		const payload = {
-			benh_nhan_id: DEMO_BENH_NHAN_ID,
+			benh_nhan_id: patientId,
 			bac_si_id: booking.bac_si_id,
 			chuyen_khoa_id: booking.chuyen_khoa_id,
 			ngay_hen: booking.ngay_hen,
@@ -507,7 +560,7 @@ export default function DatLichPage() {
 									<Card className="border-[#E2E8F0]">
 										<div className="mb-3 flex flex-wrap items-center justify-between gap-3">
 											<Segmented
-												className="segmented-options"
+												className={SEGMENTED_STYLES}
 												value={itemMode}
 												onChange={(value) => {
 													setItemMode(value)
@@ -531,16 +584,69 @@ export default function DatLichPage() {
 											/>
 										</div>
 
-										<Table
-											rowKey="key"
-											columns={columns}
-											dataSource={activeData}
-											pagination={{
-												pageSize: 5,
-												hideOnSinglePage: true,
-											}}
-											loading={loadingItems}
-										/>
+										{screen.md ? (
+											<Table
+												rowKey="key"
+												columns={columns}
+												dataSource={activeData}
+												pagination={{
+													pageSize: 5,
+													hideOnSinglePage: true,
+												}}
+												loading={loadingItems}
+											/>
+
+										) : (
+											<Space direction="vertical" className="w-full" size={10}>
+												{activeData.map((item) => (
+													<Card key={item.key} className="rounded-lg border-slate-500">
+														<Space direction="vertical" className="w-full" size={8}>
+
+															<div className="flex items-center justify-between gap-4">
+																<div className="flex-1 min-w-0">
+																	<Text strong>{item.name}</Text>
+																	<div className="text-slate-500">{item.description}</div>
+																</div>
+
+																<Text strong className="text-[#2563EB] whitespace-nowrap">
+																	{formatCurrency(item.amount)}
+																</Text>
+															</div>
+
+															<div className="flex items-center justify-between">
+																<Space>
+																	<Button
+																		disabled={item.quantity === 0}
+																		onClick={() => updateItem(item.type, item.id, -1)}
+																	>
+																		-
+																	</Button>
+
+																	<Text strong>{item.quantity}</Text>
+
+																	<Button
+																		type="primary"
+																		onClick={() => updateItem(item.type, item.id, 1)}
+																	>
+																		+
+																	</Button>
+																</Space>
+
+																{item.type === "goi_kham" && (
+																	<Button
+																		type="text"
+																		icon={<EyeOutlined />}
+																		onClick={() => setActivePackageDetail(item.pkg)}
+																	/>
+																)}
+															</div>
+
+														</Space>
+													</Card>
+												))}
+											</Space>
+										)}
+
 										<Divider className="my-3" />
 										<div className="flex items-center justify-between">
 											<Text strong>Tổng tạm tính đã chọn</Text>
@@ -591,63 +697,61 @@ export default function DatLichPage() {
 
 									<Card className="border-[#E2E8F0]">
 										<Title level={5}>Dịch vụ đã chọn</Title>
-
 										{selectedRows.length > 0 ? (
-											<div className="overflow-hidden rounded-lg border border-[#E2E8F0]">
-												<table className="w-full text-sm">
-													<thead className="bg-slate-50">
-														<tr className="text-left">
-															<th className="px-3 py-2 w-12">STT</th>
-															<th className="px-3 py-2">Tên dịch vụ / gói khám</th>
-															<th className="px-3 py-2 w-28">Loại</th>
-															<th className="px-3 py-2 w-24 text-center">Số lượng</th>
-															<th className="px-3 py-2 w-32 text-right">Đơn giá</th>
-														</tr>
-													</thead>
+											<Table
+												rowKey={(row, i) => `${row.type}-${row.name}-${i}`}
+												columns={confirmColumns}
+												dataSource={selectedRows}
+												pagination={false}
+												size="small"
+												className={TABLE_STYLES.header}
+												summary={() => (
+													<Table.Summary.Row>
+														<Table.Summary.Cell index={0}></Table.Summary.Cell>
 
-													<tbody>
-														{selectedRows.map((row, index) => (
-															<tr
-																key={`${row.type}-${row.name}`}
-																className="border-t border-[#E2E8F0]"
-															>
-																<td className="px-3 py-2">{index + 1}</td>
+														<Table.Summary.Cell index={1}>
+															<Text strong>Tổng cộng</Text>
+														</Table.Summary.Cell>
 
-																<td className="px-3 py-2 font-medium">
-																	{row.name}
-																</td>
+														<Table.Summary.Cell index={2}>
+															{/* {selectedRows.length} mục */}
+														</Table.Summary.Cell>
 
-																<td className="px-3 py-2">
-																	{row.type}
-																</td>
+														<Table.Summary.Cell index={3} align="center">
+															<Text strong>{totalItemCount}</Text>
+														</Table.Summary.Cell>
 
-																<td className="px-3 py-2 text-center">
-																	{row.qty}
-																</td>
-
-																<td className="px-3 py-2 text-right font-medium">
-																	{formatCurrency(row.unitPrice * row.qty)}
-																</td>
-															</tr>
-														))}
-													</tbody>
-												</table>
-											</div>
+														<Table.Summary.Cell index={4} align="right">
+															<Text strong>
+																{formatCurrency(selectedTotal)}
+															</Text>
+														</Table.Summary.Cell>
+													</Table.Summary.Row>
+												)}
+											/>
 										) : (
 											<Text type="danger">Chưa có dịch vụ/gói khám.</Text>
 										)}
 
-										<Divider className="my-4" />
+										<Card className="border-[#E2E8F0] bg-amber-50">
+											<Space direction="vertical" className="w-full">
 
-										<div className="flex items-center justify-between bg-slate-50 px-4 py-3 rounded-lg border border-[#E2E8F0]">
-											<Text strong className="text-base">
-												Tổng tạm tính
-											</Text>
+												<div className="flex items-center justify-between">
+													<Text strong>Phí đặt lịch</Text>
+													<Text strong className="text-xl!" type="danger">
+														{formatCurrency(BOOKING_FEE)}
+													</Text>
+												</div>
 
-											<Text strong type="danger" className="text-xl!">
-												{formatCurrency(selectedTotal)}
-											</Text>
-										</div>
+												<Alert type="info" showIcon title={
+													`
+													Bệnh nhân chỉ cần thanh toán phí đặt lịch trước.
+													Chi phí dịch vụ và gói khám sẽ được thanh toán tại bệnh viện khi đến khám.
+													`
+												} />
+
+											</Space>
+										</Card>
 									</Card>
 
 									<Card className="border-[#E2E8F0]">
@@ -681,25 +785,11 @@ export default function DatLichPage() {
 				</Content>
 			</Layout>
 
-			<Modal
-				title={activePackageDetail ? `Chi tiết gói: ${activePackageDetail.ten_goi_kham}` : 'Chi tiết gói khám'}
+			<PackageDetailModal
+				pkg={activePackageDetail}
 				open={Boolean(activePackageDetail)}
-				onCancel={() => setActivePackageDetail(null)}
-				footer={null}
-				centered
-				width={680}
-			>
-				<List
-					size="small"
-					dataSource={
-						activePackageDetail
-							? (activePackageDetail.chi_tiet_goi_khams || []).map((row) => row?.dich_vu?.ten_dich_vu).filter(Boolean)
-							: []
-					}
-					renderItem={(item, index) => <List.Item>{index + 1}. {item}</List.Item>}
-					locale={{ emptyText: 'Chưa cấu hình dịch vụ trong gói' }}
-				/>
-			</Modal>
+				onClose={() => setActivePackageDetail(null)}
+			/>
 		</ConfigProvider>
 	)
 }

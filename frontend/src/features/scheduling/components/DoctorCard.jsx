@@ -18,7 +18,7 @@ export default function DoctorCard({ doctor, selected = false, onSelect, special
 		<Card
 			hoverable
 			onClick={() => onSelect?.(doctor)}
-			className={selected ? 'border-[#0F766E] bg-teal-50/40' : 'border-slate-200'}
+			className={selected ? 'border-[#0F766E] bg-teal-50/40' : 'border-slate-500'}
 		>
 			<div className="flex items-start gap-3">
 				<Avatar src={doctor.avatar || doctor.hinh_anh || undefined} size={60}>

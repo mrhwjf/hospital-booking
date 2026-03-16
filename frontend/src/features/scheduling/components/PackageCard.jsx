@@ -16,7 +16,7 @@ export default function PackageCard({ pkg = packages[0], quantity = 0, onIncreas
 
 	return (
 		<>
-			<Card className={quantity > 0 ? 'border-[#0F766E] bg-teal-50/40' : 'border-slate-200'}>
+			<Card className={quantity > 0 ? 'border-[#0F766E] bg-teal-50/40' : 'border-slate-500'}>
 				<div className="flex flex-col gap-3">
 					<div className="flex items-start justify-between gap-3">
 						<div>

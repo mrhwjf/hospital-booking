@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import dayjs from 'dayjs'
 import { Alert, Calendar, Card, Space, Typography, message, Segmented } from 'antd'
 import TimeSlotCard from './TimeSlotCard'
-import "../styles/scheduling-domain-styles.css"
+import { SEGMENTED_STYLES } from '../styles/const-styles'
 
 const { Text } = Typography
 
@@ -115,7 +115,7 @@ export default function CalendarPicker({
 				<Alert
 					type="warning"
 					showIcon
-					message={`Bệnh viện nghỉ ngày ${selectedDate}: ${holiday.ten_ngay_nghi}`}
+					title={`Bệnh viện nghỉ ngày ${selectedDate}: ${holiday.ten_ngay_nghi}`}
 				/>
 			)}
 
@@ -126,7 +126,7 @@ export default function CalendarPicker({
 					{ label: 'Buổi sáng', value: 'morning' },
 					{ label: 'Buổi chiều', value: 'afternoon' },
 				]}
-				className="segmented-options"
+				className={SEGMENTED_STYLES}
 			/>
 
 			<div className="grid gap-3 lg:grid-cols-2">

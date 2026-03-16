@@ -12,6 +12,7 @@ use App\Models\GoiKham;
 use App\Models\KhungGioKham;
 use App\Models\LichHen;
 use App\Models\LichLamViecBacSi;
+use App\Models\LyDoHuy;
 use App\Models\NgayNghiLe;
 use Carbon\Carbon;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -239,6 +240,180 @@ class SchedulingService
 		});
 	}
 
+	public function getLichHensByBenhNhan(array $filters): LengthAwarePaginator
+	{
+		$pageSize = $this->resolvePageSize($filters['pageSize'] ?? null);
+		$benhNhanId = (int) ($filters['benh_nhan_id'] ?? 0);
+
+		if ($benhNhanId <= 0 || !BenhNhan::query()->whereKey($benhNhanId)->exists()) {
+			throw ValidationException::withMessages([
+				'benh_nhan_id' => ['Benh nhan khong ton tai.'],
+			]);
+		}
+
+		return LichHen::query()
+			->with([
+				'bacSi:id,ho_ten,hoc_vi',
+				'chuyenKhoa:id,ten_chuyen_khoa',
+				'khungGioKham:id,gio_bat_dau,gio_ket_thuc',
+				'dichVuLichHens.dichVu:id,ten_dich_vu,gia_dich_vu',
+				'dichVuLichHens.goiKham:id,ten_goi_kham,gia_goi_kham',
+				'lyDoHuy:id,ten_ly_do',
+			])
+			->where('benh_nhan_id', $benhNhanId)
+			->when(!empty($filters['trang_thai']), function ($query) use ($filters) {
+				$query->where('trang_thai', (string) $filters['trang_thai']);
+			})
+			->orderByDesc('ngay_hen')
+			->orderByDesc('id')
+			->paginate($pageSize);
+	}
+
+	public function getLyDoHuyBenhNhan(): Collection
+	{
+		return LyDoHuy::query()
+			->where('loai', 'benh_nhan')
+			->where('trang_thai', 'hoat_dong')
+			->orderBy('thu_tu')
+			->orderBy('id')
+			->get(['id', 'ma_ly_do', 'ten_ly_do']);
+	}
+
+	public function cancelLichHen(int $id, array $payload): LichHen
+	{
+		return DB::transaction(function () use ($id, $payload) {
+			/** @var LichHen|null $lichHen */
+			$lichHen = LichHen::query()
+				->with('khungGioKham:id,gio_bat_dau,trang_thai')
+				->lockForUpdate()
+				->find($id);
+
+			if ($lichHen === null) {
+				throw ValidationException::withMessages([
+					'id' => ['Lich hen khong ton tai.'],
+				]);
+			}
+
+			$this->bookingValidationService->validateCancelPayload($lichHen);
+
+			if (!empty($payload['ly_do_huy_id'])) {
+				$validReason = LyDoHuy::query()
+					->whereKey((int) $payload['ly_do_huy_id'])
+					->where('loai', 'benh_nhan')
+					->where('trang_thai', 'hoat_dong')
+					->exists();
+
+				if (!$validReason) {
+					throw ValidationException::withMessages([
+						'ly_do_huy_id' => ['Ly do huy khong hop le cho benh nhan.'],
+					]);
+				}
+			}
+
+			if ($lichHen->khungGioKham !== null) {
+				KhungGioKham::query()
+					->whereKey($lichHen->khung_gio_id)
+					->lockForUpdate()
+					->update(['trang_thai' => 'trong']);
+			}
+
+			$lichHen->update([
+				'trang_thai' => 'da_huy',
+				'ly_do_huy_id' => $payload['ly_do_huy_id'] ?? null,
+				'ly_do_huy_khac' => $payload['ly_do_huy_khac'] ?? null,
+			]);
+
+			return $this->getLichHenById($lichHen->id);
+		});
+	}
+
+	public function doiLichHen(int $id, array $payload): LichHen
+	{
+		return DB::transaction(function () use ($id, $payload) {
+			/** @var LichHen|null $lichHen */
+			$lichHen = LichHen::query()
+				->with('khungGioKham:id,lich_lam_viec_bac_si_id,gio_bat_dau,gio_ket_thuc,trang_thai')
+				->lockForUpdate()
+				->find($id);
+
+			if ($lichHen === null) {
+				throw ValidationException::withMessages([
+					'id' => ['Lich hen khong ton tai.'],
+				]);
+			}
+
+			$doctorSpecialtyLinked = BacSiChuyenKhoa::query()
+				->where('bac_si_id', $payload['bac_si_id'])
+				->where('chuyen_khoa_id', $lichHen->chuyen_khoa_id)
+				->exists();
+
+			if (!$doctorSpecialtyLinked) {
+				throw ValidationException::withMessages([
+					'bac_si_id' => ['Bac si moi khong thuoc chuyen khoa cua lich hen hien tai.'],
+				]);
+			}
+
+			$validationPayload = [
+				'benh_nhan_id' => $lichHen->benh_nhan_id,
+				'bac_si_id' => (int) $payload['bac_si_id'],
+				'chuyen_khoa_id' => $lichHen->chuyen_khoa_id,
+				'ngay_hen' => $payload['ngay_hen'],
+				'khung_gio_id' => $payload['khung_gio_id'] ?? null,
+				'lich_lam_viec_bac_si_id' => $payload['lich_lam_viec_bac_si_id'] ?? null,
+				'gio_bat_dau' => $payload['gio_bat_dau'] ?? null,
+				'gio_ket_thuc' => $payload['gio_ket_thuc'] ?? null,
+			];
+
+			$slotContext = $this->bookingValidationService->validateReschedulePayload($lichHen, $validationPayload);
+			$newSlot = $this->lockAndResolveKhungGio($validationPayload, $slotContext);
+
+			if ((int) $newSlot->lichLamViecBacSi->bac_si_id !== (int) $payload['bac_si_id']) {
+				throw ValidationException::withMessages([
+					'bac_si_id' => ['Khung gio moi khong thuoc bac si da chon.'],
+				]);
+			}
+
+			if ($newSlot->trang_thai !== 'trong' && (int) $newSlot->id !== (int) $lichHen->khung_gio_id) {
+				throw ValidationException::withMessages([
+					'khung_gio_id' => ['Khung gio moi khong con trong de doi lich.'],
+				]);
+			}
+
+			if (
+				(int) $newSlot->id === (int) $lichHen->khung_gio_id &&
+				(int) $payload['bac_si_id'] === (int) $lichHen->bac_si_id &&
+				Carbon::parse($payload['ngay_hen'])->format('Y-m-d') === Carbon::parse($lichHen->ngay_hen)->format('Y-m-d')
+			) {
+				throw ValidationException::withMessages([
+					'khung_gio_id' => ['Khung gio moi trung voi lich hien tai. Vui long chon lich khac.'],
+				]);
+			}
+
+			$oldKhungGioId = $lichHen->khung_gio_id;
+
+			$lichHen->update([
+				'bac_si_id' => $payload['bac_si_id'],
+				'ngay_hen' => $payload['ngay_hen'],
+				'khung_gio_id' => $newSlot->id,
+				'ghi_chu' => $payload['ghi_chu'] ?? $lichHen->ghi_chu,
+			]);
+
+			KhungGioKham::query()
+				->whereKey($newSlot->id)
+				->lockForUpdate()
+				->update(['trang_thai' => 'da_dat']);
+
+			if (!empty($oldKhungGioId) && (int) $oldKhungGioId !== (int) $newSlot->id) {
+				KhungGioKham::query()
+					->whereKey($oldKhungGioId)
+					->lockForUpdate()
+					->update(['trang_thai' => 'trong']);
+			}
+
+			return $this->getLichHenById($lichHen->id);
+		});
+	}
+
 	private function resolveNguoiTaoId(array $payload): int
 	{
 		if (!empty($payload['nguoi_tao_id'])) {
@@ -272,6 +447,7 @@ class SchedulingService
 				'khungGioKham:id,lich_lam_viec_bac_si_id,gio_bat_dau,gio_ket_thuc,trang_thai',
 				'dichVuLichHens.dichVu:id,ten_dich_vu,gia_dich_vu',
 				'dichVuLichHens.goiKham:id,ten_goi_kham,gia_goi_kham',
+				'lyDoHuy:id,ten_ly_do',
 			])
 			->find($id);
 

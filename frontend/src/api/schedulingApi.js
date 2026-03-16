@@ -15,3 +15,11 @@ export const getGoiKhams = (params = {}) => httpClient.get('/goi-kham', { params
 export const createLichHen = (payload) => httpClient.post('/lich-hen', payload)
 
 export const getLichHenById = (id) => httpClient.get(`/lich-hen/${id}`)
+
+export const getLichHenCuaToi = (params = {}) => httpClient.get('/lich-hen', { params })
+
+export const getLyDoHuyBenhNhan = () => httpClient.get('/ly-do-huy/benh-nhan')
+
+export const cancelLichHen = (id, payload) => httpClient.patch(`/lich-hen/${id}/huy`, payload)
+
+export const rescheduleLichHen = (id, payload) => httpClient.patch(`/lich-hen/${id}/doi-lich`, payload)

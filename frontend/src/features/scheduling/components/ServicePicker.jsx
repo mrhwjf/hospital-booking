@@ -57,7 +57,7 @@ export default function ServicePicker({
 
 	return (
 		<Space direction="vertical" size={12} className="w-full">
-			<Card className="border-slate-200">
+			<Card className="border-slate-500">
 				<Title level={5} className="mb-2">Chọn dịch vụ hoặc gói khám</Title>
 				<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 					<Segmented
@@ -85,7 +85,7 @@ export default function ServicePicker({
 					const qty = isService ? items.dich_vu?.[item.id] ?? 0 : items.goi_kham?.[item.id] ?? 0
 
 					return (
-						<Card key={`${mode}-${item.id}`} className={qty > 0 ? 'border-teal-600 bg-teal-50/40' : 'border-slate-200'}>
+						<Card key={`${mode}-${item.id}`} className={qty > 0 ? 'border-teal-600 bg-teal-50/40' : 'border-slate-500'}>
 							<div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
 								<div>
 									<div className="flex items-center gap-2">
@@ -109,7 +109,7 @@ export default function ServicePicker({
 				})}
 			</div>
 
-			<Card className="border-slate-200 bg-slate-50">
+			<Card className="border-slate-500 bg-slate-50">
 				<div className="flex items-center justify-between">
 					<Text>Tổng tạm tính</Text>
 					<Text strong className="text-lg text-teal-700">{formatCurrency(total)}</Text>

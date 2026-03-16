@@ -11,4 +11,8 @@ Route::get('/dich-vu', [LichLamViecController::class, 'dichVus']);
 Route::get('/goi-kham', [LichLamViecController::class, 'goiKhams']);
 
 Route::post('/lich-hen', [LichHenController::class, 'store']);
+Route::get('/lich-hen', [LichHenController::class, 'index']);
 Route::get('/lich-hen/{id}', [LichHenController::class, 'show']);
+Route::patch('/lich-hen/{id}/huy', [LichHenController::class, 'huy']);
+Route::patch('/lich-hen/{id}/doi-lich', [LichHenController::class, 'doiLich']);
+Route::get('/ly-do-huy/benh-nhan', [LichHenController::class, 'lyDoHuysBenhNhan']);

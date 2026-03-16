@@ -66,7 +66,7 @@ export default function DoctorPicker({
 
 	return (
 		<Space direction="vertical" size={12} className="w-full">
-			<div className="rounded-xl border border-slate-200 bg-white p-4">
+			<div className="rounded-xl border border-slate-500 bg-white p-4">
 				<Title level={5} className="mb-2">Chọn chuyên khoa</Title>
 				<Radio.Group
 					value={selectedSpecialtyId}
@@ -96,7 +96,7 @@ export default function DoctorPicker({
 					return (
 						<Card
 							key={doctor.id}
-							className={selected ? 'border-teal-600 bg-teal-50/50' : 'border-slate-200'}
+							className={selected ? 'border-teal-600 bg-teal-50/50' : 'border-slate-500'}
 							hoverable
 							onClick={() => handleDoctorChange(doctor.id)}
 						>
@@ -124,7 +124,7 @@ export default function DoctorPicker({
 				})}
 
 				{filteredDoctors.length === 0 && (
-					<Card className="border-dashed border-slate-300">
+					<Card className="border-dashed border-slate-500">
 						<Text className="text-slate-500">Không tìm thấy bác sĩ phù hợp.</Text>
 					</Card>
 				)}

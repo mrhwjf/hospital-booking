@@ -36,7 +36,7 @@ export default function TimeSlotCard({ date, slot, selected = false, blocked = f
 	const disabled = blocked || slot.trang_thai !== 'trong'
 
 	return (
-		<Card className={selected ? 'border-[#0F766E] bg-teal-50/40' : 'border-slate-200'}>
+		<Card className={selected ? 'border-[#0F766E]! bg-teal-50/40' : '!border-slate-500'}>
 			<div className="flex items-center justify-between gap-3">
 				<div>
 					<Text strong>{formatDateLabel(date)}</Text>

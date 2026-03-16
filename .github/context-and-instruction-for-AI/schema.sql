@@ -259,7 +259,6 @@ CREATE TABLE nhan_vien (
     ho_ten VARCHAR(100) NOT NULL,
     so_dien_thoai VARCHAR(15) NOT NULL,
     chuc_vu ENUM('le_tan', 'nhan_vien_y_te', 'dieu_duong') NOT NULL,
-    phong_ban VARCHAR(100),
     ngay_vao_lam DATE NOT NULL,
     trang_thai ENUM('hoat_dong', 'tam_khoa', 'nghi_viec') DEFAULT 'hoat_dong',
     ghi_chu TEXT,
@@ -492,7 +491,7 @@ CREATE TABLE lich_hen (
     benh_nhan_id INT NOT NULL,
     bac_si_id INT NOT NULL,
     chuyen_khoa_id INT NOT NULL,
-    khung_gio_id INT UNIQUE COMMENT 'Khung giờ khám đã đặt, chỉ cho 1 bệnh nhân/khung giờ',
+    khung_gio_id INT COMMENT 'Khung giờ khám đã đặt, chỉ cho 1 bệnh nhân/khung giờ',
 
     ngay_hen DATE NOT NULL,
     ly_do_kham TEXT,
@@ -665,6 +664,7 @@ CREATE TABLE chi_dinh (
     bac_si_id INT NOT NULL COMMENT 'Bác sĩ chỉ định',
 
     dich_vu_id INT NULL,
+    goi_kham_id INT NULL,
 
     so_luong INT DEFAULT 1 COMMENT 'Số lượng chỉ định',
 
@@ -683,7 +683,9 @@ CREATE TABLE chi_dinh (
     CONSTRAINT fk_cdxn_phieu_kham FOREIGN KEY (phieu_kham_id) 
         REFERENCES phieu_kham(id) ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT fk_cdxn_dich_vu FOREIGN KEY (dich_vu_id) 
-        REFERENCES dich_vu(id) ON DELETE RESTRICT ON UPDATE CASCADE
+        REFERENCES dich_vu(id) ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT fk_cdxn_goi_kham FOREIGN KEY (goi_kham_id)
+        REFERENCES goi_kham(id) ON DELETE RESTRICT ON UPDATE CASCADE,
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================
