@@ -23,7 +23,7 @@ import {
 	submitCancelAppointment,
 	submitRescheduleAppointment,
 } from '../../../../services/schedulingService'
-import { MODAL_STYLES } from '../../styles/const-styles'
+import { MODAL_STYLES, TABLE_STYLES } from '../../styles/const-styles'
 
 const { useBreakpoint } = Grid
 const { Paragraph, Text, Title } = Typography
@@ -314,6 +314,7 @@ export default function LichHenCuaToiPage() {
 
 						{screens.md ? (
 							<Table
+								className={TABLE_STYLES.header}
 								rowKey="id"
 								columns={columns}
 								dataSource={rows}

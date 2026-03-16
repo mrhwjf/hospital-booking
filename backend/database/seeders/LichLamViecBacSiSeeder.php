@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -13,38 +14,40 @@ class LichLamViecBacSiSeeder extends Seeder
         $ca = DB::table('lich_lam_viec')->pluck('id', 'ma_ca');
         $phong = DB::table('phong_kham')->pluck('id', 'ma_phong');
 
-        $rows = [
-            [
+        $rows = [];
+
+        // Generate schedule rows from today for the next 7 days.
+        foreach (range(0, 6) as $offset) {
+            $date = Carbon::now()->startOfDay()->addDays($offset);
+            $thu = $date->isoWeekday(); // 1=Mon ... 7=Sun
+
+            // Current shift seed only defines T2..T7 (1..6), skip Sunday.
+            if ($thu > 6) {
+                continue;
+            }
+
+            $rows[] = [
                 'bac_si_id' => $bacSi['BS0001'] ?? null,
-                'lich_lam_viec_id' => $ca['CA_SANG_T2'] ?? null,
+                'lich_lam_viec_id' => $ca['CA_SANG_T' . $thu] ?? null,
                 'phong_kham_id' => $phong['PK101'] ?? null,
-                'ngay_lam_viec' => '2026-03-16',
+                'ngay_lam_viec' => $date->format('Y-m-d'),
                 'ghi_chu' => null,
                 'trang_thai' => 'hoat_dong',
                 'created_at' => now(),
                 'updated_at' => now(),
-            ],
-            [
+            ];
+
+            $rows[] = [
                 'bac_si_id' => $bacSi['BS0002'] ?? null,
-                'lich_lam_viec_id' => $ca['CA_CHIEU_T2'] ?? null,
+                'lich_lam_viec_id' => $ca['CA_CHIEU_T' . $thu] ?? null,
                 'phong_kham_id' => $phong['PK201'] ?? null,
-                'ngay_lam_viec' => '2026-03-16',
+                'ngay_lam_viec' => $date->format('Y-m-d'),
                 'ghi_chu' => null,
                 'trang_thai' => 'hoat_dong',
                 'created_at' => now(),
                 'updated_at' => now(),
-            ],
-            [
-                'bac_si_id' => $bacSi['BS0001'] ?? null,
-                'lich_lam_viec_id' => $ca['CA_SANG_T3'] ?? null,
-                'phong_kham_id' => $phong['PK101'] ?? null,
-                'ngay_lam_viec' => '2026-03-17',
-                'ghi_chu' => null,
-                'trang_thai' => 'hoat_dong',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-        ];
+            ];
+        }
 
         $rows = array_values(array_filter($rows, function (array $row) {
             return !is_null($row['bac_si_id']) && !is_null($row['lich_lam_viec_id']);

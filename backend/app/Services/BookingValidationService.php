@@ -19,14 +19,14 @@ class BookingValidationService
 	private const SO_NGAY_DAT_TRUOC_TOI_DA = 'SO_NGAY_DAT_TRUOC_TOI_DA';
 	private const ACTIVE_APPOINTMENT_STATUSES = ['dang_cho', 'da_thanh_toan', 'da_xac_nhan'];
 
-	public function validateCreatePayload(array $payload): array
+	public function validateCreatePayload(array $payload, ?int $allowedBookedSlotId = null): array
 	{
 		$ngayHen = Carbon::createFromFormat('Y-m-d', (string) $payload['ngay_hen'])->startOfDay();
 
 		$this->validateBookingWindow($payload, $ngayHen);
 		$this->validateHoliday($ngayHen);
 
-		$slotContext = $this->resolveSlotContext($payload, $ngayHen);
+		$slotContext = $this->resolveSlotContext($payload, $ngayHen, $allowedBookedSlotId);
 		$this->validateDoctorAvailability($payload['bac_si_id'], $ngayHen, $slotContext['gio_bat_dau'], $slotContext['gio_ket_thuc']);
 
 		if ((int) $slotContext['bac_si_id'] !== (int) $payload['bac_si_id']) {
@@ -59,7 +59,7 @@ class BookingValidationService
 		$minHours = (int) $this->getSystemConfig(self::THOI_GIAN_DOI_TOI_THIEU, 24);
 		$this->validateMinimumHoursBefore($lichHen, $minHours, 'lich_hen', "Chi duoc doi lich truoc it nhat $minHours gio.");
 
-		return $this->validateCreatePayload($payload);
+		return $this->validateCreatePayload($payload, (int) $lichHen->khung_gio_id);
 	}
 
 	private function validateBookingWindow(array $payload, Carbon $ngayHen): void
@@ -110,7 +110,7 @@ class BookingValidationService
 		}
 	}
 
-	private function resolveSlotContext(array $payload, Carbon $ngayHen): array
+	private function resolveSlotContext(array $payload, Carbon $ngayHen, ?int $allowedBookedSlotId = null): array
 	{
 		if (!empty($payload['khung_gio_id'])) {
 			$slot = KhungGioKham::query()
@@ -129,7 +129,10 @@ class BookingValidationService
 				]);
 			}
 
-			if (in_array($slot->trang_thai, ['da_dat', 'khoa'], true)) {
+			if (
+				in_array($slot->trang_thai, ['da_dat', 'khoa'], true) &&
+				(int) $slot->id !== (int) ($allowedBookedSlotId ?? 0)
+			) {
 				throw ValidationException::withMessages([
 					'khung_gio_id' => ['Khung gio da duoc dat hoac dang bi khoa.'],
 				]);
@@ -191,7 +194,11 @@ class BookingValidationService
 			->where('gio_bat_dau', $payload['gio_bat_dau'])
 			->first();
 
-		if ($existingSlot !== null && in_array($existingSlot->trang_thai, ['da_dat', 'khoa'], true)) {
+		if (
+			$existingSlot !== null &&
+			in_array($existingSlot->trang_thai, ['da_dat', 'khoa'], true) &&
+			(int) $existingSlot->id !== (int) ($allowedBookedSlotId ?? 0)
+		) {
 			throw ValidationException::withMessages([
 				'gio_bat_dau' => ['Khung gio da duoc dat hoac dang bi khoa.'],
 			]);

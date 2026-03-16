@@ -12,6 +12,8 @@ export const getDichVus = (params = {}) => httpClient.get('/dich-vu', { params }
 
 export const getGoiKhams = (params = {}) => httpClient.get('/goi-kham', { params })
 
+export const getCauHinhHeThong = (params = {}) => httpClient.get('/cau-hinh-he-thong', { params })
+
 export const createLichHen = (payload) => httpClient.post('/lich-hen', payload)
 
 export const getLichHenById = (id) => httpClient.get(`/lich-hen/${id}`)

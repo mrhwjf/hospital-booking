@@ -1,19 +1,44 @@
 import { useState } from 'react'
-// import reactLogo from './assets/react.svg'
-// import viteLogo from '/vite.svg'
-// import './App.css'
+import { Card, ConfigProvider, Segmented, Space } from 'antd'
 
 import LichHenCuaToiPage from './features/scheduling/pages/patients/LichHenCuaToiPage'
 import DatLichPage from './features/scheduling/pages/patients/DatLichPage'
 
 function App() {
-  const [count, setCount] = useState(0)
+  const [view, setView] = useState('dat-lich')
 
   return (
-    <>
-      <LichHenCuaToiPage />
-      {/* <DatLichPage /> */}
-    </>
+    <ConfigProvider
+      theme={{
+        token: {
+          colorPrimary: '#0F766E',
+          colorInfo: '#2563EB',
+          colorSuccess: '#16A34A',
+          colorWarning: '#F59E0B',
+          colorError: '#DC2626',
+          colorTextBase: '#0F172A',
+          colorBorder: '#E2E8F0',
+          colorBgLayout: '#F8FAFC',
+        },
+      }}
+    >
+      <main className="min-h-screen bg-[#F8FAFC] p-4 md:p-6">
+        <Space direction="vertical" size={16} className="w-full">
+          <Card className="border-[#E2E8F0]">
+            <Segmented
+              value={view}
+              onChange={setView}
+              options={[
+                { label: 'Dat lich', value: 'dat-lich' },
+                { label: 'Lich hen cua toi', value: 'lich-cua-toi' },
+              ]}
+            />
+          </Card>
+
+          {view === 'dat-lich' ? <DatLichPage /> : <LichHenCuaToiPage />}
+        </Space>
+      </main>
+    </ConfigProvider>
   )
 }
 

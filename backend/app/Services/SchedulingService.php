@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Models\BacSi;
 use App\Models\BacSiChuyenKhoa;
 use App\Models\BenhNhan;
+use App\Models\CauHinhHeThong;
 use App\Models\ChuyenKhoa;
 use App\Models\DichVu;
 use App\Models\DichVuLichHen;
@@ -175,10 +176,37 @@ class SchedulingService
 			->paginate($pageSize);
 	}
 
+	public function getCauHinhHeThong(array $filters): array
+	{
+		$keys = collect(explode(',', (string) ($filters['khoa'] ?? '')))
+			->map(fn(string $key) => trim($key))
+			->filter()
+			->values();
+
+		$query = CauHinhHeThong::query()
+			->select(['khoa', 'gia_tri', 'mo_ta', 'nhom'])
+			->when(!empty($filters['nhom']), function ($builder) use ($filters) {
+				$builder->where('nhom', (string) $filters['nhom']);
+			})
+			->when($keys->isNotEmpty(), function ($builder) use ($keys) {
+				$builder->whereIn('khoa', $keys->all());
+			})
+			->orderBy('nhom')
+			->orderBy('khoa');
+
+		$items = $query->get();
+
+		return [
+			'items' => $items,
+			'map' => $items->pluck('gia_tri', 'khoa'),
+		];
+	}
+
 	public function createLichHen(array $payload): LichHen
 	{
 		$slotContext = $this->bookingValidationService->validateCreatePayload($payload);
 		$nguoiTaoId = $this->resolveNguoiTaoId($payload);
+		$this->validateItemsBelongToSpecialty($payload['items'], (int) $payload['chuyen_khoa_id']);
 
 		$doctorSpecialtyLinked = BacSiChuyenKhoa::query()
 			->where('bac_si_id', $payload['bac_si_id'])
@@ -238,6 +266,51 @@ class SchedulingService
 
 			return $this->getLichHenById($lichHen->id);
 		});
+	}
+
+	private function validateItemsBelongToSpecialty(array $items, int $chuyenKhoaId): void
+	{
+		$dichVuIds = collect($items)
+			->pluck('dich_vu_id')
+			->filter()
+			->map(fn($id) => (int) $id)
+			->unique()
+			->values();
+
+		if ($dichVuIds->isNotEmpty()) {
+			$invalidDichVuIds = DichVu::query()
+				->whereIn('id', $dichVuIds->all())
+				->where('chuyen_khoa_id', '!=', $chuyenKhoaId)
+				->pluck('id');
+
+			if ($invalidDichVuIds->isNotEmpty()) {
+				throw ValidationException::withMessages([
+					'items' => ['Dich vu da chon khong thuoc chuyen khoa hien tai.'],
+				]);
+			}
+		}
+
+		$goiKhamIds = collect($items)
+			->pluck('goi_kham_id')
+			->filter()
+			->map(fn($id) => (int) $id)
+			->unique()
+			->values();
+
+		if ($goiKhamIds->isNotEmpty()) {
+			$invalidGoiKhamIds = GoiKham::query()
+				->whereIn('id', $goiKhamIds->all())
+				->whereDoesntHave('chiTietGoiKhams.dichVu', function ($query) use ($chuyenKhoaId) {
+					$query->where('chuyen_khoa_id', $chuyenKhoaId);
+				})
+				->pluck('id');
+
+			if ($invalidGoiKhamIds->isNotEmpty()) {
+				throw ValidationException::withMessages([
+					'items' => ['Goi kham da chon khong lien ket voi chuyen khoa hien tai.'],
+				]);
+			}
+		}
 	}
 
 	public function getLichHensByBenhNhan(array $filters): LengthAwarePaginator
@@ -344,19 +417,21 @@ class SchedulingService
 
 			$doctorSpecialtyLinked = BacSiChuyenKhoa::query()
 				->where('bac_si_id', $payload['bac_si_id'])
-				->where('chuyen_khoa_id', $lichHen->chuyen_khoa_id)
+				->where('chuyen_khoa_id', $payload['chuyen_khoa_id'])
 				->exists();
 
 			if (!$doctorSpecialtyLinked) {
 				throw ValidationException::withMessages([
-					'bac_si_id' => ['Bac si moi khong thuoc chuyen khoa cua lich hen hien tai.'],
+					'bac_si_id' => ['Bac si moi khong thuoc chuyen khoa da chon.'],
 				]);
 			}
+
+			$this->validateItemsBelongToSpecialty($payload['items'], (int) $payload['chuyen_khoa_id']);
 
 			$validationPayload = [
 				'benh_nhan_id' => $lichHen->benh_nhan_id,
 				'bac_si_id' => (int) $payload['bac_si_id'],
-				'chuyen_khoa_id' => $lichHen->chuyen_khoa_id,
+				'chuyen_khoa_id' => (int) $payload['chuyen_khoa_id'],
 				'ngay_hen' => $payload['ngay_hen'],
 				'khung_gio_id' => $payload['khung_gio_id'] ?? null,
 				'lich_lam_viec_bac_si_id' => $payload['lich_lam_viec_bac_si_id'] ?? null,
@@ -379,24 +454,32 @@ class SchedulingService
 				]);
 			}
 
-			if (
-				(int) $newSlot->id === (int) $lichHen->khung_gio_id &&
-				(int) $payload['bac_si_id'] === (int) $lichHen->bac_si_id &&
-				Carbon::parse($payload['ngay_hen'])->format('Y-m-d') === Carbon::parse($lichHen->ngay_hen)->format('Y-m-d')
-			) {
-				throw ValidationException::withMessages([
-					'khung_gio_id' => ['Khung gio moi trung voi lich hien tai. Vui long chon lich khac.'],
-				]);
-			}
-
 			$oldKhungGioId = $lichHen->khung_gio_id;
 
 			$lichHen->update([
 				'bac_si_id' => $payload['bac_si_id'],
+				'chuyen_khoa_id' => $payload['chuyen_khoa_id'],
 				'ngay_hen' => $payload['ngay_hen'],
 				'khung_gio_id' => $newSlot->id,
+				'ly_do_kham' => $payload['ly_do_kham'] ?? $lichHen->ly_do_kham,
 				'ghi_chu' => $payload['ghi_chu'] ?? $lichHen->ghi_chu,
 			]);
+
+			DichVuLichHen::query()->where('lich_hen_id', $lichHen->id)->delete();
+
+			$newItems = collect($payload['items'])->map(function (array $item) use ($lichHen) {
+				return [
+					'lich_hen_id' => $lichHen->id,
+					'dich_vu_id' => $item['dich_vu_id'] ?? null,
+					'goi_kham_id' => $item['goi_kham_id'] ?? null,
+					'so_luong' => $item['so_luong'] ?? 1,
+					'ghi_chu' => $item['ghi_chu'] ?? null,
+					'created_at' => now(),
+					'updated_at' => now(),
+				];
+			})->all();
+
+			DichVuLichHen::query()->insert($newItems);
 
 			KhungGioKham::query()
 				->whereKey($newSlot->id)

@@ -3,6 +3,7 @@ import {
 	cancelLichHen,
 	createLichHen,
 	getBacSiTheoChuyenKhoa,
+	getCauHinhHeThong,
 	getChuyenKhoas,
 	getDichVus,
 	getLichHenCuaToi,
@@ -73,6 +74,15 @@ export const fetchDoctorSchedule = async ({ bacSiId, fromDate, toDate }) => {
 	})
 
 	return response?.data?.items || []
+}
+
+export const fetchBookingSystemConfigs = async () => {
+	const response = await getCauHinhHeThong({ nhom: 'lich_hen' })
+
+	return {
+		items: response?.data?.items || [],
+		map: response?.data?.map || {},
+	}
 }
 
 export const submitAppointmentBooking = async (payload) => {

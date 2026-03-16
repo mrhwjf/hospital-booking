@@ -74,6 +74,25 @@ class LichLamViecController extends Controller
         return $this->paginatedResponse($paginator, 'Lay danh sach goi kham thanh cong.');
     }
 
+    public function cauHinhHeThong(Request $request): JsonResponse
+    {
+        try {
+            $data = $this->schedulingService->getCauHinhHeThong($request->all());
+
+            return response()->json([
+                'success' => true,
+                'data' => $data,
+                'message' => 'Lay cau hinh he thong thanh cong.',
+            ]);
+        } catch (\Throwable $throwable) {
+            return response()->json([
+                'success' => false,
+                'data' => null,
+                'message' => 'Khong the lay cau hinh he thong.',
+            ], 500);
+        }
+    }
+
     private function paginatedResponse(LengthAwarePaginator $paginator, string $message): JsonResponse
     {
         return response()->json([

@@ -9,6 +9,7 @@ Route::get('/chuyen-khoa/{id}/bac-si', [LichLamViecController::class, 'bacSiTheo
 Route::get('/bac-si/{id}/lich-lam-viec', [LichLamViecController::class, 'lichLamViecBacSi']);
 Route::get('/dich-vu', [LichLamViecController::class, 'dichVus']);
 Route::get('/goi-kham', [LichLamViecController::class, 'goiKhams']);
+Route::get('/cau-hinh-he-thong', [LichLamViecController::class, 'cauHinhHeThong']);
 
 Route::post('/lich-hen', [LichHenController::class, 'store']);
 Route::get('/lich-hen', [LichHenController::class, 'index']);

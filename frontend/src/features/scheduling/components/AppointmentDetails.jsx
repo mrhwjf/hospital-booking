@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Alert, Card, Descriptions, Tag, Typography, Table, Segmented } from 'antd'
-import { SEGMENTED_STYLES } from '../styles/const-styles'
+import { SEGMENTED_STYLES, TABLE_STYLES } from '../styles/const-styles'
 
 const { Paragraph, Text, Title } = Typography
 
@@ -146,11 +146,13 @@ export default function AppointmentDetails({ appointment }) {
 						<Title level={5}>Dịch vụ đã đăng ký</Title>
 
 						<Table
+							className={TABLE_STYLES.header}
 							columns={columns}
 							dataSource={data}
 							pagination={false}
 							size="small"
 							locale={{ emptyText: 'Không có dịch vụ/gói khám cho lịch hẹn này.' }}
+							scroll={{ x: 'max-content' }}
 						/>
 
 						<div className="mt-3 border-t border-dashed border-slate-500 pt-3 text-right">

@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Alert, Button, Card, Select, Space, Typography, message } from 'antd'
 import CalendarPicker from './CalendarPicker'
+import ServicePicker from './ServicePicker'
 import {
 	fetchDoctorSchedule,
 	fetchDoctorsBySpecialty,
+	fetchServicesAndPackages,
+	fetchSpecialties,
 	getApiErrorMessage,
 } from '../../../services/schedulingService'
 
@@ -12,16 +15,54 @@ const { Text } = Typography
 export default function DoiLichForm({ appointment, onSubmit, onCancel, submitting = false }) {
 	const [loadingDoctors, setLoadingDoctors] = useState(false)
 	const [loadingSchedule, setLoadingSchedule] = useState(false)
+	const [loadingItems, setLoadingItems] = useState(false)
+	const [loadingSpecialties, setLoadingSpecialties] = useState(false)
+	const [specialties, setSpecialties] = useState([])
 	const [doctors, setDoctors] = useState([])
+	const [services, setServices] = useState([])
+	const [packages, setPackages] = useState([])
 	const [scheduleItems, setScheduleItems] = useState([])
 	const [calendarSlots, setCalendarSlots] = useState([])
 
+	const [chuyenKhoaId, setChuyenKhoaId] = useState(appointment?.chuyen_khoa_id || null)
 	const [doctorId, setDoctorId] = useState(appointment?.bac_si_id || null)
 	const [ngayHen, setNgayHen] = useState(appointment?.ngay_hen || null)
 	const [selectedSlotKey, setSelectedSlotKey] = useState(appointment?.khung_gio_id || null)
+	const [selectedItems, setSelectedItems] = useState(() => {
+		const result = { dich_vu: {}, goi_kham: {} }
+		const rows = appointment?.dich_vu_lich_hens || []
+
+		rows.forEach((row) => {
+			if (row?.dich_vu_id) {
+				result.dich_vu[row.dich_vu_id] = row.so_luong || 1
+			}
+
+			if (row?.goi_kham_id) {
+				result.goi_kham[row.goi_kham_id] = row.so_luong || 1
+			}
+		})
+
+		return result
+	})
 
 	useEffect(() => {
-		if (!appointment?.chuyen_khoa_id) {
+		const loadSpecialties = async () => {
+			setLoadingSpecialties(true)
+			try {
+				const items = await fetchSpecialties()
+				setSpecialties(items)
+			} catch (error) {
+				message.error(getApiErrorMessage(error, 'Khong the tai danh sach chuyen khoa.'))
+			} finally {
+				setLoadingSpecialties(false)
+			}
+		}
+
+		loadSpecialties()
+	}, [])
+
+	useEffect(() => {
+		if (!chuyenKhoaId) {
 			setDoctors([])
 			return
 		}
@@ -30,7 +71,7 @@ export default function DoiLichForm({ appointment, onSubmit, onCancel, submittin
 			setLoadingDoctors(true)
 			try {
 				const items = await fetchDoctorsBySpecialty({
-					chuyenKhoaId: appointment.chuyen_khoa_id,
+					chuyenKhoaId,
 				})
 				setDoctors(items)
 			} catch (error) {
@@ -41,7 +82,33 @@ export default function DoiLichForm({ appointment, onSubmit, onCancel, submittin
 		}
 
 		loadDoctors()
-	}, [appointment?.chuyen_khoa_id])
+	}, [chuyenKhoaId])
+
+	useEffect(() => {
+		if (!chuyenKhoaId) {
+			setServices([])
+			setPackages([])
+			return
+		}
+
+		const loadItems = async () => {
+			setLoadingItems(true)
+			try {
+				const { services: nextServices, packages: nextPackages } = await fetchServicesAndPackages({
+					chuyenKhoaId,
+				})
+
+				setServices(nextServices)
+				setPackages(nextPackages)
+			} catch (error) {
+				message.error(getApiErrorMessage(error, 'Khong the tai dich vu/goi kham.'))
+			} finally {
+				setLoadingItems(false)
+			}
+		}
+
+		loadItems()
+	}, [chuyenKhoaId])
 
 	useEffect(() => {
 		if (!doctorId) {
@@ -72,14 +139,27 @@ export default function DoiLichForm({ appointment, onSubmit, onCancel, submittin
 	)
 
 	const handleConfirm = async () => {
-		if (!doctorId || !ngayHen || !selectedSlot) {
-			message.warning('Vui long chon du bac si, ngay hen va khung gio moi.')
+		const items = [
+			...Object.entries(selectedItems.dich_vu || {}).map(([id, so_luong]) => ({
+				dich_vu_id: Number(id),
+				so_luong,
+			})),
+			...Object.entries(selectedItems.goi_kham || {}).map(([id, so_luong]) => ({
+				goi_kham_id: Number(id),
+				so_luong,
+			})),
+		]
+
+		if (!chuyenKhoaId || !doctorId || !ngayHen || !selectedSlot || items.length === 0) {
+			message.warning('Vui long chon du chuyen khoa, bac si, ngay hen, khung gio va dich vu/goi kham.')
 			return
 		}
 
 		const payload = {
+			chuyen_khoa_id: chuyenKhoaId,
 			bac_si_id: doctorId,
 			ngay_hen: ngayHen,
+			items,
 		}
 
 		if (selectedSlot.id) {
@@ -98,11 +178,31 @@ export default function DoiLichForm({ appointment, onSubmit, onCancel, submittin
 			<Alert
 				type="info"
 				showIcon
-				message="Ban chi duoc doi bac si trong cung chuyen khoa, va khong duoc doi dich vu/goi kham cua lich hen."
+				message="Ban co the doi chuyen khoa, bac si, ngay gio va cap nhat dich vu/goi kham cho lich hen."
 			/>
 
 			<Card className="border-[#E2E8F0]">
-				<Text strong>Bac si moi</Text>
+				<Text strong>Chọn chuyên khoa</Text>
+				<Select
+					className="mt-2 w-full"
+					value={chuyenKhoaId}
+					loading={loadingSpecialties}
+					onChange={(value) => {
+						setChuyenKhoaId(value)
+						setDoctorId(null)
+						setNgayHen(null)
+						setSelectedSlotKey(null)
+						setSelectedItems({ dich_vu: {}, goi_kham: {} })
+					}}
+					options={specialties.map((item) => ({
+						value: item.id,
+						label: item.ten_chuyen_khoa,
+					}))}
+				/>
+			</Card>
+
+			<Card className="border-[#E2E8F0]">
+				<Text strong>Chọn bác sĩ</Text>
 				<Select
 					className="mt-2 w-full"
 					value={doctorId}
@@ -131,6 +231,19 @@ export default function DoiLichForm({ appointment, onSubmit, onCancel, submittin
 				scheduleItems={scheduleItems}
 				loading={loadingSchedule}
 			/>
+
+			<Card className="border-[#E2E8F0]">
+				<Text strong>Chọn dịch vụ/goi khám</Text>
+				<div className="mt-2">
+					<ServicePicker
+						selectedItems={selectedItems}
+						onChange={setSelectedItems}
+						services={services}
+						packages={packages}
+					/>
+					{loadingItems && <Text type="secondary">Đang tải dịch vụ/goi khám...</Text>}
+				</div>
+			</Card>
 
 			<div className="flex items-center justify-end gap-2 border-t border-[#E2E8F0] pt-3">
 				<Button onClick={onCancel} disabled={submitting}>Dong</Button>

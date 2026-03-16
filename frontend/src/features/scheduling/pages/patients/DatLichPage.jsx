@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import dayjs from 'dayjs'
 import { EyeOutlined } from '@ant-design/icons'
 import {
 	Alert,
@@ -23,6 +24,7 @@ import DoctorCard from '../../components/DoctorCard'
 import CalendarPicker from '../../components/CalendarPicker'
 import PackageDetailModal from '../../components/PackageDetail'
 import {
+	fetchBookingSystemConfigs,
 	fetchDoctorSchedule,
 	fetchDoctorsBySpecialty,
 	fetchServicesAndPackages,
@@ -111,6 +113,11 @@ export default function DatLichPage() {
 	const [loadingDoctors, setLoadingDoctors] = useState(false)
 	const [loadingSchedule, setLoadingSchedule] = useState(false)
 	const [loadingItems, setLoadingItems] = useState(false)
+	const [bookingRules, setBookingRules] = useState({
+		minCancelHours: 12,
+		minRescheduleHours: 24,
+		maxBookingDays: 30,
+	})
 
 	const [specialties, setSpecialties] = useState([])
 	const [doctors, setDoctors] = useState([])
@@ -149,6 +156,24 @@ export default function DatLichPage() {
 		}
 
 		loadSpecialties()
+	}, [])
+
+	useEffect(() => {
+		const loadBookingRules = async () => {
+			try {
+				const { map } = await fetchBookingSystemConfigs()
+
+				setBookingRules({
+					minCancelHours: Number(map.THOI_GIAN_HUY_TOI_THIEU) || 12,
+					minRescheduleHours: Number(map.THOI_GIAN_DOI_TOI_THIEU) || 24,
+					maxBookingDays: Number(map.SO_NGAY_DAT_TRUOC_TOI_DA) || 30,
+				})
+			} catch {
+				message.warning('Khong the tai cau hinh dat lich, he thong dang dung gia tri mac dinh.')
+			}
+		}
+
+		loadBookingRules()
 	}, [])
 
 	useEffect(() => {
@@ -213,6 +238,7 @@ export default function DatLichPage() {
 			try {
 				const items = await fetchDoctorSchedule({
 					bacSiId: booking.bac_si_id,
+					toDate: dayjs().add(bookingRules.maxBookingDays, 'day').format('YYYY-MM-DD'),
 				})
 				setScheduleItems(items)
 			} catch {
@@ -223,7 +249,7 @@ export default function DatLichPage() {
 		}
 
 		loadSchedule()
-	}, [booking.bac_si_id])
+	}, [booking.bac_si_id, bookingRules.maxBookingDays])
 
 	const selectedDoctor = useMemo(
 		() => doctors.find((doctor) => doctor.id === booking.bac_si_id),
@@ -489,6 +515,12 @@ export default function DatLichPage() {
 							</div>
 
 							<Steps current={step} items={stepItems} responsive />
+
+							<Alert
+								type="info"
+								showIcon
+								message={`Quy dinh dat lich: Dat truoc toi da ${bookingRules.maxBookingDays} ngay, huy truoc it nhat ${bookingRules.minCancelHours} gio, doi lich truoc it nhat ${bookingRules.minRescheduleHours} gio.`}
+							/>
 
 							{step === 0 && (
 								<Space direction="vertical" size={12} className="w-full">
