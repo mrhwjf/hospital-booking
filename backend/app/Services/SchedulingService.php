@@ -15,8 +15,10 @@ use App\Models\LichHen;
 use App\Models\LichLamViecBacSi;
 use App\Models\LyDoHuy;
 use App\Models\NgayNghiLe;
+use App\Models\PhieuKham;
 use Carbon\Carbon;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\QueryException;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
@@ -24,6 +26,8 @@ use Illuminate\Validation\ValidationException;
 class SchedulingService
 {
 	public const DEFAULT_PAGE_SIZE = 10;
+	private const THOI_GIAN_CHECKIN_SOM_NHAT = 'THOI_GIAN_CHECKIN_SOM_NHAT';
+	private const CHECKIN_ALLOWED_APPOINTMENT_STATUSES = ['dang_cho', 'da_thanh_toan', 'da_xac_nhan'];
 
 	public function __construct(private readonly BookingValidationService $bookingValidationService)
 	{
@@ -50,7 +54,7 @@ class SchedulingService
 		$exists = ChuyenKhoa::query()->whereKey($chuyenKhoaId)->exists();
 		if (!$exists) {
 			throw ValidationException::withMessages([
-				'chuyen_khoa_id' => ['Chuyen khoa khong ton tai.'],
+				'chuyen_khoa_id' => ['Chuyên khoa không tồn tại.'],
 			]);
 		}
 
@@ -72,7 +76,7 @@ class SchedulingService
 		$bacSi = BacSi::query()->find($bacSiId);
 		if ($bacSi === null) {
 			throw ValidationException::withMessages([
-				'bac_si_id' => ['Bac si khong ton tai.'],
+				'bac_si_id' => ['Bác sĩ không tồn tại.'],
 			]);
 		}
 
@@ -81,7 +85,7 @@ class SchedulingService
 
 		if ($fromDate > $toDate) {
 			throw ValidationException::withMessages([
-				'tu_ngay' => ['tu_ngay phai nho hon hoac bang den_ngay.'],
+				'tu_ngay' => ['tu_ngay phải nhỏ hơn hoặc bằng den_ngay.'],
 			]);
 		}
 
@@ -215,7 +219,7 @@ class SchedulingService
 
 		if (!$doctorSpecialtyLinked) {
 			throw ValidationException::withMessages([
-				'chuyen_khoa_id' => ['Bac si khong thuoc chuyen khoa da chon.'],
+				'chuyen_khoa_id' => ['Bác sĩ không thuộc chuyên khoa đã chọn.'],
 			]);
 		}
 
@@ -224,13 +228,13 @@ class SchedulingService
 
 			if ((int) $slot->lichLamViecBacSi->bac_si_id !== (int) $payload['bac_si_id']) {
 				throw ValidationException::withMessages([
-					'bac_si_id' => ['Khung gio khong thuoc bac si da chon.'],
+					'bac_si_id' => ['Khung giờ không thuộc bác sĩ đã chọn.'],
 				]);
 			}
 
 			if ($slot->trang_thai !== 'trong') {
 				throw ValidationException::withMessages([
-					'khung_gio_id' => ['Khung gio khong con trong de dat lich.'],
+					'khung_gio_id' => ['Khung giờ không còn trống để đặt lịch.'],
 				]);
 			}
 
@@ -285,7 +289,7 @@ class SchedulingService
 
 			if ($invalidDichVuIds->isNotEmpty()) {
 				throw ValidationException::withMessages([
-					'items' => ['Dich vu da chon khong thuoc chuyen khoa hien tai.'],
+					'items' => ['Dịch vụ đã chọn không thuộc chuyên khoa hiện tại.'],
 				]);
 			}
 		}
@@ -307,7 +311,7 @@ class SchedulingService
 
 			if ($invalidGoiKhamIds->isNotEmpty()) {
 				throw ValidationException::withMessages([
-					'items' => ['Goi kham da chon khong lien ket voi chuyen khoa hien tai.'],
+					'items' => ['Gói khám đã chọn không liên kết với chuyên khoa hiện tại.'],
 				]);
 			}
 		}
@@ -320,7 +324,7 @@ class SchedulingService
 
 		if ($benhNhanId <= 0 || !BenhNhan::query()->whereKey($benhNhanId)->exists()) {
 			throw ValidationException::withMessages([
-				'benh_nhan_id' => ['Benh nhan khong ton tai.'],
+				'benh_nhan_id' => ['Bệnh nhân không tồn tại.'],
 			]);
 		}
 
@@ -340,6 +344,173 @@ class SchedulingService
 			->orderByDesc('ngay_hen')
 			->orderByDesc('id')
 			->paginate($pageSize);
+	}
+
+	public function getLichHensForReceptionist(array $filters): LengthAwarePaginator
+	{
+		$pageSize = $this->resolvePageSize($filters['pageSize'] ?? null);
+		$fromDate = !empty($filters['tu_ngay'])
+			? Carbon::parse((string) $filters['tu_ngay'])->format('Y-m-d')
+			: now()->format('Y-m-d');
+		$toDate = !empty($filters['den_ngay'])
+			? Carbon::parse((string) $filters['den_ngay'])->format('Y-m-d')
+			: now()->addDays(30)->format('Y-m-d');
+
+		if ($fromDate > $toDate) {
+			throw ValidationException::withMessages([
+				'tu_ngay' => ['tu_ngay phải nhỏ hơn hoặc bằng den_ngay.'],
+			]);
+		}
+
+		$keyword = trim((string) ($filters['q'] ?? ''));
+
+		return LichHen::query()
+			->with([
+				'benhNhan:id,ma_benh_nhan,ho_ten,so_dien_thoai,email',
+				'bacSi:id,ho_ten,hoc_vi',
+				'chuyenKhoa:id,ten_chuyen_khoa',
+				'khungGioKham:id,gio_bat_dau,gio_ket_thuc',
+				'dichVuLichHens.dichVu:id,ten_dich_vu,gia_dich_vu',
+				'dichVuLichHens.goiKham:id,ten_goi_kham,gia_goi_kham',
+				'lyDoHuy:id,ten_ly_do',
+			])
+			->whereBetween('ngay_hen', [$fromDate, $toDate])
+			->when(!empty($filters['trang_thai']), function ($query) use ($filters) {
+				$query->where('trang_thai', (string) $filters['trang_thai']);
+			})
+			->when(!empty($filters['bac_si_id']), function ($query) use ($filters) {
+				$query->where('bac_si_id', (int) $filters['bac_si_id']);
+			})
+			->when(!empty($filters['benh_nhan_id']), function ($query) use ($filters) {
+				$query->where('benh_nhan_id', (int) $filters['benh_nhan_id']);
+			})
+			->when($keyword !== '', function ($query) use ($keyword) {
+				$query->where(function ($subQuery) use ($keyword) {
+					$subQuery
+						->where('ma_lich_hen', 'like', '%' . $keyword . '%')
+						->orWhereHas('benhNhan', function ($q) use ($keyword) {
+							$q->where('ho_ten', 'like', '%' . $keyword . '%')
+								->orWhere('ma_benh_nhan', 'like', '%' . $keyword . '%')
+								->orWhere('so_dien_thoai', 'like', '%' . $keyword . '%');
+						})
+						->orWhereHas('bacSi', function ($q) use ($keyword) {
+							$q->where('ho_ten', 'like', '%' . $keyword . '%');
+						});
+				});
+			})
+			->orderBy('ngay_hen')
+			->orderBy('khung_gio_id')
+			->orderByDesc('id')
+			->paginate($pageSize);
+	}
+
+	public function getBenhNhans(array $filters): LengthAwarePaginator
+	{
+		$pageSize = $this->resolvePageSize($filters['pageSize'] ?? null);
+		$keyword = trim((string) ($filters['q'] ?? ''));
+
+		return BenhNhan::query()
+			->select([
+				'id',
+				'ma_benh_nhan',
+				'ho_ten',
+				'ngay_sinh',
+				'gioi_tinh',
+				'so_dien_thoai',
+				'email',
+				'trang_thai',
+			])
+			->when($keyword !== '', function ($query) use ($keyword) {
+				$query->where(function ($subQuery) use ($keyword) {
+					$subQuery
+						->where('ho_ten', 'like', '%' . $keyword . '%')
+						->orWhere('ma_benh_nhan', 'like', '%' . $keyword . '%')
+						->orWhere('so_dien_thoai', 'like', '%' . $keyword . '%')
+						->orWhere('email', 'like', '%' . $keyword . '%');
+				});
+			})
+			->orderBy('ho_ten')
+			->paginate($pageSize);
+	}
+
+	public function getBenhNhanById(int $id): BenhNhan
+	{
+		$benhNhan = BenhNhan::query()->find($id);
+
+		if ($benhNhan === null) {
+			throw ValidationException::withMessages([
+				'id' => ['Bệnh nhân không tồn tại.'],
+			]);
+		}
+
+		return $benhNhan;
+	}
+
+	public function createBenhNhan(array $payload): BenhNhan
+	{
+		if (!empty($payload['email'])) {
+			$emailExists = BenhNhan::query()->where('email', $payload['email'])->exists();
+			if ($emailExists) {
+				throw ValidationException::withMessages([
+					'email' => ['Email đã tồn tại trong hệ thống bệnh nhân.'],
+				]);
+			}
+		}
+
+		if (!empty($payload['so_cccd'])) {
+			$cccdExists = BenhNhan::query()->where('so_cccd', $payload['so_cccd'])->exists();
+			if ($cccdExists) {
+				throw ValidationException::withMessages([
+					'so_cccd' => ['Số CCCD đã tồn tại trong hệ thống bệnh nhân.'],
+				]);
+			}
+		}
+
+		try {
+			return DB::transaction(function () use ($payload) {
+				$benhNhan = BenhNhan::query()->create([
+					'ma_benh_nhan' => $this->generatePatientCode(),
+					'ho_ten' => $payload['ho_ten'],
+					'ngay_sinh' => $payload['ngay_sinh'],
+					'gioi_tinh' => $payload['gioi_tinh'],
+					'so_dien_thoai' => $payload['so_dien_thoai'],
+					'email' => $payload['email'] ?? null,
+					'so_cccd' => $payload['so_cccd'] ?? null,
+					'dia_chi' => $payload['dia_chi'] ?? null,
+					'nguoi_lien_he' => $payload['nguoi_lien_he'] ?? null,
+					'sdt_nguoi_lien_he' => $payload['sdt_nguoi_lien_he'] ?? null,
+					'nhom_mau' => $payload['nhom_mau'] ?? null,
+					'tien_su_di_ung' => $payload['tien_su_di_ung'] ?? null,
+					'tien_su_benh' => $payload['tien_su_benh'] ?? null,
+					'ghi_chu' => $payload['ghi_chu'] ?? null,
+					'trang_thai' => 'hoat_dong',
+				]);
+
+				return $benhNhan;
+			});
+		} catch (QueryException $exception) {
+			$message = strtolower($exception->getMessage());
+
+			if (str_contains($message, 'ma_benh_nhan')) {
+				throw ValidationException::withMessages([
+					'ma_benh_nhan' => ['Không thể tạo mã bệnh nhân duy nhất. Vui lòng thử lại.'],
+				]);
+			}
+
+			if (str_contains($message, 'so_cccd')) {
+				throw ValidationException::withMessages([
+					'so_cccd' => ['Số CCCD đã tồn tại trong hệ thống bệnh nhân.'],
+				]);
+			}
+
+			if (str_contains($message, 'email')) {
+				throw ValidationException::withMessages([
+					'email' => ['Email đã tồn tại trong hệ thống bệnh nhân.'],
+				]);
+			}
+
+			throw $exception;
+		}
 	}
 
 	public function getLyDoHuyBenhNhan(): Collection
@@ -363,7 +534,7 @@ class SchedulingService
 
 			if ($lichHen === null) {
 				throw ValidationException::withMessages([
-					'id' => ['Lich hen khong ton tai.'],
+					'id' => ['Lịch hẹn không tồn tại.'],
 				]);
 			}
 
@@ -378,7 +549,7 @@ class SchedulingService
 
 				if (!$validReason) {
 					throw ValidationException::withMessages([
-						'ly_do_huy_id' => ['Ly do huy khong hop le cho benh nhan.'],
+						'ly_do_huy_id' => ['Lý do hủy không hợp lệ cho bệnh nhân.'],
 					]);
 				}
 			}
@@ -411,7 +582,7 @@ class SchedulingService
 
 			if ($lichHen === null) {
 				throw ValidationException::withMessages([
-					'id' => ['Lich hen khong ton tai.'],
+					'id' => ['Lịch hẹn không tồn tại.'],
 				]);
 			}
 
@@ -422,7 +593,7 @@ class SchedulingService
 
 			if (!$doctorSpecialtyLinked) {
 				throw ValidationException::withMessages([
-					'bac_si_id' => ['Bac si moi khong thuoc chuyen khoa da chon.'],
+					'bac_si_id' => ['Bác sĩ mới không thuộc chuyên khoa đã chọn.'],
 				]);
 			}
 
@@ -444,13 +615,13 @@ class SchedulingService
 
 			if ((int) $newSlot->lichLamViecBacSi->bac_si_id !== (int) $payload['bac_si_id']) {
 				throw ValidationException::withMessages([
-					'bac_si_id' => ['Khung gio moi khong thuoc bac si da chon.'],
+					'bac_si_id' => ['Khung giờ mới không thuộc bác sĩ đã chọn.'],
 				]);
 			}
 
 			if ($newSlot->trang_thai !== 'trong' && (int) $newSlot->id !== (int) $lichHen->khung_gio_id) {
 				throw ValidationException::withMessages([
-					'khung_gio_id' => ['Khung gio moi khong con trong de doi lich.'],
+					'khung_gio_id' => ['Khung giờ mới không còn trống để đổi lịch.'],
 				]);
 			}
 
@@ -497,6 +668,60 @@ class SchedulingService
 		});
 	}
 
+	public function checkInLichHen(int $id, array $payload): LichHen
+	{
+		return DB::transaction(function () use ($id, $payload) {
+			/** @var LichHen|null $lichHen */
+			$lichHen = LichHen::query()
+				->with([
+					'khungGioKham:id,gio_bat_dau,gio_ket_thuc',
+					'phieuKham:id,lich_hen_id',
+				])
+				->lockForUpdate()
+				->find($id);
+
+			if ($lichHen === null) {
+				throw ValidationException::withMessages([
+					'id' => ['Lịch hẹn không tồn tại.'],
+				]);
+			}
+
+			$this->validateCheckInEligibility($lichHen);
+
+			$nguoiTiepNhanId = $this->resolveNguoiTiepNhanId($payload);
+			$checkInAt = now();
+
+			$existingPhieuKham = PhieuKham::query()
+				->where('lich_hen_id', $lichHen->id)
+				->lockForUpdate()
+				->first();
+
+			if ($existingPhieuKham !== null) {
+				throw ValidationException::withMessages([
+					'lich_hen' => ['Lịch hẹn đã được check-in trước đó.'],
+				]);
+			}
+
+			$lichHen->update([
+				'gio_den_thuc_te' => $checkInAt->format('H:i:s'),
+				'nguoi_tiep_nhan_id' => $nguoiTiepNhanId,
+				'trang_thai' => 'da_xac_nhan',
+			]);
+
+			PhieuKham::query()->create([
+				'ma_phieu_kham' => $this->generateMedicalFormCode(),
+				'lich_hen_id' => $lichHen->id,
+				'benh_nhan_id' => $lichHen->benh_nhan_id,
+				'bac_si_id' => $lichHen->bac_si_id,
+				'nguoi_tao_id' => $nguoiTiepNhanId,
+				'thoi_gian_tiep_nhan' => $checkInAt,
+				'trang_thai' => 'tiep_nhan',
+			]);
+
+			return $this->getLichHenById($lichHen->id);
+		});
+	}
+
 	private function resolveNguoiTaoId(array $payload): int
 	{
 		if (!empty($payload['nguoi_tao_id'])) {
@@ -516,8 +741,67 @@ class SchedulingService
 		}
 
 		throw ValidationException::withMessages([
-			'nguoi_tao_id' => ['Khong xac dinh duoc nguoi tao lich hen. Vui long dang nhap lai.'],
+			'nguoi_tao_id' => ['Không xác định được người tạo lịch hẹn. Vui lòng đăng nhập lại.'],
 		]);
+	}
+
+	private function resolveNguoiTiepNhanId(array $payload): int
+	{
+		if (!empty($payload['nguoi_tiep_nhan_id'])) {
+			return (int) $payload['nguoi_tiep_nhan_id'];
+		}
+
+		if (auth()->check()) {
+			return (int) auth()->id();
+		}
+
+		throw ValidationException::withMessages([
+			'nguoi_tiep_nhan_id' => ['Không xác định được nhân viên tiếp nhận check-in.'],
+		]);
+	}
+
+	private function validateCheckInEligibility(LichHen $lichHen): void
+	{
+		if (!in_array($lichHen->trang_thai, self::CHECKIN_ALLOWED_APPOINTMENT_STATUSES, true)) {
+			throw ValidationException::withMessages([
+				'lich_hen' => ['Trạng thái lịch hẹn hiện tại không cho phép check-in.'],
+			]);
+		}
+
+		if (!empty($lichHen->gio_den_thuc_te) || $lichHen->phieuKham !== null) {
+			throw ValidationException::withMessages([
+				'lich_hen' => ['Lịch hẹn đã được check-in trước đó.'],
+			]);
+		}
+
+		if ($lichHen->khungGioKham === null || empty($lichHen->khungGioKham->gio_bat_dau)) {
+			throw ValidationException::withMessages([
+				'lich_hen' => ['Không thể xác định giờ hẹn để thực hiện check-in.'],
+			]);
+		}
+
+		$appointmentDate = Carbon::parse($lichHen->ngay_hen)->format('Y-m-d');
+		$today = now()->format('Y-m-d');
+
+		if ($appointmentDate !== $today) {
+			throw ValidationException::withMessages([
+				'lich_hen' => ['Chỉ được check-in trong đúng ngày hẹn.'],
+			]);
+		}
+
+		$appointmentAt = Carbon::createFromFormat(
+			'Y-m-d H:i:s',
+			$appointmentDate . ' ' . $lichHen->khungGioKham->gio_bat_dau,
+		);
+
+		$earliestMinutes = $this->getSystemConfigValue(self::THOI_GIAN_CHECKIN_SOM_NHAT, 45);
+		$earliestAllowedCheckIn = $appointmentAt->copy()->subMinutes($earliestMinutes);
+
+		if (now()->lt($earliestAllowedCheckIn)) {
+			throw ValidationException::withMessages([
+				'lich_hen' => ["Chỉ được check-in sớm nhất trước $earliestMinutes phút so với giờ hẹn."],
+			]);
+		}
 	}
 
 	public function getLichHenById(int $id): LichHen
@@ -531,12 +815,13 @@ class SchedulingService
 				'dichVuLichHens.dichVu:id,ten_dich_vu,gia_dich_vu',
 				'dichVuLichHens.goiKham:id,ten_goi_kham,gia_goi_kham',
 				'lyDoHuy:id,ten_ly_do',
+				'phieuKham:id,ma_phieu_kham,lich_hen_id,thoi_gian_tiep_nhan,trang_thai',
 			])
 			->find($id);
 
 		if ($lichHen === null) {
 			throw ValidationException::withMessages([
-				'id' => ['Lich hen khong ton tai.'],
+				'id' => ['Lịch hẹn không tồn tại.'],
 			]);
 		}
 
@@ -600,7 +885,7 @@ class SchedulingService
 
 			if ($slot === null) {
 				throw ValidationException::withMessages([
-					'khung_gio_id' => ['Khung gio khong ton tai.'],
+					'khung_gio_id' => ['Khung giờ không tồn tại.'],
 				]);
 			}
 
@@ -644,6 +929,36 @@ class SchedulingService
 		return $prefix . str_pad((string) $next, 3, '0', STR_PAD_LEFT);
 	}
 
+	private function generateMedicalFormCode(): string
+	{
+		$prefix = 'PK' . now()->format('Ymd');
+		$lastCode = PhieuKham::query()
+			->where('ma_phieu_kham', 'like', $prefix . '%')
+			->lockForUpdate()
+			->orderByDesc('ma_phieu_kham')
+			->value('ma_phieu_kham');
+
+		$next = $lastCode ? ((int) substr($lastCode, -3)) + 1 : 1;
+
+		return $prefix . str_pad((string) $next, 3, '0', STR_PAD_LEFT);
+	}
+
+	private function generatePatientCode(): string
+	{
+		$prefix = 'BN';
+
+		// Handle mixed legacy formats like BN0001, BN0002, BN000001 safely.
+		$maxNumeric = (int) (BenhNhan::query()
+			->where('ma_benh_nhan', 'regexp', '^BN[0-9]+$')
+			->lockForUpdate()
+			->selectRaw('MAX(CAST(SUBSTRING(ma_benh_nhan, 3) AS UNSIGNED)) as max_code')
+			->value('max_code') ?? 0);
+
+		$next = $maxNumeric + 1;
+
+		return $prefix . str_pad((string) $next, 6, '0', STR_PAD_LEFT);
+	}
+
 	private function resolvePageSize(mixed $pageSize): int
 	{
 		$size = (int) ($pageSize ?? self::DEFAULT_PAGE_SIZE);
@@ -653,6 +968,11 @@ class SchedulingService
 		}
 
 		return min($size, 100);
+	}
+
+	private function getSystemConfigValue(string $key, int $default): int
+	{
+		return (int) (CauHinhHeThong::query()->where('khoa', $key)->value('gia_tri') ?? $default);
 	}
 
 	private function maskPhone(?string $phone): ?string

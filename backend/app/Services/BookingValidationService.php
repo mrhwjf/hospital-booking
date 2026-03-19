@@ -31,13 +31,13 @@ class BookingValidationService
 
 		if ((int) $slotContext['bac_si_id'] !== (int) $payload['bac_si_id']) {
 			throw ValidationException::withMessages([
-				'bac_si_id' => ['Bac si khong khop voi lich lam viec cua khung gio da chon.'],
+				'bac_si_id' => ['Bác sĩ không khớp với lịch làm việc của khung giờ đã chọn.'],
 			]);
 		}
 
 		if ((string) $slotContext['ngay_lam_viec'] !== $ngayHen->format('Y-m-d')) {
 			throw ValidationException::withMessages([
-				'ngay_hen' => ['Ngay hen khong khop voi ngay lam viec cua bac si.'],
+				'ngay_hen' => ['Ngày hẹn không khớp với ngày làm việc của bác sĩ.'],
 			]);
 		}
 
@@ -49,7 +49,7 @@ class BookingValidationService
 		$this->validateAppointmentCanBeUpdated($lichHen);
 
 		$minHours = (int) $this->getSystemConfig(self::THOI_GIAN_HUY_TOI_THIEU, 12);
-		$this->validateMinimumHoursBefore($lichHen, $minHours, 'lich_hen', "Chi duoc huy lich truoc it nhat $minHours gio.");
+		$this->validateMinimumHoursBefore($lichHen, $minHours, 'lich_hen', "Chỉ được hủy lịch trước ít nhất $minHours giờ.");
 	}
 
 	public function validateReschedulePayload(LichHen $lichHen, array $payload): array
@@ -57,7 +57,7 @@ class BookingValidationService
 		$this->validateAppointmentCanBeUpdated($lichHen);
 
 		$minHours = (int) $this->getSystemConfig(self::THOI_GIAN_DOI_TOI_THIEU, 24);
-		$this->validateMinimumHoursBefore($lichHen, $minHours, 'lich_hen', "Chi duoc doi lich truoc it nhat $minHours gio.");
+		$this->validateMinimumHoursBefore($lichHen, $minHours, 'lich_hen', "Chỉ được đổi lịch trước ít nhất $minHours giờ.");
 
 		return $this->validateCreatePayload($payload, (int) $lichHen->khung_gio_id);
 	}
@@ -68,13 +68,13 @@ class BookingValidationService
 
 		if ($ngayHen->lt(now()->copy()->startOfDay())) {
 			throw ValidationException::withMessages([
-				'ngay_hen' => ['Khong the dat lich cho ngay trong qua khu.'],
+				'ngay_hen' => ['Không thể đặt lịch cho ngày trong quá khứ.'],
 			]);
 		}
 
 		if ($ngayHen->greaterThan(now()->copy()->addDays($maxDays)->startOfDay())) {
 			throw ValidationException::withMessages([
-				'ngay_hen' => ["Chi duoc dat lich trong vong $maxDays ngay toi da."],
+				'ngay_hen' => ["Chỉ được đặt lịch trong vòng $maxDays ngày tối đa."],
 			]);
 		}
 
@@ -91,7 +91,7 @@ class BookingValidationService
 		$appointmentAt = Carbon::createFromFormat('Y-m-d H:i:s', $ngayHen->format('Y-m-d') . ' ' . $gioBatDau);
 		if ($appointmentAt->lte(now())) {
 			throw ValidationException::withMessages([
-				'ngay_hen' => ['Khong the dat lich cho thoi diem trong qua khu.'],
+				'ngay_hen' => ['Không thể đặt lịch cho thời điểm trong quá khứ.'],
 			]);
 		}
 	}
@@ -105,7 +105,7 @@ class BookingValidationService
 
 		if ($isHoliday) {
 			throw ValidationException::withMessages([
-				'ngay_hen' => ['Ngay da chon la ngay nghi le, khong the dat lich.'],
+				'ngay_hen' => ['Ngày đã chọn là ngày nghỉ lễ, không thể đặt lịch.'],
 			]);
 		}
 	}
@@ -119,13 +119,13 @@ class BookingValidationService
 
 			if ($slot === null || $slot->lichLamViecBacSi === null) {
 				throw ValidationException::withMessages([
-					'khung_gio_id' => ['Khung gio kham khong hop le.'],
+					'khung_gio_id' => ['Khung giờ khám không hợp lệ.'],
 				]);
 			}
 
 			if ($slot->lichLamViecBacSi->trang_thai !== 'hoat_dong') {
 				throw ValidationException::withMessages([
-					'khung_gio_id' => ['Lich lam viec cua khung gio khong con hoat dong.'],
+					'khung_gio_id' => ['Lịch làm việc của khung giờ không còn hoạt động.'],
 				]);
 			}
 
@@ -134,7 +134,7 @@ class BookingValidationService
 				(int) $slot->id !== (int) ($allowedBookedSlotId ?? 0)
 			) {
 				throw ValidationException::withMessages([
-					'khung_gio_id' => ['Khung gio da duoc dat hoac dang bi khoa.'],
+					'khung_gio_id' => ['Khung giờ đã được đặt hoặc đang bị khóa.'],
 				]);
 			}
 
@@ -155,26 +155,26 @@ class BookingValidationService
 
 		if ($schedule === null) {
 			throw ValidationException::withMessages([
-				'lich_lam_viec_bac_si_id' => ['Lich lam viec bac si khong ton tai.'],
+				'lich_lam_viec_bac_si_id' => ['Lịch làm việc bác sĩ không tồn tại.'],
 			]);
 		}
 
 		if ($schedule->trang_thai !== 'hoat_dong') {
 			throw ValidationException::withMessages([
-				'lich_lam_viec_bac_si_id' => ['Lich lam viec bac si khong o trang thai hoat dong.'],
+				'lich_lam_viec_bac_si_id' => ['Lịch làm việc bác sĩ không ở trạng thái hoạt động.'],
 			]);
 		}
 
 		if ($schedule->lichLamViec === null) {
 			throw ValidationException::withMessages([
-				'lich_lam_viec_bac_si_id' => ['Khong tim thay thong tin ca lam viec cua bac si.'],
+				'lich_lam_viec_bac_si_id' => ['Không tìm thấy thông tin ca làm việc của bác sĩ.'],
 			]);
 		}
 
 		$ngayLamViec = Carbon::parse($schedule->ngay_lam_viec)->format('Y-m-d');
 		if ($ngayLamViec !== $ngayHen->format('Y-m-d')) {
 			throw ValidationException::withMessages([
-				'ngay_hen' => ['Ngay hen khong trung voi ngay lam viec da chon.'],
+				'ngay_hen' => ['Ngày hẹn không trùng với ngày làm việc đã chọn.'],
 			]);
 		}
 
@@ -185,7 +185,7 @@ class BookingValidationService
 
 		if ($slotStart->lt($shiftStart) || $slotEnd->gt($shiftEnd)) {
 			throw ValidationException::withMessages([
-				'gio_bat_dau' => ['Khung gio da chon nam ngoai ca lam viec cua bac si.'],
+				'gio_bat_dau' => ['Khung giờ đã chọn nằm ngoài ca làm việc của bác sĩ.'],
 			]);
 		}
 
@@ -200,7 +200,7 @@ class BookingValidationService
 			(int) $existingSlot->id !== (int) ($allowedBookedSlotId ?? 0)
 		) {
 			throw ValidationException::withMessages([
-				'gio_bat_dau' => ['Khung gio da duoc dat hoac dang bi khoa.'],
+				'gio_bat_dau' => ['Khung giờ đã được đặt hoặc đang bị khóa.'],
 			]);
 		}
 
@@ -224,7 +224,7 @@ class BookingValidationService
 
 		if (!$activeScheduleExists) {
 			throw ValidationException::withMessages([
-				'bac_si_id' => ['Bac si khong co lich lam viec hop le trong ngay da chon.'],
+				'bac_si_id' => ['Bác sĩ không có lịch làm việc hợp lệ trong ngày đã chọn.'],
 			]);
 		}
 
@@ -240,7 +240,7 @@ class BookingValidationService
 
 		if ($fullDayLeave) {
 			throw ValidationException::withMessages([
-				'bac_si_id' => ['Bac si nghi ca ngay, khong the dat lich.'],
+				'bac_si_id' => ['Bác sĩ nghỉ cả ngày, không thể đặt lịch.'],
 			]);
 		}
 
@@ -260,7 +260,7 @@ class BookingValidationService
 
 		if ($overlapLeave) {
 			throw ValidationException::withMessages([
-				'gio_bat_dau' => ['Khung gio trung voi khoang thoi gian bac si nghi.'],
+				'gio_bat_dau' => ['Khung giờ trùng với khoảng thời gian bác sĩ nghỉ.'],
 			]);
 		}
 	}
@@ -274,7 +274,7 @@ class BookingValidationService
 	{
 		if (!in_array($lichHen->trang_thai, self::ACTIVE_APPOINTMENT_STATUSES, true)) {
 			throw ValidationException::withMessages([
-				'lich_hen' => ['Lich hen hien tai khong the cap nhat huy/doi lich.'],
+				'lich_hen' => ['Lịch hẹn hiện tại không thể cập nhật hủy/đổi lịch.'],
 			]);
 		}
 	}
@@ -284,7 +284,7 @@ class BookingValidationService
 		$appointmentAt = $this->resolveAppointmentDateTime($lichHen);
 		if ($appointmentAt === null) {
 			throw ValidationException::withMessages([
-				'lich_hen' => ['Khong the xac dinh gio hen hien tai de thuc hien thao tac nay.'],
+				'lich_hen' => ['Không thể xác định giờ hẹn hiện tại để thực hiện thao tác này.'],
 			]);
 		}
 

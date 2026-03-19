@@ -35,11 +35,11 @@ class DoiLichHenRequest extends FormRequest
 	public function messages(): array
 	{
 		return [
-			'items.required' => 'Danh sach dich vu/goi kham la bat buoc khi doi lich.',
-			'items.min' => 'Can chon it nhat 1 dich vu hoac goi kham.',
-			'lich_lam_viec_bac_si_id.required_without' => 'Vui long cung cap lich_lam_viec_bac_si_id khi khong co khung_gio_id.',
-			'gio_bat_dau.required_without' => 'Vui long cung cap gio_bat_dau khi khong co khung_gio_id.',
-			'gio_ket_thuc.required_without' => 'Vui long cung cap gio_ket_thuc khi khong co khung_gio_id.',
+			'items.required' => 'Danh sách dịch vụ/gói khám là bắt buộc khi đổi lịch.',
+			'items.min' => 'Cần chọn ít nhất 1 dịch vụ hoặc gói khám.',
+			'lich_lam_viec_bac_si_id.required_without' => 'Vui lòng cung cấp lich_lam_viec_bac_si_id khi không có khung_gio_id.',
+			'gio_bat_dau.required_without' => 'Vui lòng cung cấp gio_bat_dau khi không có khung_gio_id.',
+			'gio_ket_thuc.required_without' => 'Vui lòng cung cấp gio_ket_thuc khi không có khung_gio_id.',
 		];
 	}
 
@@ -53,7 +53,7 @@ class DoiLichHenRequest extends FormRequest
 				$hasGoiKham = !empty($item['goi_kham_id']);
 
 				if ($hasDichVu === $hasGoiKham) {
-					$validator->errors()->add("items.$index", 'Moi item chi duoc co dich_vu_id hoac goi_kham_id.');
+					$validator->errors()->add("items.$index", 'Mỗi item chỉ được có dich_vu_id hoặc goi_kham_id.');
 				}
 			}
 		});

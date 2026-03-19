@@ -11,9 +11,11 @@ import {
 	Space,
 	Table,
 	Tag,
+	Tooltip,
 	Typography,
 	message,
 } from 'antd'
+import { EyeOutlined, EditOutlined } from '@ant-design/icons'
 import AppointmentDetails from '../../components/AppointmentDetails'
 import DoiLichForm from '../../components/DoiLichForm'
 import {
@@ -242,35 +244,44 @@ export default function LichHenCuaToiPage() {
 		},
 		{
 			title: 'Hành động',
+			align: 'center',
 			key: 'actions',
 			render: (_, record) => {
 				const canModify = ['dang_cho', 'da_xac_nhan'].includes(record.trang_thai)
 
 				return (
 					<Space wrap>
-						<Button onClick={() => setSelectedAppointmentId(record.id)}>
-							Xem chi tiết
-						</Button>
+						<Tooltip title="Xem chi tiết">
+							<Button
+								icon={<EyeOutlined />}
+								onClick={() => setSelectedAppointmentId(record.id)}
+							/>
+						</Tooltip>
 
-						<Button
-							disabled={!canModify}
-							onClick={() => setReschedulingAppointment(record)}
-						>
-							Đổi lịch
-						</Button>
 
-						<Button
-							danger
-							disabled={!canModify}
-							onClick={() => handleCancelClick(record)}
-						>
-							Hủy lịch
-						</Button>
+						<Tooltip title={"Đổi lịch" + (canModify ? "" : " (không thể thực hiện)")}>
+							<Button
+								icon={<EditOutlined />}
+								disabled={!canModify}
+								onClick={() => setReschedulingAppointment(record)}
+							/>
+						</Tooltip>
+
+						<Tooltip title={"Hủy lịch" + (canModify ? "" : " (không thể thực hiện)")}>
+							<Button
+								danger
+								disabled={!canModify}
+								onClick={() => handleCancelClick(record)}
+							>
+								Hủy lịch
+							</Button>
+						</Tooltip>
 					</Space>
 				)
 			},
 		}
 	]
+
 
 	return (
 		<div className="min-h-screen bg-[#F8FAFC] p-4 md:p-8">
@@ -323,39 +334,59 @@ export default function LichHenCuaToiPage() {
 							/>
 						) : (
 							<Space direction="vertical" className="w-full" size={10}>
-								{rows.map((row) => (
-									<Card key={row.id} className="border-[#E2E8F0]">
-										<Space direction="vertical" className="w-full" size={8}>
-											<div className="flex items-center justify-between">
-												<Text strong>{row.ma_lich_hen}</Text>
-												{renderStatus(row.trang_thai)}
-											</div>
-											<Text>{row.specialtyName} - {row.doctorName}</Text>
-											<Text type="secondary">{row.ngay_hen} | {row.slotLabel}</Text>
-											<Text strong>{formatCurrency(row.total)}</Text>
-											<Space wrap>
-												<Button size="small" onClick={() => setSelectedAppointmentId(row.id)}>Xem chi tiết</Button>
+								<Space direction="vertical" className="w-full" size={10}>
+									{rows.map((row) => {
+										const canModify = ['dang_cho', 'da_xac_nhan'].includes(row.trang_thai);
+										const disabledText = !canModify ? " (không thể thực hiện)" : "";
 
-												<Button
-													size="small"
-													disabled={!['dang_cho', 'da_xac_nhan'].includes(row.trang_thai)}
-													onClick={() => setReschedulingAppointment(row)}
-												>
-													Đổi lịch
-												</Button>
+										return (
+											<Card key={row.id} className="border-[#E2E8F0]">
+												<Space direction="vertical" className="w-full" size={8}>
+													<div className="flex items-center justify-between">
+														<Text strong>{row.ma_lich_hen}</Text>
+														{renderStatus(row.trang_thai)}
+													</div>
 
-												<Button
-													size="small"
-													disabled={!['dang_cho', 'da_xac_nhan'].includes(row.trang_thai)}
-													danger
-													onClick={() => handleCancelClick(row)}
-												>
-													Hủy lịch
-												</Button>
-											</Space>
-										</Space>
-									</Card>
-								))}
+													<Text>{row.specialtyName} - {row.doctorName}</Text>
+													<Text type="secondary">
+														{row.ngay_hen} | {row.slotLabel}
+													</Text>
+													<Text strong>{formatCurrency(row.total)}</Text>
+
+													<Space wrap>
+														<Tooltip title="Xem chi tiết">
+															<Button
+																icon={<EyeOutlined />}
+																size="small"
+																onClick={() => setSelectedAppointmentId(row.id)}
+															/>
+														</Tooltip>
+
+														<Tooltip title={`Đổi lịch${disabledText}`}>
+															<Button
+																icon={<EditOutlined />}
+																size="small"
+																disabled={!canModify}
+																onClick={() => setReschedulingAppointment(row)}
+															/>
+														</Tooltip>
+
+														<Tooltip title={`Hủy lịch${disabledText}`}>
+															<Button
+																size="small"
+																danger
+																disabled={!canModify}
+																onClick={() => handleCancelClick(row)}
+															>
+																Hủy lịch
+															</Button>
+														</Tooltip>
+													</Space>
+												</Space>
+											</Card>
+										);
+									})}
+								</Space>
 							</Space>
 						)}
 					</Space>

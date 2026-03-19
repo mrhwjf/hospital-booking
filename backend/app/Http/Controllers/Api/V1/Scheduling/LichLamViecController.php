@@ -3,10 +3,19 @@
 namespace App\Http\Controllers\Api\V1\Scheduling;
 
 use App\Http\Controllers\Controller;
+use App\Requests\Scheduling\CreateBenhNhanRequest;
+use App\Resources\ApiResponse;
+use App\Resources\Scheduling\BacSiResource;
+use App\Resources\Scheduling\BenhNhanResource;
+use App\Resources\Scheduling\CauHinhHeThongResource;
+use App\Resources\Scheduling\ChuyenKhoaResource;
+use App\Resources\Scheduling\DichVuResource;
+use App\Resources\Scheduling\GoiKhamResource;
+use App\Resources\Scheduling\LichLamViecBacSiOverviewResource;
 use App\Services\SchedulingService;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Validation\ValidationException;
 
 class LichLamViecController extends Controller
@@ -19,7 +28,7 @@ class LichLamViecController extends Controller
     {
         $paginator = $this->schedulingService->getChuyenKhoas($request->all());
 
-        return $this->paginatedResponse($paginator, 'Lay danh sach chuyen khoa thanh cong.');
+        return ApiResponse::paginated($paginator, ChuyenKhoaResource::class, 'Lấy danh sách chuyên khoa thành công.');
     }
 
     public function bacSiTheoChuyenKhoa(int $id, Request $request): JsonResponse
@@ -27,15 +36,15 @@ class LichLamViecController extends Controller
         try {
             $paginator = $this->schedulingService->getBacSisByChuyenKhoa($id, $request->all());
 
-            return $this->paginatedResponse($paginator, 'Lay danh sach bac si theo chuyen khoa thanh cong.');
+            return ApiResponse::paginated($paginator, BacSiResource::class, 'Lấy danh sách bác sĩ theo chuyên khoa thành công.');
         } catch (ValidationException $exception) {
-            return response()->json([
-                'success' => false,
-                'data' => [
+            return ApiResponse::error(
+                'Chuyên khoa không tồn tại.',
+                [
                     'errors' => $exception->errors(),
                 ],
-                'message' => 'Chuyen khoa khong ton tai.',
-            ], 404);
+                404,
+            );
         }
     }
 
@@ -44,19 +53,15 @@ class LichLamViecController extends Controller
         try {
             $data = $this->schedulingService->getLichLamViecBacSi($id, $request->all());
 
-            return response()->json([
-                'success' => true,
-                'data' => $data,
-                'message' => 'Lay lich lam viec bac si thanh cong.',
-            ]);
+            return ApiResponse::success(new LichLamViecBacSiOverviewResource($data), 'Lấy lịch làm việc bác sĩ thành công.');
         } catch (ValidationException $exception) {
-            return response()->json([
-                'success' => false,
-                'data' => [
+            return ApiResponse::error(
+                'Không thể lấy lịch làm việc bác sĩ.',
+                [
                     'errors' => $exception->errors(),
                 ],
-                'message' => 'Khong the lay lich lam viec bac si.',
-            ], 422);
+                422,
+            );
         }
     }
 
@@ -64,14 +69,14 @@ class LichLamViecController extends Controller
     {
         $paginator = $this->schedulingService->getDichVus($request->all());
 
-        return $this->paginatedResponse($paginator, 'Lay danh sach dich vu thanh cong.');
+        return ApiResponse::paginated($paginator, DichVuResource::class, 'Lấy danh sách dịch vụ thành công.');
     }
 
     public function goiKhams(Request $request): JsonResponse
     {
         $paginator = $this->schedulingService->getGoiKhams($request->all());
 
-        return $this->paginatedResponse($paginator, 'Lay danh sach goi kham thanh cong.');
+        return ApiResponse::paginated($paginator, GoiKhamResource::class, 'Lấy danh sách gói khám thành công.');
     }
 
     public function cauHinhHeThong(Request $request): JsonResponse
@@ -79,34 +84,65 @@ class LichLamViecController extends Controller
         try {
             $data = $this->schedulingService->getCauHinhHeThong($request->all());
 
-            return response()->json([
-                'success' => true,
-                'data' => $data,
-                'message' => 'Lay cau hinh he thong thanh cong.',
-            ]);
+            return ApiResponse::success([
+                'items' => CauHinhHeThongResource::collection($data['items'] ?? []),
+                'map' => $data['map'] ?? [],
+            ], 'Lấy cấu hình hệ thống thành công.');
         } catch (\Throwable $throwable) {
-            return response()->json([
-                'success' => false,
-                'data' => null,
-                'message' => 'Khong the lay cau hinh he thong.',
-            ], 500);
+            return ApiResponse::error('Không thể lấy cấu hình hệ thống.', null, 500);
         }
     }
 
-    private function paginatedResponse(LengthAwarePaginator $paginator, string $message): JsonResponse
+    public function benhNhans(Request $request): JsonResponse
     {
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'items' => $paginator->items(),
-                'pagination' => [
-                    'currentPage' => $paginator->currentPage(),
-                    'pageSize' => $paginator->perPage(),
-                    'totalItems' => $paginator->total(),
-                    'totalPages' => $paginator->lastPage(),
+        try {
+            $paginator = $this->schedulingService->getBenhNhans($request->all());
+
+            return ApiResponse::paginated($paginator, BenhNhanResource::class, 'Lấy danh sách bệnh nhân thành công.');
+        } catch (\Throwable $throwable) {
+            return ApiResponse::error('Không thể lấy danh sách bệnh nhân.', null, 500);
+        }
+    }
+
+    public function benhNhanShow(int $id): JsonResponse
+    {
+        try {
+            $benhNhan = $this->schedulingService->getBenhNhanById($id);
+
+            return ApiResponse::success(new BenhNhanResource($benhNhan), 'Lấy thông tin bệnh nhân thành công.');
+        } catch (ValidationException $exception) {
+            return ApiResponse::error(
+                'Không tìm thấy bệnh nhân.',
+                [
+                    'errors' => $exception->errors(),
                 ],
-            ],
-            'message' => $message,
-        ]);
+                404,
+            );
+        } catch (\Throwable $throwable) {
+            return ApiResponse::error('Không thể lấy thông tin bệnh nhân.', null, 500);
+        }
+    }
+
+    public function benhNhanStore(CreateBenhNhanRequest $request): JsonResponse
+    {
+        try {
+            $benhNhan = $this->schedulingService->createBenhNhan($request->validated());
+
+            return ApiResponse::success(new BenhNhanResource($benhNhan), 'Tạo bệnh nhân thành công.', 201);
+        } catch (ValidationException $exception) {
+            return ApiResponse::error(
+                'Dữ liệu bệnh nhân không hợp lệ.',
+                [
+                    'errors' => $exception->errors(),
+                ],
+                422,
+            );
+        } catch (\Throwable $throwable) {
+            Log::error('Tạo bệnh nhân thất bại trong benhNhanStore.', [
+                'exception' => $throwable->getMessage(),
+            ]);
+
+            return ApiResponse::error('Không thể tạo bệnh nhân.', null, 500);
+        }
     }
 }

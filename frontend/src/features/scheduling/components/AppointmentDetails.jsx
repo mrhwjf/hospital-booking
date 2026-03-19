@@ -5,12 +5,12 @@ import { SEGMENTED_STYLES, TABLE_STYLES } from '../styles/const-styles'
 const { Paragraph, Text, Title } = Typography
 
 const appointmentStatusMeta = {
-	dang_cho: { label: 'Dang cho', color: 'gold' },
-	da_thanh_toan: { label: 'Da thanh toan', color: 'blue' },
-	da_xac_nhan: { label: 'Da xac nhan', color: 'cyan' },
-	da_hoan_tat: { label: 'Da hoan tat', color: 'green' },
-	da_huy: { label: 'Da huy', color: 'red' },
-	khong_den: { label: 'Khong den', color: 'orange' },
+	dang_cho: { label: 'Đang chờ', color: 'gold' },
+	da_thanh_toan: { label: 'Đã thanh toán', color: 'blue' },
+	da_xac_nhan: { label: 'Đã xác nhận', color: 'cyan' },
+	da_hoan_tat: { label: 'Đã hoàn tất', color: 'green' },
+	da_huy: { label: 'Đã hủy', color: 'red' },
+	khong_den: { label: 'Không đến', color: 'orange' },
 }
 
 const columns = [
@@ -134,7 +134,7 @@ export default function AppointmentDetails({ appointment }) {
 								<Descriptions.Item label="Lý do hủy">
 									{appointment.ly_do_huy?.ten_ly_do ||
 										appointment.ly_do_huy_khac ||
-										'Khong xac dinh'}
+										'Không xác định'}
 								</Descriptions.Item>
 							)}
 						</Descriptions>

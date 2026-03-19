@@ -3,6 +3,7 @@ import { Card, ConfigProvider, Segmented, Space } from 'antd'
 
 import LichHenCuaToiPage from './features/scheduling/pages/patients/LichHenCuaToiPage'
 import DatLichPage from './features/scheduling/pages/patients/DatLichPage'
+import LeTanQuanLyLichHenPage from './features/scheduling/pages/receptionist/LeTanQuanLyLichHenPage.jsx.jsx'
 
 function App() {
   const [view, setView] = useState('dat-lich')
@@ -31,11 +32,14 @@ function App() {
               options={[
                 { label: 'Dat lich', value: 'dat-lich' },
                 { label: 'Lich hen cua toi', value: 'lich-cua-toi' },
+                { label: 'Le tan quan ly', value: 'le-tan' },
               ]}
             />
           </Card>
 
-          {view === 'dat-lich' ? <DatLichPage /> : <LichHenCuaToiPage />}
+          {view === 'dat-lich' && <DatLichPage />}
+          {view === 'lich-cua-toi' && <LichHenCuaToiPage />}
+          {view === 'le-tan' && <LeTanQuanLyLichHenPage />}
         </Space>
       </main>
     </ConfigProvider>

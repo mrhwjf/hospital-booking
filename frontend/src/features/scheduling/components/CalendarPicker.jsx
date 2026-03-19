@@ -108,7 +108,7 @@ export default function CalendarPicker({
 						)
 					}}
 				/>
-				{loading && <Text className="text-slate-500">Dang tai lich lam viec...</Text>}
+				{loading && <Text className="text-slate-500">Đang tải lịch làm việc...</Text>}
 			</Card>
 
 			{holiday && (

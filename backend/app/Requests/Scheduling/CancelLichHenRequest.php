@@ -24,7 +24,7 @@ class CancelLichHenRequest extends FormRequest
 	{
 		$validator->after(function (Validator $validator) {
 			if (empty($this->input('ly_do_huy_id')) && empty(trim((string) $this->input('ly_do_huy_khac', '')))) {
-				$validator->errors()->add('ly_do_huy_id', 'Vui long chon ly do huy hoac nhap ly do huy khac.');
+				$validator->errors()->add('ly_do_huy_id', 'Vui lòng chọn lý do hủy hoặc nhập lý do hủy khác.');
 			}
 		});
 	}

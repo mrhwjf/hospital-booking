@@ -4,10 +4,13 @@ namespace App\Http\Controllers\Api\V1\Scheduling;
 
 use App\Http\Controllers\Controller;
 use App\Requests\Scheduling\CancelLichHenRequest;
+use App\Requests\Scheduling\CheckInLichHenRequest;
 use App\Requests\Scheduling\CreateLichHenRequest;
 use App\Requests\Scheduling\DoiLichHenRequest;
+use App\Resources\ApiResponse;
+use App\Resources\Scheduling\LichHenResource;
+use App\Resources\Scheduling\LyDoHuyResource;
 use App\Services\SchedulingService;
-use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -23,48 +26,51 @@ class LichHenController extends Controller
         try {
             $lichHen = $this->schedulingService->createLichHen($request->validated());
 
-            return response()->json([
-                'success' => true,
-                'data' => $lichHen,
-                'message' => 'Dat lich hen thanh cong.',
-            ], 201);
+            return ApiResponse::success(
+                new LichHenResource($lichHen),
+                'Đặt lịch hẹn thành công.',
+                201,
+            );
         } catch (ValidationException $exception) {
-            return response()->json([
-                'success' => false,
-                'data' => [
+            return ApiResponse::error(
+                'Dữ liệu đặt lịch không hợp lệ.',
+                [
                     'errors' => $exception->errors(),
                 ],
-                'message' => 'Du lieu dat lich khong hop le.',
-            ], 422);
+                422,
+            );
         } catch (\Throwable $throwable) {
-            return response()->json([
-                'success' => false,
-                'data' => null,
-                'message' => $throwable->getMessage(),
-            ], 500);
+            return ApiResponse::error($throwable->getMessage(), null, 500);
         }
     }
 
     public function index(Request $request): JsonResponse
     {
         try {
-            $paginator = $this->schedulingService->getLichHensByBenhNhan($request->all());
+            $filters = $request->all();
+            $isPatientScoped = !empty($filters['benh_nhan_id']);
 
-            return $this->paginatedResponse($paginator, 'Lay danh sach lich hen thanh cong.');
+            $paginator = $isPatientScoped
+                ? $this->schedulingService->getLichHensByBenhNhan($filters)
+                : $this->schedulingService->getLichHensForReceptionist($filters);
+
+            return ApiResponse::paginated(
+                $paginator,
+                LichHenResource::class,
+                $isPatientScoped
+                ? 'Lấy danh sách lịch hẹn thành công.'
+                : 'Lấy danh sách lịch hẹn lễ tân thành công.',
+            );
         } catch (ValidationException $exception) {
-            return response()->json([
-                'success' => false,
-                'data' => [
+            return ApiResponse::error(
+                'Không thể lấy danh sách lịch hẹn.',
+                [
                     'errors' => $exception->errors(),
                 ],
-                'message' => 'Khong the lay danh sach lich hen.',
-            ], 422);
+                422,
+            );
         } catch (\Throwable $throwable) {
-            return response()->json([
-                'success' => false,
-                'data' => null,
-                'message' => 'Khong the lay danh sach lich hen. Vui long thu lai.',
-            ], 500);
+            return ApiResponse::error('Không thể lấy danh sách lịch hẹn. Vui lòng thử lại.', null, 500);
         }
     }
 
@@ -73,19 +79,11 @@ class LichHenController extends Controller
         try {
             $reasons = $this->schedulingService->getLyDoHuyBenhNhan();
 
-            return response()->json([
-                'success' => true,
-                'data' => [
-                    'items' => $reasons,
-                ],
-                'message' => 'Lay danh sach ly do huy thanh cong.',
-            ]);
+            return ApiResponse::success([
+                'items' => LyDoHuyResource::collection($reasons),
+            ], 'Lấy danh sách lý do hủy thành công.');
         } catch (\Throwable $throwable) {
-            return response()->json([
-                'success' => false,
-                'data' => null,
-                'message' => 'Khong the lay danh sach ly do huy.',
-            ], 500);
+            return ApiResponse::error('Không thể lấy danh sách lý do hủy.', null, 500);
         }
     }
 
@@ -94,25 +92,17 @@ class LichHenController extends Controller
         try {
             $lichHen = $this->schedulingService->getLichHenById($id);
 
-            return response()->json([
-                'success' => true,
-                'data' => $lichHen,
-                'message' => 'Lay chi tiet lich hen thanh cong.',
-            ]);
+            return ApiResponse::success(new LichHenResource($lichHen), 'Lấy chi tiết lịch hẹn thành công.');
         } catch (ValidationException $exception) {
-            return response()->json([
-                'success' => false,
-                'data' => [
+            return ApiResponse::error(
+                'Không tìm thấy lịch hẹn.',
+                [
                     'errors' => $exception->errors(),
                 ],
-                'message' => 'Khong tim thay lich hen.',
-            ], 404);
+                404,
+            );
         } catch (\Throwable $throwable) {
-            return response()->json([
-                'success' => false,
-                'data' => null,
-                'message' => 'Khong the lay chi tiet lich hen.',
-            ], 500);
+            return ApiResponse::error('Không thể lấy chi tiết lịch hẹn.', null, 500);
         }
     }
 
@@ -121,25 +111,17 @@ class LichHenController extends Controller
         try {
             $lichHen = $this->schedulingService->cancelLichHen($id, $request->validated());
 
-            return response()->json([
-                'success' => true,
-                'data' => $lichHen,
-                'message' => 'Huy lich hen thanh cong.',
-            ]);
+            return ApiResponse::success(new LichHenResource($lichHen), 'Hủy lịch hẹn thành công.');
         } catch (ValidationException $exception) {
-            return response()->json([
-                'success' => false,
-                'data' => [
+            return ApiResponse::error(
+                'Không thể hủy lịch hẹn.',
+                [
                     'errors' => $exception->errors(),
                 ],
-                'message' => 'Khong the huy lich hen.',
-            ], 422);
+                422,
+            );
         } catch (\Throwable $throwable) {
-            return response()->json([
-                'success' => false,
-                'data' => null,
-                'message' => 'Khong the huy lich hen. Vui long thu lai.',
-            ], 500);
+            return ApiResponse::error('Không thể hủy lịch hẹn. Vui lòng thử lại.', null, 500);
         }
     }
 
@@ -148,42 +130,36 @@ class LichHenController extends Controller
         try {
             $lichHen = $this->schedulingService->doiLichHen($id, $request->validated());
 
-            return response()->json([
-                'success' => true,
-                'data' => $lichHen,
-                'message' => 'Doi lich hen thanh cong.',
-            ]);
+            return ApiResponse::success(new LichHenResource($lichHen), 'Đổi lịch hẹn thành công.');
         } catch (ValidationException $exception) {
-            return response()->json([
-                'success' => false,
-                'data' => [
+            return ApiResponse::error(
+                'Không thể đổi lịch hẹn.',
+                [
                     'errors' => $exception->errors(),
                 ],
-                'message' => 'Khong the doi lich hen.',
-            ], 422);
+                422,
+            );
         } catch (\Throwable $throwable) {
-            return response()->json([
-                'success' => false,
-                'data' => null,
-                'message' => 'Khong the doi lich hen. Vui long thu lai.',
-            ], 500);
+            return ApiResponse::error('Không thể đổi lịch hẹn. Vui lòng thử lại.', null, 500);
         }
     }
 
-    private function paginatedResponse(LengthAwarePaginator $paginator, string $message): JsonResponse
+    public function checkIn(int $id, CheckInLichHenRequest $request): JsonResponse
     {
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'items' => $paginator->items(),
-                'pagination' => [
-                    'currentPage' => $paginator->currentPage(),
-                    'pageSize' => $paginator->perPage(),
-                    'totalItems' => $paginator->total(),
-                    'totalPages' => $paginator->lastPage(),
+        try {
+            $lichHen = $this->schedulingService->checkInLichHen($id, $request->validated());
+
+            return ApiResponse::success(new LichHenResource($lichHen), 'Check-in bệnh nhân thành công.');
+        } catch (ValidationException $exception) {
+            return ApiResponse::error(
+                'Không thể check-in lịch hẹn.',
+                [
+                    'errors' => $exception->errors(),
                 ],
-            ],
-            'message' => $message,
-        ]);
+                422,
+            );
+        } catch (\Throwable $throwable) {
+            return ApiResponse::error('Không thể check-in lịch hẹn. Vui lòng thử lại.', null, 500);
+        }
     }
 }

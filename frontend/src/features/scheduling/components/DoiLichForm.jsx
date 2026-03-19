@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Alert, Button, Card, Select, Space, Typography, message } from 'antd'
+import { Alert, Button, Card, Input, Select, Space, Typography, message } from 'antd'
 import CalendarPicker from './CalendarPicker'
 import ServicePicker from './ServicePicker'
 import {
@@ -28,6 +28,8 @@ export default function DoiLichForm({ appointment, onSubmit, onCancel, submittin
 	const [doctorId, setDoctorId] = useState(appointment?.bac_si_id || null)
 	const [ngayHen, setNgayHen] = useState(appointment?.ngay_hen || null)
 	const [selectedSlotKey, setSelectedSlotKey] = useState(appointment?.khung_gio_id || null)
+	const [lyDoKham, setLyDoKham] = useState(appointment?.ly_do_kham || '')
+	const [ghiChu, setGhiChu] = useState(appointment?.ghi_chu || '')
 	const [selectedItems, setSelectedItems] = useState(() => {
 		const result = { dich_vu: {}, goi_kham: {} }
 		const rows = appointment?.dich_vu_lich_hens || []
@@ -52,7 +54,7 @@ export default function DoiLichForm({ appointment, onSubmit, onCancel, submittin
 				const items = await fetchSpecialties()
 				setSpecialties(items)
 			} catch (error) {
-				message.error(getApiErrorMessage(error, 'Khong the tai danh sach chuyen khoa.'))
+				message.error(getApiErrorMessage(error, 'Không thể tải danh sách chuyên khoa.'))
 			} finally {
 				setLoadingSpecialties(false)
 			}
@@ -75,7 +77,7 @@ export default function DoiLichForm({ appointment, onSubmit, onCancel, submittin
 				})
 				setDoctors(items)
 			} catch (error) {
-				message.error(getApiErrorMessage(error, 'Khong the tai danh sach bac si.'))
+				message.error(getApiErrorMessage(error, 'Không thể tải danh sách bác sĩ.'))
 			} finally {
 				setLoadingDoctors(false)
 			}
@@ -101,7 +103,7 @@ export default function DoiLichForm({ appointment, onSubmit, onCancel, submittin
 				setServices(nextServices)
 				setPackages(nextPackages)
 			} catch (error) {
-				message.error(getApiErrorMessage(error, 'Khong the tai dich vu/goi kham.'))
+				message.error(getApiErrorMessage(error, 'Không thể tải dịch vụ/gói khám.'))
 			} finally {
 				setLoadingItems(false)
 			}
@@ -124,7 +126,7 @@ export default function DoiLichForm({ appointment, onSubmit, onCancel, submittin
 				})
 				setScheduleItems(items)
 			} catch (error) {
-				message.error(getApiErrorMessage(error, 'Khong the tai lich lam viec cua bac si.'))
+				message.error(getApiErrorMessage(error, 'Không thể tải lịch làm việc của bác sĩ.'))
 			} finally {
 				setLoadingSchedule(false)
 			}
@@ -151,7 +153,7 @@ export default function DoiLichForm({ appointment, onSubmit, onCancel, submittin
 		]
 
 		if (!chuyenKhoaId || !doctorId || !ngayHen || !selectedSlot || items.length === 0) {
-			message.warning('Vui long chon du chuyen khoa, bac si, ngay hen, khung gio va dich vu/goi kham.')
+			message.warning('Vui lòng chọn đủ chuyên khoa, bác sĩ, ngày hẹn, khung giờ và dịch vụ/gói khám.')
 			return
 		}
 
@@ -159,6 +161,8 @@ export default function DoiLichForm({ appointment, onSubmit, onCancel, submittin
 			chuyen_khoa_id: chuyenKhoaId,
 			bac_si_id: doctorId,
 			ngay_hen: ngayHen,
+			ly_do_kham: lyDoKham,
+			ghi_chu: ghiChu,
 			items,
 		}
 
@@ -178,7 +182,7 @@ export default function DoiLichForm({ appointment, onSubmit, onCancel, submittin
 			<Alert
 				type="info"
 				showIcon
-				message="Ban co the doi chuyen khoa, bac si, ngay gio va cap nhat dich vu/goi kham cho lich hen."
+				message="Bạn có thể đổi chuyên khoa, bác sĩ, ngày giờ và cập nhật dịch vụ/gói khám cho lịch hẹn."
 			/>
 
 			<Card className="border-[#E2E8F0]">
@@ -233,7 +237,7 @@ export default function DoiLichForm({ appointment, onSubmit, onCancel, submittin
 			/>
 
 			<Card className="border-[#E2E8F0]">
-				<Text strong>Chọn dịch vụ/goi khám</Text>
+				<Text strong>Chọn dịch vụ/gói khám</Text>
 				<div className="mt-2">
 					<ServicePicker
 						selectedItems={selectedItems}
@@ -241,13 +245,29 @@ export default function DoiLichForm({ appointment, onSubmit, onCancel, submittin
 						services={services}
 						packages={packages}
 					/>
-					{loadingItems && <Text type="secondary">Đang tải dịch vụ/goi khám...</Text>}
+					{loadingItems && <Text type="secondary">Đang tải dịch vụ/gói khám...</Text>}
 				</div>
 			</Card>
 
+			<Card className="border-[#E2E8F0]">
+				<Text strong>Lý do khám</Text>
+				<Input.TextArea
+					rows={3}
+					value={lyDoKham}
+					onChange={(event) => setLyDoKham(event.target.value)}
+				/>
+
+				<Text strong className="mt-3 block">Ghi chú</Text>
+				<Input.TextArea
+					rows={2}
+					value={ghiChu}
+					onChange={(event) => setGhiChu(event.target.value)}
+				/>
+			</Card>
+
 			<div className="flex items-center justify-end gap-2 border-t border-[#E2E8F0] pt-3">
-				<Button onClick={onCancel} disabled={submitting}>Dong</Button>
-				<Button type="primary" loading={submitting} onClick={handleConfirm}>Xac nhan doi lich</Button>
+				<Button onClick={onCancel} disabled={submitting}>Đóng</Button>
+				<Button type="primary" loading={submitting} onClick={handleConfirm}>Xác nhận đổi lịch</Button>
 			</div>
 		</Space>
 	)

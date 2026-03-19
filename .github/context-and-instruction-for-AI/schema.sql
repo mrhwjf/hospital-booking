@@ -40,7 +40,7 @@ CREATE TABLE quyen (
     ma_quyen VARCHAR(50) NOT NULL UNIQUE COMMENT 'VD: QUAN_LY_NGUOI_DUNG, XEM_BAO_CAO',
     ten_quyen VARCHAR(100) NOT NULL,
     mo_ta TEXT,
-    nhom_quyen VARCHAR(50) COMMENT 'Nhóm quyền để phân loại',
+    nhom_quyen ENUM('quan_tri', 'nguoi_dung', 'le_tan', 'bac_si', 'khac') COMMENT 'Nhóm quyền để phân loại',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     
     INDEX idx_ma_quyen (ma_quyen),
@@ -935,6 +935,7 @@ INSERT INTO icd10 (ma_icd10, ten_chan_doan, nhom_chuong, mo_ta) VALUES
 INSERT INTO cau_hinh_he_thong (khoa, gia_tri, mo_ta, nhom) VALUES
 ('THOI_GIAN_HUY_TOI_THIEU', '12', 'Số giờ tối thiểu trước khi khám để được hủy lịch', 'lich_hen'),
 ('THOI_GIAN_DOI_TOI_THIEU', '24', 'Số giờ tối thiểu trước khi khám để được đổi lịch', 'lich_hen'),
+('THOI_GIAN_CHECKIN_SOM_NHAT', '45', 'Số phút cho phép check-in trước giờ hẹn', 'lich_hen'),
 ('SO_NGAY_DAT_TRUOC_TOI_DA', '30', 'Số ngày tối đa có thể đặt lịch trước', 'lich_hen'),
 ('THOI_LUONG_KHAM_MAC_DINH', '60', 'Thời lượng khám mặc định (phút)', 'lich_hen'),
 ('TEN_BENH_VIEN', 'Bệnh viện ABC', 'Tên bệnh viện/phòng khám', 'chung'),

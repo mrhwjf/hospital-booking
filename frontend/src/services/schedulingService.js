@@ -1,12 +1,17 @@
 import dayjs from 'dayjs'
 import {
+	checkInLichHen,
 	cancelLichHen,
+	createBenhNhan,
 	createLichHen,
+	getBenhNhanById,
+	getBenhNhans,
 	getBacSiTheoChuyenKhoa,
 	getCauHinhHeThong,
 	getChuyenKhoas,
 	getDichVus,
 	getLichHenCuaToi,
+	getLichHenLeTan,
 	getLyDoHuyBenhNhan,
 	getGoiKhams,
 	getLichLamViecBacSi,
@@ -108,6 +113,52 @@ export const fetchMyAppointments = async ({ benhNhanId, page = 1, pageSize = DEF
 	}
 }
 
+export const fetchReceptionistAppointments = async ({
+	page = 1,
+	pageSize = DEFAULT_LIST_PAGE_SIZE,
+	q = '',
+	trangThai,
+	tuNgay,
+	denNgay,
+	benhNhanId,
+	bacSiId,
+} = {}) => {
+	const response = await getLichHenLeTan({
+		page,
+		pageSize,
+		q,
+		trang_thai: trangThai,
+		tu_ngay: tuNgay,
+		den_ngay: denNgay,
+		benh_nhan_id: benhNhanId,
+		bac_si_id: bacSiId,
+	})
+
+	return {
+		items: response?.data?.items || [],
+		pagination: response?.data?.pagination || null,
+	}
+}
+
+export const fetchPatients = async ({ q = '', page = 1, pageSize = DEFAULT_LIST_PAGE_SIZE } = {}) => {
+	const response = await getBenhNhans({ q, page, pageSize })
+
+	return {
+		items: response?.data?.items || [],
+		pagination: response?.data?.pagination || null,
+	}
+}
+
+export const fetchPatientById = async (id) => {
+	const response = await getBenhNhanById(id)
+	return response?.data || null
+}
+
+export const submitCreatePatient = async (payload) => {
+	const response = await createBenhNhan(payload)
+	return response?.data || null
+}
+
 export const fetchCancellationReasons = async () => {
 	const response = await getLyDoHuyBenhNhan()
 	return response?.data?.items || []
@@ -124,6 +175,14 @@ export const submitCancelAppointment = async ({ lichHenId, lyDoHuyId, lyDoHuyKha
 
 export const submitRescheduleAppointment = async ({ lichHenId, payload }) => {
 	const response = await rescheduleLichHen(lichHenId, payload)
+	return response?.data
+}
+
+export const submitCheckInAppointment = async ({ lichHenId, nguoiTiepNhanId }) => {
+	const response = await checkInLichHen(lichHenId, {
+		nguoi_tiep_nhan_id: nguoiTiepNhanId || null,
+	})
+
 	return response?.data
 }
 
