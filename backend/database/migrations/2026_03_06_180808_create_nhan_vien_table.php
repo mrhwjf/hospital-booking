@@ -24,8 +24,6 @@ return new class extends Migration
 
             $table->enum('chuc_vu', ['le_tan', 'nhan_vien_y_te', 'dieu_duong']);
 
-            $table->string('phong_ban')->nullable();
-
             $table->date('ngay_vao_lam');
 
             $table->enum('trang_thai', ['hoat_dong', 'tam_khoa', 'nghi_viec'])->default('hoat_dong');

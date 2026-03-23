@@ -21,7 +21,6 @@ return new class extends Migration {
 
             $table->foreignId('khung_gio_id')
                 ->nullable()
-                ->unique()
                 ->constrained('khung_gio_kham')
                 ->nullOnDelete();
 

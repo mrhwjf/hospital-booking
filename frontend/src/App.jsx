@@ -1,16 +1,18 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from '/vite.svg'
-import './App.css'
+import { Button } from "antd";
+import PhieuChiDinhPage from "./features/clinical/pages/PhieuChiDinhPage";
+import PhieuKhamPage from "./features/clinical/pages/PhieuKhamPage";
+import HoSoTaiLieuPage from "./features/records/pages/HoSoTaiLieuPage";
+import LichSuKhamPage from "./features/clinical/pages/LichSuKhamPage";
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      
-    </>
-  )
+    <div>
+      {/* <PhieuChiDinhPage /> */}
+      {/* <PhieuKhamPage /> */}
+      <HoSoTaiLieuPage />
+      {/* <LichSuKhamPage /> */}
+    </div>
+  );
 }
 
-export default App
+export default App;
