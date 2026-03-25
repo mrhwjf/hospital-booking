@@ -24,8 +24,7 @@ return new class extends Migration {
 				'khac',
 			]);
 			$table->string('ten_tai_lieu', 200);
-			$table->string('file_url', 500);
-			$table->string('file_name');
+			$table->string('file_public_id', 500);
 			$table->date('ngay_tao');
 			$table->text('ghi_chu')->nullable();
 			$table->timestamps();

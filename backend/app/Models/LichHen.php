@@ -35,7 +35,7 @@ class LichHen extends Model
 	];
 
 	protected $casts = [
-		'ngay_hen' => 'datetime',
+		'ngay_hen' => 'date:Y-m-d',
 	];
 
 	public function scopeToday(Builder $query): Builder

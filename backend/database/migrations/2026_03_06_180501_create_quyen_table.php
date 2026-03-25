@@ -12,7 +12,7 @@ return new class extends Migration {
 			$table->string('ma_quyen', 50)->unique();
 			$table->string('ten_quyen', 100);
 			$table->text('mo_ta')->nullable();
-			$table->string('nhom_quyen', 50)->nullable();
+			$table->enum('nhom_quyen', ['quan_tri', 'nguoi_dung', 'le_tan', 'bac_si', 'khac'])->nullable();
 			$table->timestamp('created_at')->useCurrent();
 
 			$table->index('ma_quyen');

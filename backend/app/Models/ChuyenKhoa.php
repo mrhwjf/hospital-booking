@@ -20,6 +20,7 @@ class ChuyenKhoa extends Model
 		'ten_chuyen_khoa',
 		'mo_ta',
 		'hinh_anh',
+		'hinh_anh_public_id',
 		'vi_tri',
 		'so_dien_thoai',
 		'truong_khoa_id',

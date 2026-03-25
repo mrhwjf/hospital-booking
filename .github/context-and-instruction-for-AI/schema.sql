@@ -40,7 +40,7 @@ CREATE TABLE quyen (
     ma_quyen VARCHAR(50) NOT NULL UNIQUE COMMENT 'VD: QUAN_LY_NGUOI_DUNG, XEM_BAO_CAO',
     ten_quyen VARCHAR(100) NOT NULL,
     mo_ta TEXT,
-    nhom_quyen VARCHAR(50) COMMENT 'Nhóm quyền để phân loại',
+    nhom_quyen ENUM('quan_tri', 'nguoi_dung', 'le_tan', 'bac_si', 'khac') COMMENT 'Nhóm quyền để phân loại',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     
     INDEX idx_ma_quyen (ma_quyen),
@@ -73,6 +73,7 @@ CREATE TABLE nguoi_dung (
     mat_khau VARCHAR(255) NOT NULL COMMENT 'Mật khẩu đã hash',
     vai_tro_id INT NOT NULL,
     hinh_anh VARCHAR(255) COMMENT 'Đường dẫn ảnh đại diện',
+    hinh_anh_public_id VARCHAR(255) COMMENT 'Cloudinary public_id ảnh đại diện',
     trang_thai ENUM('hoat_dong', 'tam_khoa', 'khoa') DEFAULT 'hoat_dong',
     lan_dang_nhap_cuoi TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -98,6 +99,7 @@ CREATE TABLE chuyen_khoa (
     ten_chuyen_khoa VARCHAR(100) NOT NULL,
     mo_ta TEXT,
     hinh_anh VARCHAR(255),
+    hinh_anh_public_id VARCHAR(255) COMMENT 'Cloudinary public_id ảnh chuyên khoa',
     vi_tri VARCHAR(100) COMMENT 'Vị trí: Tầng/Khu',
     so_dien_thoai VARCHAR(15),
     truong_khoa_id INT NULL COMMENT 'FK đến bac_si, thêm sau',
@@ -259,7 +261,6 @@ CREATE TABLE nhan_vien (
     ho_ten VARCHAR(100) NOT NULL,
     so_dien_thoai VARCHAR(15) NOT NULL,
     chuc_vu ENUM('le_tan', 'nhan_vien_y_te', 'dieu_duong') NOT NULL,
-    phong_ban VARCHAR(100),
     ngay_vao_lam DATE NOT NULL,
     trang_thai ENUM('hoat_dong', 'tam_khoa', 'nghi_viec') DEFAULT 'hoat_dong',
     ghi_chu TEXT,
@@ -492,7 +493,7 @@ CREATE TABLE lich_hen (
     benh_nhan_id INT NOT NULL,
     bac_si_id INT NOT NULL,
     chuyen_khoa_id INT NOT NULL,
-    khung_gio_id INT UNIQUE COMMENT 'Khung giờ khám đã đặt, chỉ cho 1 bệnh nhân/khung giờ',
+    khung_gio_id INT COMMENT 'Khung giờ khám đã đặt, chỉ cho 1 bệnh nhân/khung giờ',
 
     ngay_hen DATE NOT NULL,
     ly_do_kham TEXT,
@@ -665,6 +666,7 @@ CREATE TABLE chi_dinh (
     bac_si_id INT NOT NULL COMMENT 'Bác sĩ chỉ định',
 
     dich_vu_id INT NULL,
+    goi_kham_id INT NULL,
 
     so_luong INT DEFAULT 1 COMMENT 'Số lượng chỉ định',
 
@@ -683,7 +685,9 @@ CREATE TABLE chi_dinh (
     CONSTRAINT fk_cdxn_phieu_kham FOREIGN KEY (phieu_kham_id) 
         REFERENCES phieu_kham(id) ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT fk_cdxn_dich_vu FOREIGN KEY (dich_vu_id) 
-        REFERENCES dich_vu(id) ON DELETE RESTRICT ON UPDATE CASCADE
+        REFERENCES dich_vu(id) ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT fk_cdxn_goi_kham FOREIGN KEY (goi_kham_id)
+        REFERENCES goi_kham(id) ON DELETE RESTRICT ON UPDATE CASCADE,
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================
@@ -711,8 +715,7 @@ CREATE TABLE tai_lieu_ho_so (
     ) NOT NULL,
     
     ten_tai_lieu VARCHAR(200) NOT NULL,
-    file_url VARCHAR(500) NOT NULL COMMENT 'URL file trên cloud storage',
-    file_name VARCHAR(255) NOT NULL COMMENT 'Tên file gốc',
+    file_public_id VARCHAR(500) NOT NULL COMMENT 'Cloudinary public_id của tài liệu',
     ngay_tao DATE NOT NULL,
     ghi_chu TEXT,
     
@@ -933,6 +936,7 @@ INSERT INTO icd10 (ma_icd10, ten_chan_doan, nhom_chuong, mo_ta) VALUES
 INSERT INTO cau_hinh_he_thong (khoa, gia_tri, mo_ta, nhom) VALUES
 ('THOI_GIAN_HUY_TOI_THIEU', '12', 'Số giờ tối thiểu trước khi khám để được hủy lịch', 'lich_hen'),
 ('THOI_GIAN_DOI_TOI_THIEU', '24', 'Số giờ tối thiểu trước khi khám để được đổi lịch', 'lich_hen'),
+('THOI_GIAN_CHECKIN_SOM_NHAT', '45', 'Số phút cho phép check-in trước giờ hẹn', 'lich_hen'),
 ('SO_NGAY_DAT_TRUOC_TOI_DA', '30', 'Số ngày tối đa có thể đặt lịch trước', 'lich_hen'),
 ('THOI_LUONG_KHAM_MAC_DINH', '60', 'Thời lượng khám mặc định (phút)', 'lich_hen'),
 ('TEN_BENH_VIEN', 'Bệnh viện ABC', 'Tên bệnh viện/phòng khám', 'chung'),
