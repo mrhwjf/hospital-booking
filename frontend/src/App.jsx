@@ -3,7 +3,7 @@ import { Card, ConfigProvider, Segmented, Space } from 'antd'
 
 import LichHenCuaToiPage from './features/scheduling/pages/patients/LichHenCuaToiPage'
 import DatLichPage from './features/scheduling/pages/patients/DatLichPage'
-import LeTanQuanLyLichHenPage from './features/scheduling/pages/receptionist/LeTanQuanLyLichHenPage.jsx.jsx'
+import LeTanQuanLyLichHenPage from './features/scheduling/pages/receptionist/LeTanQuanLyLichHenPage'
 
 function App() {
   const [view, setView] = useState('dat-lich')

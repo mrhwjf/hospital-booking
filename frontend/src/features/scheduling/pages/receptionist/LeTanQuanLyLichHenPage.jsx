@@ -22,6 +22,7 @@ import { EditOutlined, EyeOutlined, CheckCircleOutlined } from '@ant-design/icon
 import AppointmentDetails from '../../components/AppointmentDetails'
 import CalendarPicker from '../../components/CalendarPicker'
 import DoiLichForm from '../../components/DoiLichForm'
+import PatientDetailModal from '../../components/PatientDetailModal'
 import ServicePicker from '../../components/ServicePicker'
 import {
 	fetchCancellationReasons,
@@ -68,6 +69,7 @@ export default function LeTanQuanLyLichHenPage() {
 	const [loading, setLoading] = useState(false)
 	const [appointments, setAppointments] = useState([])
 	const [pagination, setPagination] = useState({ currentPage: 1, pageSize: DEFAULT_PAGE_SIZE, totalItems: 0 })
+	const [activeTable, setActiveTable] = useState('appointments')
 	const [keyword, setKeyword] = useState('')
 	const [statusFilter, setStatusFilter] = useState('')
 	const [viewMode, setViewMode] = useState('sap-toi')
@@ -88,9 +90,13 @@ export default function LeTanQuanLyLichHenPage() {
 	const [lyDoHuyId, setLyDoHuyId] = useState(null)
 	const [lyDoHuyKhac, setLyDoHuyKhac] = useState('')
 
-	const [patientKeyword, setPatientKeyword] = useState('')
-	const [patientOptions, setPatientOptions] = useState([])
+	const [patients, setPatients] = useState([])
 	const [loadingPatients, setLoadingPatients] = useState(false)
+	const [patientPagination, setPatientPagination] = useState({ currentPage: 1, pageSize: DEFAULT_PAGE_SIZE, totalItems: 0 })
+	const [patientSearch, setPatientSearch] = useState('')
+	const [patientGenderFilter, setPatientGenderFilter] = useState('')
+	const [patientBloodFilter, setPatientBloodFilter] = useState('')
+	const [selectedPatient, setSelectedPatient] = useState(null)
 	const [createPatientForm, setCreatePatientForm] = useState({
 		ho_ten: '',
 		ngay_sinh: '',
@@ -130,6 +136,11 @@ export default function LeTanQuanLyLichHenPage() {
 	const selectedAppointment = useMemo(
 		() => appointments.find((item) => item.id === selectedAppointmentId) || null,
 		[appointments, selectedAppointmentId],
+	)
+
+	const selectedPatientForBooking = useMemo(
+		() => patients.find((item) => item.id === createForm.benh_nhan_id) || null,
+		[patients, createForm.benh_nhan_id],
 	)
 
 	const selectedSlot = useMemo(
@@ -259,11 +270,18 @@ export default function LeTanQuanLyLichHenPage() {
 		loadSchedule()
 	}, [createForm.bac_si_id])
 
-	const loadPatients = useCallback(async (searchText = '') => {
+	const loadPatients = useCallback(async (nextPage = 1, nextPageSize = DEFAULT_PAGE_SIZE, nextSearch = '') => {
 		setLoadingPatients(true)
 		try {
-			const result = await fetchPatients({ q: searchText, pageSize: 20 })
-			setPatientOptions(result.items)
+			const result = await fetchPatients({
+				q: nextSearch,
+				page: nextPage,
+				pageSize: nextPageSize,
+			})
+			setPatients(result.items)
+			if (result.pagination) {
+				setPatientPagination(result.pagination)
+			}
 		} catch (error) {
 			message.error(getApiErrorMessage(error, 'Không thể tải danh sách bệnh nhân.'))
 		} finally {
@@ -272,12 +290,12 @@ export default function LeTanQuanLyLichHenPage() {
 	}, [])
 
 	useEffect(() => {
-		if (!isCreateModalOpen) {
+		if (activeTable !== 'patients') {
 			return
 		}
 
-		loadPatients(patientKeyword)
-	}, [isCreateModalOpen, loadPatients, patientKeyword])
+		loadPatients(1, patientPagination.pageSize, patientSearch)
+	}, [activeTable, loadPatients, patientPagination.pageSize, patientSearch])
 
 	const buildCreatePayload = () => {
 		const items = [
@@ -366,7 +384,7 @@ export default function LeTanQuanLyLichHenPage() {
 
 		setIsCreatingPatient(true)
 		try {
-			const benhNhan = await submitCreatePatient({
+			await submitCreatePatient({
 				ho_ten: createPatientForm.ho_ten.trim(),
 				ngay_sinh: createPatientForm.ngay_sinh,
 				gioi_tinh: createPatientForm.gioi_tinh,
@@ -383,8 +401,9 @@ export default function LeTanQuanLyLichHenPage() {
 			})
 
 			message.success('Tạo bệnh nhân thành công.')
-			setPatientOptions((prev) => [benhNhan, ...prev])
-			setCreateForm((prev) => ({ ...prev, benh_nhan_id: benhNhan.id }))
+			if (activeTable === 'patients') {
+				await loadPatients(patientPagination.currentPage, patientPagination.pageSize, patientSearch)
+			}
 			setCreatePatientForm({
 				ho_ten: '',
 				ngay_sinh: '',
@@ -406,6 +425,20 @@ export default function LeTanQuanLyLichHenPage() {
 		} finally {
 			setIsCreatingPatient(false)
 		}
+	}
+
+	const openCreateBookingForPatient = (patient) => {
+		setCreateForm({
+			benh_nhan_id: patient.id,
+			chuyen_khoa_id: null,
+			bac_si_id: null,
+			ngay_hen: null,
+			khung_gio_id: null,
+			ly_do_kham: '',
+			ghi_chu: '',
+			items: { dich_vu: {}, goi_kham: {} },
+		})
+		setIsCreateModalOpen(true)
 	}
 
 	const handleCancelSubmit = async () => {
@@ -557,6 +590,72 @@ export default function LeTanQuanLyLichHenPage() {
 		},
 	]
 
+	const patientRows = useMemo(() => {
+		const normalizedKeyword = patientSearch.trim().toLowerCase()
+
+		return patients
+			.filter((patient) => {
+				if (patientGenderFilter && patient.gioi_tinh !== patientGenderFilter) {
+					return false
+				}
+
+				if (patientBloodFilter && (patient.nhom_mau || '') !== patientBloodFilter) {
+					return false
+				}
+
+				if (!normalizedKeyword) {
+					return true
+				}
+
+				const searchFields = [
+					patient.ma_benh_nhan,
+					patient.ho_ten,
+					patient.so_dien_thoai,
+					patient.so_cccd,
+					patient.email,
+				]
+					.filter(Boolean)
+					.map((value) => String(value).toLowerCase())
+
+				return searchFields.some((value) => value.includes(normalizedKeyword))
+			})
+			.map((patient) => ({
+				...patient,
+				genderLabel:
+					patient.gioi_tinh === 'nam'
+						? 'Nam'
+						: patient.gioi_tinh === 'nu'
+							? 'Nữ'
+							: patient.gioi_tinh === 'khac'
+								? 'Khác'
+								: '-',
+			}))
+	}, [patients, patientBloodFilter, patientGenderFilter, patientSearch])
+
+	const patientColumns = [
+		{ title: 'Mã BN', dataIndex: 'ma_benh_nhan', key: 'ma_benh_nhan', render: (value) => value || '-' },
+		{ title: 'Họ tên', dataIndex: 'ho_ten', key: 'ho_ten' },
+		{ title: 'Giới tính', dataIndex: 'genderLabel', key: 'genderLabel' },
+		{ title: 'Ngày sinh', dataIndex: 'ngay_sinh', key: 'ngay_sinh', render: (value) => value || '-' },
+		{ title: 'Số điện thoại', dataIndex: 'so_dien_thoai', key: 'so_dien_thoai', render: (value) => value || '-' },
+		{ title: 'CCCD', dataIndex: 'so_cccd', key: 'so_cccd', render: (value) => value || '-' },
+		{
+			title: 'Thao tác',
+			key: 'actions',
+			align: 'center',
+			render: (_, record) => (
+				<Space wrap>
+					<Tooltip title="Xem chi tiết">
+						<Button icon={<EyeOutlined />} onClick={() => setSelectedPatient(record)} />
+					</Tooltip>
+					<Button type="primary" onClick={() => openCreateBookingForPatient(record)}>
+						Tạo lịch hẹn
+					</Button>
+				</Space>
+			),
+		},
+	]
+
 	return (
 		<div className="min-h-screen bg-[#F8FAFC] p-4 md:p-8">
 			<div className="mx-auto w-full max-w-7xl">
@@ -570,8 +669,14 @@ export default function LeTanQuanLyLichHenPage() {
 								</Paragraph>
 							</div>
 							<Space>
-								<Badge color="#0F766E" text={`${pagination.totalItems || rows.length} lịch hẹn`} />
-								<Button type="primary" onClick={() => setIsCreateModalOpen(true)}>Tạo lịch hẹn</Button>
+								<Badge
+									color="#0F766E"
+									text={
+										activeTable === 'appointments'
+											? `${pagination.totalItems || rows.length} lịch hẹn`
+											: `${patientPagination.totalItems || patientRows.length} bệnh nhân`
+									}
+								/>
 							</Space>
 						</div>
 
@@ -581,48 +686,107 @@ export default function LeTanQuanLyLichHenPage() {
 							message="Lễ tân có thể thao tác đặt/đổi/hủy lịch. Backend vẫn kiểm tra đầy đủ quy tắc thời gian và khung giờ."
 						/>
 
-						<div className="grid gap-3 md:grid-cols-[3fr_2fr_1fr_1fr]">
-							<Input
-								placeholder="Tìm theo mã lịch, bệnh nhân, bác sĩ"
-								value={keyword}
-								onChange={(event) => setKeyword(event.target.value)}
-							/>
-							<Select
-								allowClear
-								placeholder="Trạng thái"
-								value={statusFilter || undefined}
-								onChange={(value) => setStatusFilter(value || '')}
-								options={Object.entries(appointmentStatusMeta).map(([value, meta]) => ({
-									value,
-									label: meta.label,
-								}))}
-							/>
-							<Segmented
-								className={`${SEGMENTED_STYLES} w-fit`}
-								value={viewMode}
-								onChange={setViewMode}
-								options={[
-									{ label: 'Sắp tới', value: 'sap-toi' },
-									{ label: 'Tất cả', value: 'tat-ca' },
-								]}
-							/>
-							<Button onClick={() => loadAppointments(1, pagination.pageSize)}>Áp dụng</Button>
-						</div>
-
-						<Table
-							rowKey="id"
-							className={TABLE_STYLES.header}
-							columns={columns}
-							dataSource={rows}
-							loading={loading}
-							scroll={{ x: 'max-content' }}
-							pagination={{
-								current: pagination.currentPage,
-								pageSize: pagination.pageSize,
-								total: pagination.totalItems,
-								onChange: (page, pageSize) => loadAppointments(page, pageSize),
-							}}
+						<Segmented
+							className={`${SEGMENTED_STYLES} w-fit`}
+							value={activeTable}
+							onChange={setActiveTable}
+							options={[
+								{ label: 'Bảng lịch hẹn', value: 'appointments' },
+								{ label: 'Bảng bệnh nhân', value: 'patients' },
+							]}
 						/>
+
+						{activeTable === 'appointments' ? (
+							<>
+								<div className="grid gap-3 md:grid-cols-[3fr_2fr_1fr_1fr]">
+									<Input
+										placeholder="Tìm theo mã lịch, bệnh nhân, bác sĩ"
+										value={keyword}
+										onChange={(event) => setKeyword(event.target.value)}
+									/>
+									<Select
+										allowClear
+										placeholder="Trạng thái"
+										value={statusFilter || undefined}
+										onChange={(value) => setStatusFilter(value || '')}
+										options={Object.entries(appointmentStatusMeta).map(([value, meta]) => ({
+											value,
+											label: meta.label,
+										}))}
+									/>
+									<Segmented
+										className={`${SEGMENTED_STYLES} w-fit`}
+										value={viewMode}
+										onChange={setViewMode}
+										options={[
+											{ label: 'Sắp tới', value: 'sap-toi' },
+											{ label: 'Tất cả', value: 'tat-ca' },
+										]}
+									/>
+									<Button onClick={() => loadAppointments(1, pagination.pageSize)}>Áp dụng</Button>
+								</div>
+
+								<Table
+									rowKey="id"
+									className={TABLE_STYLES.header}
+									columns={columns}
+									dataSource={rows}
+									loading={loading}
+									scroll={{ x: 'max-content' }}
+									pagination={{
+										current: pagination.currentPage,
+										pageSize: pagination.pageSize,
+										total: pagination.totalItems,
+										onChange: (page, pageSize) => loadAppointments(page, pageSize),
+									}}
+								/>
+							</>
+						) : (
+							<>
+								<div className="grid gap-3 md:grid-cols-[3fr_1fr_1fr_auto_auto]">
+									<Input
+										placeholder="Tìm theo mã BN, tên, CCCD, SĐT, email"
+										value={patientSearch}
+										onChange={(event) => setPatientSearch(event.target.value)}
+									/>
+									<Select
+										allowClear
+										placeholder="Giới tính"
+										value={patientGenderFilter || undefined}
+										onChange={(value) => setPatientGenderFilter(value || '')}
+										options={[
+											{ value: 'nam', label: 'Nam' },
+											{ value: 'nu', label: 'Nữ' },
+											{ value: 'khac', label: 'Khác' },
+										]}
+									/>
+									<Select
+										allowClear
+										placeholder="Nhóm máu"
+										value={patientBloodFilter || undefined}
+										onChange={(value) => setPatientBloodFilter(value || '')}
+										options={BLOOD_GROUP_OPTIONS.map((value) => ({ value, label: value }))}
+									/>
+									<Button onClick={() => loadPatients(1, patientPagination.pageSize, patientSearch)}>Áp dụng</Button>
+									<Button type="primary" onClick={() => setIsPatientCreateModalOpen(true)}>Tạo bệnh nhân</Button>
+								</div>
+
+								<Table
+									rowKey="id"
+									className={TABLE_STYLES.header}
+									columns={patientColumns}
+									dataSource={patientRows}
+									loading={loadingPatients}
+									scroll={{ x: 'max-content' }}
+									pagination={{
+										current: patientPagination.currentPage,
+										pageSize: patientPagination.pageSize,
+										total: patientPagination.totalItems,
+										onChange: (page, pageSize) => loadPatients(page, pageSize, patientSearch),
+									}}
+								/>
+							</>
+						)}
 					</Space>
 				</Card>
 			</div>
@@ -640,24 +804,21 @@ export default function LeTanQuanLyLichHenPage() {
 			>
 				<Space direction="vertical" size={12} className="w-full">
 					<Card className="border-[#E2E8F0]">
-						<Text strong>Chọn bệnh nhân</Text>
-						<div className="mt-2 flex justify-end">
-							<Button type="link" onClick={() => setIsPatientCreateModalOpen(true)}>Tạo nhanh bệnh nhân mới</Button>
-						</div>
-						<Select
-							showSearch
-							filterOption={false}
-							className="w-full"
-							placeholder="Tìm theo tên/mã/SĐT"
-							value={createForm.benh_nhan_id}
-							loading={loadingPatients}
-							onSearch={setPatientKeyword}
-							onChange={(value) => setCreateForm((prev) => ({ ...prev, benh_nhan_id: value }))}
-							options={patientOptions.map((patient) => ({
-								value: patient.id,
-								label: `${patient.ho_ten} (${patient.ma_benh_nhan || 'N/A'}) - ${patient.so_dien_thoai || 'N/A'}`,
-							}))}
-						/>
+						<Text strong>Bệnh nhân được chọn</Text>
+						{selectedPatientForBooking ? (
+							<div className="mt-2 grid gap-1 md:grid-cols-2">
+								<Text><Text strong>Họ tên:</Text> {selectedPatientForBooking.ho_ten || '-'}</Text>
+								<Text><Text strong>Mã BN:</Text> {selectedPatientForBooking.ma_benh_nhan || '-'}</Text>
+								<Text><Text strong>SĐT:</Text> {selectedPatientForBooking.so_dien_thoai || '-'}</Text>
+								<Text><Text strong>CCCD:</Text> {selectedPatientForBooking.so_cccd || '-'}</Text>
+							</div>
+						) : (
+							<Alert
+								type="warning"
+								className="mt-2"
+								message="Vui lòng tạo lịch hẹn từ Bảng bệnh nhân để hệ thống tự chọn bệnh nhân."
+							/>
+						)}
 					</Card>
 
 					<div className="grid gap-3 md:grid-cols-2">
@@ -731,6 +892,12 @@ export default function LeTanQuanLyLichHenPage() {
 					</Card>
 				</Space>
 			</Modal>
+
+			<PatientDetailModal
+				open={Boolean(selectedPatient)}
+				patient={selectedPatient}
+				onClose={() => setSelectedPatient(null)}
+			/>
 
 			<Modal
 				title="Tạo bệnh nhân mới"

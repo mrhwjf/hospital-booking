@@ -410,22 +410,13 @@ class SchedulingService
 		$keyword = trim((string) ($filters['q'] ?? ''));
 
 		return BenhNhan::query()
-			->select([
-				'id',
-				'ma_benh_nhan',
-				'ho_ten',
-				'ngay_sinh',
-				'gioi_tinh',
-				'so_dien_thoai',
-				'email',
-				'trang_thai',
-			])
 			->when($keyword !== '', function ($query) use ($keyword) {
 				$query->where(function ($subQuery) use ($keyword) {
 					$subQuery
 						->where('ho_ten', 'like', '%' . $keyword . '%')
 						->orWhere('ma_benh_nhan', 'like', '%' . $keyword . '%')
 						->orWhere('so_dien_thoai', 'like', '%' . $keyword . '%')
+						->orWhere('so_cccd', 'like', '%' . $keyword . '%')
 						->orWhere('email', 'like', '%' . $keyword . '%');
 				});
 			})
