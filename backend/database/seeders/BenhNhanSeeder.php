@@ -1,57 +1,59 @@
+
 <?php
 
 namespace Database\Seeders;
 
+use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
 class BenhNhanSeeder extends Seeder
 {
+    /**
+     * Run the database seeds.
+     */
     public function run(): void
     {
-        $users = DB::table('nguoi_dung')->pluck('id', 'email');
-
         DB::table('benh_nhan')->upsert([
             [
-                'ma_benh_nhan' => 'BN0001',
-                'nguoi_dung_id' => $users['patient1@hospital.local'] ?? null,
-                'ho_ten' => 'Nguyen Van An',
-                'ngay_sinh' => '1993-05-21',
+                'ma_benh_nhan' => 'BN001',
+                'ho_ten' => 'Nguyen Van A',
+                'ngay_sinh' => '1995-05-10',
                 'gioi_tinh' => 'nam',
-                'so_dien_thoai' => '0901000001',
-                'email' => 'patient1@hospital.local',
-                'so_cccd' => '079093001111',
-                'dia_chi' => 'Quan 1, TP HCM',
-                'nguoi_lien_he' => 'Nguyen Thi Hoa',
-                'sdt_nguoi_lien_he' => '0909000001',
+                'so_dien_thoai' => '0987654321',
+                'email' => 'benhnhan1@gmail.com',
+                'dia_chi' => 'TP HCM',
                 'nhom_mau' => 'O+',
-                'tien_su_di_ung' => 'Di ung hai san nhe',
-                'tien_su_benh' => 'Viem da day',
-                'ghi_chu' => null,
                 'trang_thai' => 'hoat_dong',
                 'created_at' => now(),
-                'updated_at' => now(),
+                'updated_at' => now()
             ],
             [
-                'ma_benh_nhan' => 'BN0002',
-                'nguoi_dung_id' => $users['patient2@hospital.local'] ?? null,
-                'ho_ten' => 'Tran Thi Bich',
-                'ngay_sinh' => '2000-11-12',
+                'ma_benh_nhan' => 'BN002',
+                'ho_ten' => 'Tran Thi B',
+                'ngay_sinh' => '1988-11-22',
                 'gioi_tinh' => 'nu',
-                'so_dien_thoai' => '0901000002',
-                'email' => 'patient2@hospital.local',
-                'so_cccd' => '079093002222',
-                'dia_chi' => 'Thu Duc, TP HCM',
-                'nguoi_lien_he' => 'Tran Van Loc',
-                'sdt_nguoi_lien_he' => '0909000002',
+                'so_dien_thoai' => '0987654322',
+                'email' => 'benhnhan2@gmail.com',
+                'dia_chi' => 'Da Nang',
                 'nhom_mau' => 'A+',
-                'tien_su_di_ung' => null,
-                'tien_su_benh' => null,
-                'ghi_chu' => null,
                 'trang_thai' => 'hoat_dong',
                 'created_at' => now(),
-                'updated_at' => now(),
+                'updated_at' => now()
             ],
-        ], ['ma_benh_nhan'], ['nguoi_dung_id', 'ho_ten', 'ngay_sinh', 'gioi_tinh', 'so_dien_thoai', 'email', 'so_cccd', 'dia_chi', 'nguoi_lien_he', 'sdt_nguoi_lien_he', 'nhom_mau', 'tien_su_di_ung', 'tien_su_benh', 'ghi_chu', 'trang_thai', 'updated_at']);
+            [
+                'ma_benh_nhan' => 'BN003',
+                'ho_ten' => 'Le Van C',
+                'ngay_sinh' => '2000-01-15',
+                'gioi_tinh' => 'nam',
+                'so_dien_thoai' => '0987654323',
+                'email' => 'benhnhan3@gmail.com',
+                'dia_chi' => 'Ha Noi',
+                'nhom_mau' => 'B+',
+                'trang_thai' => 'hoat_dong',
+                'created_at' => now(),
+                'updated_at' => now()
+            ]
+        ], ['ma_benh_nhan'], ['ho_ten', 'ngay_sinh', 'gioi_tinh', 'so_dien_thoai', 'email', 'dia_chi', 'nhom_mau', 'trang_thai', 'updated_at']);
     }
 }

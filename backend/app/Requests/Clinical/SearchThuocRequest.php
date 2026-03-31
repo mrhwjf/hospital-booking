@@ -4,6 +4,7 @@ namespace App\Requests\Clinical;
 
 use Illuminate\Foundation\Http\FormRequest;
 
+
 class SearchThuocRequest extends FormRequest
 {
     /**

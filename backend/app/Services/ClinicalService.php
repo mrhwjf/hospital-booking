@@ -10,10 +10,12 @@ use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
+
 class ClinicalService
 {
     public const DEFAULT_PAGE_SIZE = 10;
 
+// Tạo đơn thuốc mới cho một phiếu khám, đảm bảo mỗi phiếu khám chỉ có một đơn thuốc
     public function createPrescription(int $phieuKhamId, array $payload): DonThuoc
     {
         return DB::transaction(function () use ($phieuKhamId, $payload) {
@@ -49,6 +51,7 @@ class ClinicalService
         });
     }
 
+// Thêm nhiều mục thuốc vào đơn thuốc đã tồn tại
     public function addItemsToPrescription(int $donThuocId, array $items): array
     {
         return DB::transaction(function () use ($donThuocId, $items) {
@@ -91,7 +94,7 @@ class ClinicalService
         });
     }
 
-
+// Cập nhật toàn bộ danh sách mục thuốc của một đơn thuốc (xóa hết các mục cũ và thêm mới)
     public function updatePrescriptionItems(int $donThuocId, array $items): array
     {
         return DB::transaction(function () use ($donThuocId, $items) {
@@ -137,7 +140,7 @@ class ClinicalService
         });
     }
 
-    // Xóa đơn thuốc cùng với các items của nó
+// Xóa đơn thuốc cùng với các items của nó
     public function deletePrescription(int $donThuocId): array
     {
         return DB::transaction(function () use ($donThuocId) {
@@ -164,7 +167,7 @@ class ClinicalService
     }
 
 
-    // Tìm kiếm thuốc theo tên hoặc mã thuốc với phân trang
+// Tìm kiếm thuốc theo tên hoặc mã thuốc với phân trang
     public function searchMedicines(array $filters): LengthAwarePaginator
     {
         $pageSize = $this->resolvePageSize($filters['per_page'] ?? null);
@@ -186,7 +189,7 @@ class ClinicalService
     }
 
 
-    // Lấy đơn thuốc theo ID cùng với thông tin phiếu khám và danh sách thuốc trong đơn
+// Lấy đơn thuốc theo ID cùng với thông tin phiếu khám và danh sách thuốc trong đơn
     public function getPrescriptionById(int $donThuocId): DonThuoc
     {
         $donThuoc = DonThuoc::query()
@@ -205,6 +208,7 @@ class ClinicalService
         return $donThuoc;
     }
 
+// Lấy đơn thuốc theo ID phiếu khám cùng với thông tin phiếu khám và danh sách thuốc trong đơn
     public function getPrescriptionByPhieuKham(int $phieuKhamId): ?DonThuoc
     {
         // Kiểm tra phiếu khám có tồn tại
@@ -224,7 +228,7 @@ class ClinicalService
             ->first();
     }
 
-
+// Hàm hỗ trợ để tạo mã đơn thuốc tự động theo định dạng: "DT-{YYYYMMDD}-{STT}"
     private function generatePrescriptionCode(): string
     {
         $prefix = 'DT-' . now()->format('Ymd') . '-';
@@ -241,7 +245,7 @@ class ClinicalService
         return $prefix . str_pad((string) $nextNumber, 3, '0', STR_PAD_LEFT);
     }
 
-
+// Hàm hỗ trợ để xác định kích thước trang hợp lý cho phân trang khi tìm kiếm thuốc
     private function resolvePageSize(mixed $pageSize): int
     {
         $size = (int) ($pageSize ?? self::DEFAULT_PAGE_SIZE);
