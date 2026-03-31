@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+=======
+
+>>>>>>> feature/don-thuoc
 <?php
 
 namespace Database\Seeders;

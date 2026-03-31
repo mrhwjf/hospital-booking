@@ -663,7 +663,7 @@ CREATE TABLE chi_dinh (
     id INT AUTO_INCREMENT PRIMARY KEY,
     phieu_kham_id INT NOT NULL,
     bac_si_id INT NOT NULL COMMENT 'Bác sĩ chỉ định',
-
+    goi_kham_id INT NULL,
     dich_vu_id INT NULL,
     goi_kham_id INT NULL,
 
