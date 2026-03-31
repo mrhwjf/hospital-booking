@@ -15,6 +15,7 @@ class ChuyenKhoaSeeder extends Seeder
                 'ten_chuyen_khoa' => 'Noi tong quat',
                 'mo_ta' => 'Kham va dieu tri cac benh ly noi khoa.',
                 'hinh_anh' => null,
+                'hinh_anh_public_id' => null,
                 'vi_tri' => 'Tang 2 khu A',
                 'so_dien_thoai' => '02811110001',
                 'truong_khoa_id' => null,
@@ -28,6 +29,7 @@ class ChuyenKhoaSeeder extends Seeder
                 'ten_chuyen_khoa' => 'Nhi khoa',
                 'mo_ta' => 'Kham va theo doi suc khoe tre em.',
                 'hinh_anh' => null,
+                'hinh_anh_public_id' => null,
                 'vi_tri' => 'Tang 3 khu B',
                 'so_dien_thoai' => '02811110002',
                 'truong_khoa_id' => null,
@@ -41,6 +43,7 @@ class ChuyenKhoaSeeder extends Seeder
                 'ten_chuyen_khoa' => 'Tai mui hong',
                 'mo_ta' => 'Kham cac benh ve tai mui hong.',
                 'hinh_anh' => null,
+                'hinh_anh_public_id' => null,
                 'vi_tri' => 'Tang 1 khu C',
                 'so_dien_thoai' => '02811110003',
                 'truong_khoa_id' => null,
@@ -49,6 +52,6 @@ class ChuyenKhoaSeeder extends Seeder
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
-        ], ['ma_chuyen_khoa'], ['ten_chuyen_khoa', 'mo_ta', 'hinh_anh', 'vi_tri', 'so_dien_thoai', 'truong_khoa_id', 'thu_tu_hien_thi', 'trang_thai', 'updated_at']);
+        ], ['ma_chuyen_khoa'], ['ten_chuyen_khoa', 'mo_ta', 'hinh_anh', 'hinh_anh_public_id', 'vi_tri', 'so_dien_thoai', 'truong_khoa_id', 'thu_tu_hien_thi', 'trang_thai', 'updated_at']);
     }
 }

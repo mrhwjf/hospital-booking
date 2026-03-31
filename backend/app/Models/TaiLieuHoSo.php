@@ -17,8 +17,7 @@ class TaiLieuHoSo extends Model
 		'phieu_kham_id',
 		'loai_tai_lieu',
 		'ten_tai_lieu',
-		'file_url',
-		'file_name',
+		'file_public_id',
 		'ngay_tao',
 		'ghi_chu',
 	];

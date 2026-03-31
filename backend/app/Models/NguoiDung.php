@@ -20,6 +20,7 @@ class NguoiDung extends Model
 		'mat_khau',
 		'vai_tro_id',
 		'hinh_anh',
+		'hinh_anh_public_id',
 		'trang_thai',
 		'lan_dang_nhap_cuoi',
 	];

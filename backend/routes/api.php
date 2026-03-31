@@ -25,4 +25,5 @@ Route::prefix('v1')->group(function () {
     require base_path('routes/api/v1/clinical.php');
     require base_path('routes/api/v1/reports.php');
     require base_path('routes/api/v1/scheduling.php');
+    require base_path('routes/api/v1/cloudinary.php');
 });

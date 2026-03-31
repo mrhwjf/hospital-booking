@@ -13,6 +13,7 @@ return new class extends Migration {
 			$table->string('ten_chuyen_khoa', 100);
 			$table->text('mo_ta')->nullable();
 			$table->string('hinh_anh')->nullable();
+			$table->string('hinh_anh_public_id')->nullable();
 			$table->string('vi_tri', 100)->nullable();
 			$table->string('so_dien_thoai', 15)->nullable();
 			$table->unsignedBigInteger('truong_khoa_id')->nullable();

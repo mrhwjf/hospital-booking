@@ -73,6 +73,7 @@ CREATE TABLE nguoi_dung (
     mat_khau VARCHAR(255) NOT NULL COMMENT 'Mật khẩu đã hash',
     vai_tro_id INT NOT NULL,
     hinh_anh VARCHAR(255) COMMENT 'Đường dẫn ảnh đại diện',
+    hinh_anh_public_id VARCHAR(255) COMMENT 'Cloudinary public_id ảnh đại diện',
     trang_thai ENUM('hoat_dong', 'tam_khoa', 'khoa') DEFAULT 'hoat_dong',
     lan_dang_nhap_cuoi TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -98,6 +99,7 @@ CREATE TABLE chuyen_khoa (
     ten_chuyen_khoa VARCHAR(100) NOT NULL,
     mo_ta TEXT,
     hinh_anh VARCHAR(255),
+    hinh_anh_public_id VARCHAR(255) COMMENT 'Cloudinary public_id ảnh chuyên khoa',
     vi_tri VARCHAR(100) COMMENT 'Vị trí: Tầng/Khu',
     so_dien_thoai VARCHAR(15),
     truong_khoa_id INT NULL COMMENT 'FK đến bac_si, thêm sau',
@@ -713,8 +715,7 @@ CREATE TABLE tai_lieu_ho_so (
     ) NOT NULL,
     
     ten_tai_lieu VARCHAR(200) NOT NULL,
-    file_url VARCHAR(500) NOT NULL COMMENT 'URL file trên cloud storage',
-    file_name VARCHAR(255) NOT NULL COMMENT 'Tên file gốc',
+    file_public_id VARCHAR(500) NOT NULL COMMENT 'Cloudinary public_id của tài liệu',
     ngay_tao DATE NOT NULL,
     ghi_chu TEXT,
     

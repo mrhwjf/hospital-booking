@@ -18,6 +18,7 @@ class NguoiDungSeeder extends Seeder
                 'mat_khau' => Hash::make('12345678'),
                 'vai_tro_id' => $roles['ADMIN'] ?? null,
                 'hinh_anh' => null,
+                'hinh_anh_public_id' => null,
                 'trang_thai' => 'hoat_dong',
                 'lan_dang_nhap_cuoi' => null,
                 'created_at' => now(),
@@ -28,6 +29,7 @@ class NguoiDungSeeder extends Seeder
                 'mat_khau' => Hash::make('12345678'),
                 'vai_tro_id' => $roles['BACSI'] ?? null,
                 'hinh_anh' => null,
+                'hinh_anh_public_id' => null,
                 'trang_thai' => 'hoat_dong',
                 'lan_dang_nhap_cuoi' => null,
                 'created_at' => now(),
@@ -38,6 +40,7 @@ class NguoiDungSeeder extends Seeder
                 'mat_khau' => Hash::make('12345678'),
                 'vai_tro_id' => $roles['BACSI'] ?? null,
                 'hinh_anh' => null,
+                'hinh_anh_public_id' => null,
                 'trang_thai' => 'hoat_dong',
                 'lan_dang_nhap_cuoi' => null,
                 'created_at' => now(),
@@ -48,6 +51,7 @@ class NguoiDungSeeder extends Seeder
                 'mat_khau' => Hash::make('12345678'),
                 'vai_tro_id' => $roles['NHANVIEN'] ?? null,
                 'hinh_anh' => null,
+                'hinh_anh_public_id' => null,
                 'trang_thai' => 'hoat_dong',
                 'lan_dang_nhap_cuoi' => null,
                 'created_at' => now(),
@@ -58,6 +62,7 @@ class NguoiDungSeeder extends Seeder
                 'mat_khau' => Hash::make('12345678'),
                 'vai_tro_id' => $roles['NHANVIEN'] ?? null,
                 'hinh_anh' => null,
+                'hinh_anh_public_id' => null,
                 'trang_thai' => 'hoat_dong',
                 'lan_dang_nhap_cuoi' => null,
                 'created_at' => now(),
@@ -68,6 +73,7 @@ class NguoiDungSeeder extends Seeder
                 'mat_khau' => Hash::make('12345678'),
                 'vai_tro_id' => $roles['BENHNHAN'] ?? null,
                 'hinh_anh' => null,
+                'hinh_anh_public_id' => null,
                 'trang_thai' => 'hoat_dong',
                 'lan_dang_nhap_cuoi' => null,
                 'created_at' => now(),
@@ -78,6 +84,7 @@ class NguoiDungSeeder extends Seeder
                 'mat_khau' => Hash::make('12345678'),
                 'vai_tro_id' => $roles['BENHNHAN'] ?? null,
                 'hinh_anh' => null,
+                'hinh_anh_public_id' => null,
                 'trang_thai' => 'hoat_dong',
                 'lan_dang_nhap_cuoi' => null,
                 'created_at' => now(),
@@ -90,7 +97,7 @@ class NguoiDungSeeder extends Seeder
         DB::table('nguoi_dung')->upsert(
             $rows,
             ['email'],
-            ['mat_khau', 'vai_tro_id', 'hinh_anh', 'trang_thai', 'lan_dang_nhap_cuoi', 'updated_at']
+            ['mat_khau', 'vai_tro_id', 'hinh_anh', 'hinh_anh_public_id', 'trang_thai', 'lan_dang_nhap_cuoi', 'updated_at']
         );
     }
 }
