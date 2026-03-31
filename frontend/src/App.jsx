@@ -1,76 +1,52 @@
-// App.jsx
-import React, { useEffect, useState } from 'react';
-import { Card, Spin, Alert } from 'antd';
-import axios from 'axios';
+import { useState } from 'react'
+import { Card, ConfigProvider, Segmented, Space } from 'antd'
+
+import LichHenCuaToiPage from './features/scheduling/pages/patients/LichHenCuaToiPage'
+import DatLichPage from './features/scheduling/pages/patients/DatLichPage'
+import LeTanQuanLyLichHenPage from './features/scheduling/pages/receptionist/LeTanQuanLyLichHenPage'
+import AdminDoctorScheduleModulePage from './features/admin/pages/doctor-schedule/AdminDoctorScheduleModulePage'
 
 function App() {
-	const [pdfUrl, setPdfUrl] = useState('');
-	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState('');
+  const [view, setView] = useState('dat-lich')
 
-	const filePath = 'hospital_booking/medical_documents/appointments_1/document_1.pdf';
-	const encodedPath = encodeURIComponent(filePath);
+  return (
+    <ConfigProvider
+      theme={{
+        token: {
+          colorPrimary: '#0F766E',
+          colorInfo: '#2563EB',
+          colorSuccess: '#16A34A',
+          colorWarning: '#F59E0B',
+          colorError: '#DC2626',
+          colorTextBase: '#0F172A',
+          colorBorder: '#E2E8F0',
+          colorBgLayout: '#F8FAFC',
+        },
+      }}
+    >
+      <main className="min-h-screen bg-[#F8FAFC] p-4 md:p-6">
+        <Space direction="vertical" size={16} className="w-full">
+          <Card className="border-[#E2E8F0]">
+            <Segmented
+              value={view}
+              onChange={setView}
+              options={[
+                { label: 'Dat lich', value: 'dat-lich' },
+                { label: 'Lich hen cua toi', value: 'lich-cua-toi' },
+                { label: 'Le tan quan ly', value: 'le-tan' },
+                { label: 'Admin lich bac si', value: 'admin-lich-bac-si' },
+              ]}
+            />
+          </Card>
 
-	useEffect(() => {
-		// Backend returns ApiResponse::success({ url: ... }) => { success, data: { url }, message }
-		axios.get(`http://localhost:8000/api/v1/cloudinary/file/${encodedPath}/signed-url`)
-			.then(({ data }) => {
-				const signedUrl = data?.data?.url;
-
-				if (!signedUrl) {
-					throw new Error('Signed URL is missing in API response.');
-				}
-
-				setPdfUrl(signedUrl);
-				setLoading(false);
-			})
-			.catch(err => {
-				console.error(err);
-				const apiMessage = err?.response?.data?.message;
-				setError(apiMessage || err?.message || 'Failed to fetch PDF URL');
-				setLoading(false);
-			});
-	}, [encodedPath]);
-
-	if (loading) return <Spin description="Loading..." style={{ margin: 50 }} />;
-
-	if (error) return <Alert title="Error" description={error} type="error" style={{ margin: 50 }} />;
-
-	return (
-		<div style={{
-			position: 'fixed',
-			top: 0,
-			left: 0,
-			width: '100vw',
-			height: '100vh',
-			padding: 0,
-			margin: 0
-		}}>
-			<Card
-				title="PDF Preview"
-				style={{
-					width: '100%',
-					height: '100%',
-					borderRadius: 0
-				}}
-				bodyStyle={{
-					padding: 0,
-					height: 'calc(100% - 57px)' // Adjust for Card title height
-				}}
-			>
-				<iframe
-					src={pdfUrl}
-					style={{
-						border: 'none',
-						width: '100%',
-						height: '100%',
-						display: 'block'
-					}}
-					title="PDF Viewer"
-				/>
-			</Card>
-		</div>
-	);
+          {view === 'dat-lich' && <DatLichPage />}
+          {view === 'lich-cua-toi' && <LichHenCuaToiPage />}
+          {view === 'le-tan' && <LeTanQuanLyLichHenPage />}
+          {view === 'admin-lich-bac-si' && <AdminDoctorScheduleModulePage />}
+        </Space>
+      </main>
+    </ConfigProvider>
+  )
 }
 
 export default App;

@@ -90,7 +90,11 @@ class SchedulingService
 		}
 
 		$schedules = LichLamViecBacSi::query()
-			->with(['lichLamViec:id,ten_ca,gio_bat_dau,gio_ket_thuc,thoi_luong_kham', 'khungGioKhams'])
+			->with([
+				'lichLamViec:id,ten_ca,gio_bat_dau,gio_ket_thuc,thoi_luong_kham',
+				'phongKham:id,ma_phong,ten_phong',
+				'khungGioKhams',
+			])
 			->where('bac_si_id', $bacSiId)
 			->where('trang_thai', 'hoat_dong')
 			->whereBetween('ngay_lam_viec', [$fromDate, $toDate])
@@ -112,6 +116,11 @@ class SchedulingService
 				'bac_si_id' => $schedule->bac_si_id,
 				'ngay_lam_viec' => $dateKey,
 				'trang_thai' => $schedule->trang_thai,
+				'phong_kham' => $schedule->phongKham ? [
+					'id' => $schedule->phongKham->id,
+					'ma_phong' => $schedule->phongKham->ma_phong,
+					'ten_phong' => $schedule->phongKham->ten_phong,
+				] : null,
 				'ca_lam_viec' => [
 					'id' => $schedule->lichLamViec?->id,
 					'ten_ca' => $schedule->lichLamViec?->ten_ca,
@@ -332,7 +341,9 @@ class SchedulingService
 			->with([
 				'bacSi:id,ho_ten,hoc_vi',
 				'chuyenKhoa:id,ten_chuyen_khoa',
-				'khungGioKham:id,gio_bat_dau,gio_ket_thuc',
+				'khungGioKham:id,lich_lam_viec_bac_si_id,gio_bat_dau,gio_ket_thuc',
+				'khungGioKham.lichLamViecBacSi:id,phong_kham_id',
+				'khungGioKham.lichLamViecBacSi.phongKham:id,ma_phong,ten_phong',
 				'dichVuLichHens.dichVu:id,ten_dich_vu,gia_dich_vu',
 				'dichVuLichHens.goiKham:id,ten_goi_kham,gia_goi_kham',
 				'lyDoHuy:id,ten_ly_do',
@@ -369,7 +380,9 @@ class SchedulingService
 				'benhNhan:id,ma_benh_nhan,ho_ten,so_dien_thoai,email',
 				'bacSi:id,ho_ten,hoc_vi',
 				'chuyenKhoa:id,ten_chuyen_khoa',
-				'khungGioKham:id,gio_bat_dau,gio_ket_thuc',
+				'khungGioKham:id,lich_lam_viec_bac_si_id,gio_bat_dau,gio_ket_thuc',
+				'khungGioKham.lichLamViecBacSi:id,phong_kham_id',
+				'khungGioKham.lichLamViecBacSi.phongKham:id,ma_phong,ten_phong',
 				'dichVuLichHens.dichVu:id,ten_dich_vu,gia_dich_vu',
 				'dichVuLichHens.goiKham:id,ten_goi_kham,gia_goi_kham',
 				'lyDoHuy:id,ten_ly_do',
@@ -410,22 +423,13 @@ class SchedulingService
 		$keyword = trim((string) ($filters['q'] ?? ''));
 
 		return BenhNhan::query()
-			->select([
-				'id',
-				'ma_benh_nhan',
-				'ho_ten',
-				'ngay_sinh',
-				'gioi_tinh',
-				'so_dien_thoai',
-				'email',
-				'trang_thai',
-			])
 			->when($keyword !== '', function ($query) use ($keyword) {
 				$query->where(function ($subQuery) use ($keyword) {
 					$subQuery
 						->where('ho_ten', 'like', '%' . $keyword . '%')
 						->orWhere('ma_benh_nhan', 'like', '%' . $keyword . '%')
 						->orWhere('so_dien_thoai', 'like', '%' . $keyword . '%')
+						->orWhere('so_cccd', 'like', '%' . $keyword . '%')
 						->orWhere('email', 'like', '%' . $keyword . '%');
 				});
 			})
@@ -812,6 +816,8 @@ class SchedulingService
 				'bacSi:id,ho_ten,hoc_vi,gioi_thieu',
 				'chuyenKhoa:id,ten_chuyen_khoa',
 				'khungGioKham:id,lich_lam_viec_bac_si_id,gio_bat_dau,gio_ket_thuc,trang_thai',
+				'khungGioKham.lichLamViecBacSi:id,phong_kham_id',
+				'khungGioKham.lichLamViecBacSi.phongKham:id,ma_phong,ten_phong',
 				'dichVuLichHens.dichVu:id,ten_dich_vu,gia_dich_vu',
 				'dichVuLichHens.goiKham:id,ten_goi_kham,gia_goi_kham',
 				'lyDoHuy:id,ten_ly_do',
@@ -866,6 +872,11 @@ class SchedulingService
 				'gio_bat_dau' => $slotStart,
 				'gio_ket_thuc' => $slotEnd,
 				'trang_thai' => $dbSlot?->trang_thai ?? 'trong',
+				'phong_kham' => $schedule->phongKham ? [
+					'id' => $schedule->phongKham->id,
+					'ma_phong' => $schedule->phongKham->ma_phong,
+					'ten_phong' => $schedule->phongKham->ten_phong,
+				] : null,
 				'exists_in_db' => $dbSlot !== null,
 			];
 

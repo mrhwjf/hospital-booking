@@ -1,0 +1,829 @@
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import dayjs from 'dayjs'
+import { EyeOutlined } from '@ant-design/icons'
+import {
+	Alert,
+	Button,
+	Card,
+	ConfigProvider,
+	Divider,
+	Input,
+	Layout,
+	List,
+	Modal,
+	Select,
+	Segmented,
+	Space,
+	Steps,
+	Table,
+	Typography,
+	message,
+	Grid,
+} from 'antd'
+import DoctorCard from '../../components/DoctorCard'
+import CalendarPicker from '../../components/CalendarPicker'
+import PackageDetailModal from '../../components/PackageDetail'
+import {
+	fetchBookingSystemConfigs,
+	fetchDoctorSchedule,
+	fetchDoctorsBySpecialty,
+	fetchServicesAndPackages,
+	fetchSpecialties,
+	getApiErrorMessage,
+	submitAppointmentBooking,
+} from '../../../../services/schedulingService'
+import useDebounce from '../../../../hooks/useDebounce'
+import { SEGMENTED_STYLES, TABLE_STYLES } from '../../styles/const-styles'
+
+const { Content } = Layout
+const { Paragraph, Text, Title } = Typography
+const { useBreakpoint } = Grid
+
+const resolvePatientId = () => {
+	const fromStorage = Number(window.localStorage.getItem('benh_nhan_id'))
+	if (Number.isInteger(fromStorage) && fromStorage > 0) {
+		return fromStorage
+	}
+
+	const fromEnv = Number(import.meta.env.VITE_DEFAULT_BENH_NHAN_ID)
+	if (Number.isInteger(fromEnv) && fromEnv > 0) {
+		return fromEnv
+	}
+
+	return 1
+}
+
+const stepItems = [
+	{ title: 'Bác sĩ', description: 'Chọn chuyên khoa và bác sĩ' },
+	{ title: 'Ngày giờ', description: 'Chọn lịch làm việc và khung giờ' },
+	{ title: 'Dịch vụ', description: 'Chọn dịch vụ hoặc gói khám' },
+	{ title: 'Xác nhận', description: 'Kiểm tra và xác nhận lịch hẹn' },
+]
+
+const formatCurrency = (value) =>
+	Number(value || 0).toLocaleString('vi-VN', {
+		style: 'currency',
+		currency: 'VND',
+		maximumFractionDigits: 0,
+	})
+
+const confirmColumns = [
+	{
+		title: 'STT',
+		width: 70,
+		render: (_, __, index) => index + 1,
+	},
+	{
+		title: 'Tên dịch vụ / gói khám',
+		dataIndex: 'name',
+		key: 'name',
+		render: (value) => <Text strong>{value}</Text>,
+	},
+	{
+		title: 'Loại',
+		dataIndex: 'type',
+		width: 120,
+	},
+	{
+		title: 'Số lượng',
+		dataIndex: 'qty',
+		width: 120,
+		align: 'center',
+	},
+	{
+		title: 'Đơn giá',
+		key: 'price',
+		width: 160,
+		align: 'right',
+		render: (_, row) => formatCurrency(row.unitPrice * row.qty),
+	},
+]
+
+const BOOKING_FEE = 150000
+
+export default function DatLichPage() {
+	const [step, setStep] = useState(0)
+	const patientId = useMemo(() => resolvePatientId(), [])
+	const [keyword, setKeyword] = useState('')
+	const [itemMode, setItemMode] = useState('dich_vu')
+	const [itemKeyword, setItemKeyword] = useState('')
+	const [activePackageDetail, setActivePackageDetail] = useState(null)
+	const [showReasonError, setShowReasonError] = useState(false)
+	const [isSubmitting, setIsSubmitting] = useState(false)
+	const [loadingDoctors, setLoadingDoctors] = useState(false)
+	const [loadingSchedule, setLoadingSchedule] = useState(false)
+	const [loadingItems, setLoadingItems] = useState(false)
+	const [bookingRules, setBookingRules] = useState({
+		minCancelHours: 12,
+		minRescheduleHours: 24,
+		maxBookingDays: 30,
+	})
+
+	const [specialties, setSpecialties] = useState([])
+	const [doctors, setDoctors] = useState([])
+	const [services, setServices] = useState([])
+	const [packages, setPackages] = useState([])
+	const [scheduleItems, setScheduleItems] = useState([])
+	const [calendarSlots, setCalendarSlots] = useState([])
+
+	const screen = useBreakpoint()
+
+	const [booking, setBooking] = useState({
+		chuyen_khoa_id: null,
+		bac_si_id: null,
+		ngay_hen: null,
+		khung_gio_id: null,
+		ly_do_kham: '',
+		ghi_chu: '',
+		items: { dich_vu: {}, goi_kham: {} },
+	})
+
+	const debouncedDoctorKeyword = useDebounce(keyword, 400)
+	const debouncedItemKeyword = useDebounce(itemKeyword, 400)
+
+	useEffect(() => {
+		const loadSpecialties = async () => {
+			try {
+				const items = await fetchSpecialties()
+				setSpecialties(items)
+
+				if (items.length > 0) {
+					setBooking((prev) => ({ ...prev, chuyen_khoa_id: items[0].id }))
+				}
+			} catch {
+				message.error('Không thể tải danh sách chuyên khoa.')
+			}
+		}
+
+		loadSpecialties()
+	}, [])
+
+	useEffect(() => {
+		const loadBookingRules = async () => {
+			try {
+				const { map } = await fetchBookingSystemConfigs()
+
+				setBookingRules({
+					minCancelHours: Number(map.THOI_GIAN_HUY_TOI_THIEU) || 12,
+					minRescheduleHours: Number(map.THOI_GIAN_DOI_TOI_THIEU) || 24,
+					maxBookingDays: Number(map.SO_NGAY_DAT_TRUOC_TOI_DA) || 30,
+				})
+			} catch {
+				message.warning('Không thể tải cấu hình đặt lịch, hệ thống đang dùng giá trị mặc định.')
+			}
+		}
+
+		loadBookingRules()
+	}, [])
+
+	useEffect(() => {
+		if (!booking.chuyen_khoa_id) {
+			setDoctors([])
+			return
+		}
+
+		const loadDoctors = async () => {
+			setLoadingDoctors(true)
+			try {
+				const items = await fetchDoctorsBySpecialty({
+					chuyenKhoaId: booking.chuyen_khoa_id,
+					keyword: debouncedDoctorKeyword,
+				})
+				setDoctors(items)
+			} catch {
+				message.error('Không thể tải danh sách bác sĩ.')
+			} finally {
+				setLoadingDoctors(false)
+			}
+		}
+
+		loadDoctors()
+	}, [booking.chuyen_khoa_id, debouncedDoctorKeyword])
+
+	useEffect(() => {
+		if (!booking.chuyen_khoa_id) {
+			setServices([])
+			setPackages([])
+			return
+		}
+
+		const loadItems = async () => {
+			setLoadingItems(true)
+			try {
+				const { services: nextServices, packages: nextPackages } = await fetchServicesAndPackages({
+					chuyenKhoaId: booking.chuyen_khoa_id,
+					keyword: debouncedItemKeyword,
+				})
+
+				setServices(nextServices)
+				setPackages(nextPackages)
+			} catch {
+				message.error('Không thể tải danh sách dịch vụ/gói khám.')
+			} finally {
+				setLoadingItems(false)
+			}
+		}
+
+		loadItems()
+	}, [booking.chuyen_khoa_id, debouncedItemKeyword])
+
+	useEffect(() => {
+		if (!booking.bac_si_id) {
+			setScheduleItems([])
+			return
+		}
+
+		const loadSchedule = async () => {
+			setLoadingSchedule(true)
+			try {
+				const items = await fetchDoctorSchedule({
+					bacSiId: booking.bac_si_id,
+					toDate: dayjs().add(bookingRules.maxBookingDays, 'day').format('YYYY-MM-DD'),
+				})
+				setScheduleItems(items)
+			} catch {
+				message.error('Không thể tải lịch làm việc của bác sĩ.')
+			} finally {
+				setLoadingSchedule(false)
+			}
+		}
+
+		loadSchedule()
+	}, [booking.bac_si_id, bookingRules.maxBookingDays])
+
+	const selectedDoctor = useMemo(
+		() => doctors.find((doctor) => doctor.id === booking.bac_si_id),
+		[doctors, booking.bac_si_id],
+	)
+
+	const selectedSpecialty = useMemo(
+		() => specialties.find((specialty) => specialty.id === booking.chuyen_khoa_id),
+		[specialties, booking.chuyen_khoa_id],
+	)
+
+	const selectedSlots = calendarSlots
+	const selectedSlot = selectedSlots.find((slot) => slot.slot_key === booking.khung_gio_id)
+	const selectedRoomName = selectedSlot?.phong_kham?.ten_phong || selectedSlot?.phong_kham?.ma_phong || 'Chưa xác định'
+
+	const selectedServiceRows = Object.entries(booking.items.dich_vu || {}).map(([id, qty]) => {
+		const item = services.find((service) => service.id === Number(id))
+		return {
+			type: 'Dịch vụ',
+			name: item?.ten_dich_vu,
+			qty,
+			unitPrice: item?.gia_dich_vu || 0,
+		}
+	})
+
+	const selectedPackageRows = Object.entries(booking.items.goi_kham || {}).map(([id, qty]) => {
+		const item = packages.find((pkg) => pkg.id === Number(id))
+		return {
+			type: 'Gói khám',
+			name: item?.ten_goi_kham,
+			qty,
+			unitPrice: item?.gia_goi_kham || 0,
+		}
+	})
+
+	const selectedRows = [...selectedServiceRows, ...selectedPackageRows]
+	const totalItemCount = selectedRows.reduce((sum, row) => sum + row.qty, 0)
+	const selectedTotal = selectedRows.reduce((sum, row) => sum + row.unitPrice * row.qty, 0)
+
+	const canMoveNext = (() => {
+		if (step === 0) {
+			return Boolean(booking.chuyen_khoa_id && booking.bac_si_id)
+		}
+		if (step === 1) {
+			return Boolean(booking.ngay_hen && booking.khung_gio_id)
+		}
+		if (step === 2) {
+			return selectedRows.length > 0 && booking.ly_do_kham.trim().length > 0
+		}
+		return true
+	})()
+
+	const updateItem = useCallback((type, id, delta) => {
+		setBooking((prev) => {
+			const current = prev.items[type]?.[id] ?? 0
+			const next = Math.max(0, current + delta)
+
+			const cloned = {
+				dich_vu: { ...(prev.items.dich_vu || {}) },
+				goi_kham: { ...(prev.items.goi_kham || {}) },
+			}
+
+			if (next === 0) delete cloned[type][id]
+			else cloned[type][id] = next
+
+			return { ...prev, items: cloned }
+		})
+	}, [])
+
+	const handleNext = () => {
+		if (!canMoveNext) {
+			if (step === 2 && booking.ly_do_kham.trim().length === 0) {
+				setShowReasonError(true)
+				message.warning('Vui lòng nhập lý do khám trước khi tiếp tục.')
+				return
+			}
+
+			message.warning('Vui lòng hoàn thành thông tin bắt buộc trước khi tiếp tục.')
+			return
+		}
+
+		setShowReasonError(false)
+		setStep((current) => Math.min(current + 1, stepItems.length - 1))
+	}
+
+	const handleBack = () => {
+		setStep((current) => Math.max(current - 1, 0))
+	}
+
+	const buildPayload = () => {
+		const items = [
+			...Object.entries(booking.items.dich_vu || {}).map(([id, so_luong]) => ({
+				dich_vu_id: Number(id),
+				so_luong,
+			})),
+			...Object.entries(booking.items.goi_kham || {}).map(([id, so_luong]) => ({
+				goi_kham_id: Number(id),
+				so_luong,
+			})),
+		]
+
+		const payload = {
+			benh_nhan_id: patientId,
+			bac_si_id: booking.bac_si_id,
+			chuyen_khoa_id: booking.chuyen_khoa_id,
+			ngay_hen: booking.ngay_hen,
+			ly_do_kham: booking.ly_do_kham,
+			ghi_chu: booking.ghi_chu,
+			items,
+		}
+
+		if (selectedSlot?.id) {
+			payload.khung_gio_id = selectedSlot.id
+		} else {
+			payload.lich_lam_viec_bac_si_id = selectedSlot?.lich_lam_viec_bac_si_id
+			payload.gio_bat_dau = selectedSlot?.gio_bat_dau
+			payload.gio_ket_thuc = selectedSlot?.gio_ket_thuc
+		}
+
+		return payload
+	}
+
+	const handleConfirm = async () => {
+		if (!booking.khung_gio_id || selectedRows.length === 0) {
+			message.error('Vui lòng chọn đủ khung giờ và dịch vụ/gói khám.')
+			return
+		}
+		if (!booking.ly_do_kham.trim()) {
+			message.error('Vui lòng nhập lý do khám.')
+			return
+		}
+
+		setIsSubmitting(true)
+		try {
+			const lichHen = await submitAppointmentBooking(buildPayload())
+			const maLichHen = lichHen?.ma_lich_hen
+			message.success(`Đặt lịch thành công${maLichHen ? `: ${maLichHen}` : ''}.`)
+			setStep(0)
+			setBooking((prev) => ({
+				...prev,
+				bac_si_id: null,
+				ngay_hen: null,
+				khung_gio_id: null,
+				ly_do_kham: '',
+				ghi_chu: '',
+				items: { dich_vu: {}, goi_kham: {} },
+			}))
+		} catch (error) {
+			message.error(getApiErrorMessage(error, 'Đặt lịch thất bại. Vui lòng thử lại.'))
+		} finally {
+			setIsSubmitting(false)
+		}
+	}
+
+	const activeData = itemMode === 'dich_vu'
+		? services.map((service) => ({
+			key: `dv-${service.id}`,
+			id: service.id,
+			name: service.ten_dich_vu,
+			description: service.mo_ta,
+			amount: service.gia_dich_vu,
+			quantity: booking.items.dich_vu?.[service.id] ?? 0,
+			type: 'dich_vu',
+		}))
+		: packages.map((pkg) => ({
+			key: `gk-${pkg.id}`,
+			id: pkg.id,
+			name: pkg.ten_goi_kham,
+			description: pkg.mo_ta,
+			amount: pkg.gia_goi_kham,
+			quantity: booking.items.goi_kham?.[pkg.id] ?? 0,
+			type: 'goi_kham',
+			pkg,
+		}))
+
+	const columns = useMemo(() => {
+		const baseColumns = [
+			{
+				title: itemMode === 'dich_vu' ? 'Tên dịch vụ' : 'Tên gói khám',
+				dataIndex: 'name',
+				key: 'name',
+				render: (_, row) => (
+					<div>
+						<Text strong>{row.name}</Text>
+						<div className="text-slate-500">{row.description}</div>
+					</div>
+				),
+			},
+			{
+				title: 'Chi phí',
+				dataIndex: 'amount',
+				key: 'amount',
+				render: (value) => (
+					<Text strong className="text-[#2563EB]">
+						{formatCurrency(value)}
+					</Text>
+				),
+			},
+			{
+				title: 'Số lượng',
+				dataIndex: 'quantity',
+				key: 'quantity',
+				render: (_, row) => (
+					<Space>
+						<Button
+							disabled={row.quantity === 0}
+							onClick={() => updateItem(row.type, row.id, -1)}
+						>
+							-
+						</Button>
+						<Text strong>{row.quantity}</Text>
+						<Button
+							type="primary"
+							onClick={() => updateItem(row.type, row.id, 1)}
+						>
+							+
+						</Button>
+					</Space>
+				),
+			},
+		]
+
+		if (itemMode === 'goi_kham') {
+			baseColumns.push({
+				title: 'Chi tiết',
+				key: 'detail',
+				render: (_, row) => (
+					<Button
+						type="text"
+						icon={<EyeOutlined />}
+						onClick={() => setActivePackageDetail(row.pkg)}
+					/>
+				),
+			})
+		}
+
+		return baseColumns
+	}, [itemMode, updateItem])
+
+	return (
+		<ConfigProvider
+			theme={{
+				token: {
+					colorPrimary: '#0F766E',
+					colorInfo: '#2563EB',
+					colorSuccess: '#16A34A',
+					colorWarning: '#F59E0B',
+					colorError: '#DC2626',
+					colorTextBase: '#0F172A',
+					colorBorder: '#E2E8F0',
+					colorBgLayout: '#F8FAFC',
+				},
+			}}
+		>
+			<Layout className="min-h-screen bg-[#F8FAFC] p-4 md:p-8">
+				<Content className="mx-auto w-full max-w-6xl">
+					<Card className="rounded-2xl border-[#E2E8F0]">
+						<Space direction="vertical" size={16} className="w-full">
+							<div>
+								<Title level={3} className="mb-1">Đặt lịch khám bệnh</Title>
+								<Paragraph className="mb-0 text-slate-500">
+									Quy trình 4 bước: chọn bác sĩ, chọn giờ, chọn dịch vụ và xác nhận.
+								</Paragraph>
+							</div>
+
+							<Steps current={step} items={stepItems} responsive />
+
+							<Alert
+								type="info"
+								showIcon
+								message={`Quy định đặt lịch: Đặt trước tối đa ${bookingRules.maxBookingDays} ngày, hủy trước ít nhất ${bookingRules.minCancelHours} giờ, đổi lịch trước ít nhất ${bookingRules.minRescheduleHours} giờ.`}
+							/>
+
+							{step === 0 && (
+								<Space direction="vertical" size={12} className="w-full">
+									<div className="grid gap-3 md:grid-cols-2">
+										<Select
+											value={booking.chuyen_khoa_id}
+											onChange={(value) =>
+												setBooking((prev) => ({
+													...prev,
+													chuyen_khoa_id: value,
+													bac_si_id: null,
+													ngay_hen: null,
+													khung_gio_id: null,
+												}))
+											}
+											options={specialties.map((item) => ({
+												value: item.id,
+												label: item.ten_chuyen_khoa,
+											}))}
+										/>
+										<Input
+											placeholder="Tìm bác sĩ theo tên"
+											value={keyword}
+											onChange={(event) => setKeyword(event.target.value)}
+										/>
+									</div>
+									<div className="grid gap-3 lg:grid-cols-2">
+										{doctors.map((doctor) => (
+											<DoctorCard
+												key={doctor.id}
+												doctor={doctor}
+												selected={booking.bac_si_id === doctor.id}
+												onSelect={(value) =>
+													setBooking((prev) => ({
+														...prev,
+														bac_si_id: value.id,
+														ngay_hen: null,
+														khung_gio_id: null,
+													}))
+												}
+												specialtyNames={(doctor.bac_si_chuyen_khoas || [])
+													.map((row) => row?.chuyen_khoa?.ten_chuyen_khoa)
+													.filter(Boolean)}
+											/>
+										))}
+									</div>
+									{loadingDoctors && <Text className="text-slate-500">Đang tải danh sách bác sĩ...</Text>}
+								</Space>
+							)}
+
+							{step === 1 && (
+								<CalendarPicker
+									selectedDate={booking.ngay_hen}
+									selectedSlotKey={booking.khung_gio_id}
+									onDateChange={(iso) =>
+										setBooking((prev) => ({ ...prev, ngay_hen: iso, khung_gio_id: null }))
+									}
+									onSlotChange={(value) =>
+										setBooking((prev) => ({ ...prev, khung_gio_id: value.slot_key }))
+									}
+									onSlotsChange={setCalendarSlots}
+									scheduleItems={scheduleItems}
+									loading={loadingSchedule}
+								/>
+							)}
+
+							{step === 2 && (
+								<Space direction="vertical" size={12} className="w-full">
+									<Card className="border-[#E2E8F0]">
+										<div className="mb-3 flex flex-wrap items-center justify-between gap-3">
+											<Segmented
+												className={SEGMENTED_STYLES}
+												value={itemMode}
+												onChange={(value) => {
+													setItemMode(value)
+												}}
+												options={[
+													{ label: 'Dịch vụ lẻ', value: 'dich_vu' },
+													{ label: 'Gói khám', value: 'goi_kham' },
+												]}
+											/>
+											<Input
+												placeholder={
+													itemMode === 'dich_vu'
+														? 'Tìm dịch vụ theo tên'
+														: 'Tìm gói khám theo tên'
+												}
+												value={itemKeyword}
+												onChange={(event) => {
+													setItemKeyword(event.target.value)
+												}}
+												className="w-72"
+											/>
+										</div>
+
+										{screen.md ? (
+											<Table
+												rowKey="key"
+												columns={columns}
+												dataSource={activeData}
+												pagination={{
+													pageSize: 5,
+													hideOnSinglePage: true,
+												}}
+												loading={loadingItems}
+											/>
+
+										) : (
+											<Space direction="vertical" className="w-full" size={10}>
+												{activeData.map((item) => (
+													<Card key={item.key} className="rounded-lg border-slate-500">
+														<Space direction="vertical" className="w-full" size={8}>
+
+															<div className="flex items-center justify-between gap-4">
+																<div className="flex-1 min-w-0">
+																	<Text strong>{item.name}</Text>
+																	<div className="text-slate-500">{item.description}</div>
+																</div>
+
+																<Text strong className="text-[#2563EB] whitespace-nowrap">
+																	{formatCurrency(item.amount)}
+																</Text>
+															</div>
+
+															<div className="flex items-center justify-between">
+																<Space>
+																	<Button
+																		disabled={item.quantity === 0}
+																		onClick={() => updateItem(item.type, item.id, -1)}
+																	>
+																		-
+																	</Button>
+
+																	<Text strong>{item.quantity}</Text>
+
+																	<Button
+																		type="primary"
+																		onClick={() => updateItem(item.type, item.id, 1)}
+																	>
+																		+
+																	</Button>
+																</Space>
+
+																{item.type === "goi_kham" && (
+																	<Button
+																		type="text"
+																		icon={<EyeOutlined />}
+																		onClick={() => setActivePackageDetail(item.pkg)}
+																	/>
+																)}
+															</div>
+
+														</Space>
+													</Card>
+												))}
+											</Space>
+										)}
+
+										<Divider className="my-3" />
+										<div className="flex items-center justify-between">
+											<Text strong>Tổng tạm tính đã chọn</Text>
+											<Text strong type="danger" className="text-xl!">
+												{formatCurrency(selectedTotal)}
+											</Text>
+										</div>
+									</Card>
+
+									<Card className="border-[#E2E8F0]">
+										<Text strong>Lý do khám <Text type="danger">*</Text></Text>
+										<Input.TextArea
+											value={booking.ly_do_kham}
+											onChange={(event) =>
+												setBooking((prev) => ({ ...prev, ly_do_kham: event.target.value }))
+											}
+											rows={3}
+											placeholder="Mô tả triệu chứng hoặc nhu cầu khám"
+											className="mt-2"
+											status={showReasonError && !booking.ly_do_kham.trim() ? 'error' : ''}
+										/>
+										{showReasonError && !booking.ly_do_kham.trim() && (
+											<Text type="danger">Vui lòng nhập lý do khám.</Text>
+										)}
+									</Card>
+								</Space>
+							)}
+
+							{step === 3 && (
+								<Space direction="vertical" size={12} className="w-full">
+									<Alert
+										type="info"
+										showIcon
+										message="Vui lòng kiểm tra kỹ thông tin trước khi xác nhận đặt lịch."
+									/>
+
+									<Card className="border-[#E2E8F0]">
+										<Title level={5}>Thông tin lịch hẹn</Title>
+										<div className="grid gap-2 md:grid-cols-2">
+											<Text>Chuyên khoa: <Text strong>{selectedSpecialty?.ten_chuyen_khoa || '-'}</Text></Text>
+											<Text>Bác sĩ: <Text strong>{selectedDoctor?.ho_ten || '-'}</Text></Text>
+											<Text>Ngày khám: <Text strong>{booking.ngay_hen || 'Chưa chọn'}</Text></Text>
+											<Text>
+												Khung giờ: <Text strong>{selectedSlot ? `${String(selectedSlot.gio_bat_dau).slice(0, 5)} - ${String(selectedSlot.gio_ket_thuc).slice(0, 5)}` : 'Chưa chọn'}</Text>
+											</Text>
+											<Text>Phòng khám: <Text strong>{selectedRoomName}</Text></Text>
+										</div>
+									</Card>
+
+									<Card className="border-[#E2E8F0]">
+										<Title level={5}>Dịch vụ đã chọn</Title>
+										{selectedRows.length > 0 ? (
+											<Table
+												rowKey={(row, i) => `${row.type}-${row.name}-${i}`}
+												columns={confirmColumns}
+												dataSource={selectedRows}
+												pagination={false}
+												size="small"
+												className={TABLE_STYLES.header}
+												summary={() => (
+													<Table.Summary.Row>
+														<Table.Summary.Cell index={0}></Table.Summary.Cell>
+
+														<Table.Summary.Cell index={1}>
+															<Text strong>Tổng cộng</Text>
+														</Table.Summary.Cell>
+
+														<Table.Summary.Cell index={2}>
+															{/* {selectedRows.length} mục */}
+														</Table.Summary.Cell>
+
+														<Table.Summary.Cell index={3} align="center">
+															<Text strong>{totalItemCount}</Text>
+														</Table.Summary.Cell>
+
+														<Table.Summary.Cell index={4} align="right">
+															<Text strong>
+																{formatCurrency(selectedTotal)}
+															</Text>
+														</Table.Summary.Cell>
+													</Table.Summary.Row>
+												)}
+											/>
+										) : (
+											<Text type="danger">Chưa có dịch vụ/gói khám.</Text>
+										)}
+
+										<Card className="border-[#E2E8F0] bg-amber-50">
+											<Space direction="vertical" className="w-full">
+
+												<div className="flex items-center justify-between">
+													<Text strong>Phí đặt lịch</Text>
+													<Text strong className="text-xl!" type="danger">
+														{formatCurrency(BOOKING_FEE)}
+													</Text>
+												</div>
+
+												<Alert type="info" showIcon title={
+													`
+													Bệnh nhân chỉ cần thanh toán phí đặt lịch trước.
+													Chi phí dịch vụ và gói khám sẽ được thanh toán tại bệnh viện khi đến khám.
+													`
+												} />
+
+											</Space>
+										</Card>
+									</Card>
+
+									<Card className="border-[#E2E8F0]">
+										<Text strong>Ghi chú thêm</Text>
+										<Input.TextArea
+											value={booking.ghi_chu}
+											onChange={(event) =>
+												setBooking((prev) => ({ ...prev, ghi_chu: event.target.value }))
+											}
+											rows={3}
+											placeholder="Thông tin bổ sung cho bệnh viện"
+											className="mt-2"
+										/>
+									</Card>
+								</Space>
+							)}
+
+							<div className="flex flex-wrap items-center justify-between gap-3 border-t border-[#E2E8F0] pt-4">
+								<Button onClick={handleBack} disabled={step === 0}>Quay lại</Button>
+								<div className="flex items-center gap-2">
+									{step < stepItems.length - 1 && (
+										<Button type="primary" onClick={handleNext}>Tiếp tục</Button>
+									)}
+									{step === stepItems.length - 1 && (
+										<Button type="primary" loading={isSubmitting} onClick={handleConfirm}>Xác nhận đặt lịch</Button>
+									)}
+								</div>
+							</div>
+						</Space>
+					</Card>
+				</Content>
+			</Layout>
+
+			<PackageDetailModal
+				pkg={activePackageDetail}
+				open={Boolean(activePackageDetail)}
+				onClose={() => setActivePackageDetail(null)}
+			/>
+		</ConfigProvider>
+	)
+}
