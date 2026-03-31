@@ -259,7 +259,6 @@ CREATE TABLE nhan_vien (
     ho_ten VARCHAR(100) NOT NULL,
     so_dien_thoai VARCHAR(15) NOT NULL,
     chuc_vu ENUM('le_tan', 'nhan_vien_y_te', 'dieu_duong') NOT NULL,
-    phong_ban VARCHAR(100),
     ngay_vao_lam DATE NOT NULL,
     trang_thai ENUM('hoat_dong', 'tam_khoa', 'nghi_viec') DEFAULT 'hoat_dong',
     ghi_chu TEXT,

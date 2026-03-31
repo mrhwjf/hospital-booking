@@ -18,7 +18,6 @@ class NhanVien extends Model
 		'ho_ten',
 		'so_dien_thoai',
 		'chuc_vu',
-		'phong_ban',
 		'ngay_vao_lam',
 		'trang_thai',
 		'ghi_chu',

@@ -16,6 +16,7 @@ class ChiDinh extends Model
 		'phieu_kham_id',
 		'bac_si_id',
 		'dich_vu_id',
+		'goi_kham_id',
 		'so_luong',
 		'trang_thai',
 		'ngay_chi_dinh',
@@ -39,5 +40,10 @@ class ChiDinh extends Model
 	public function dichVu(): BelongsTo
 	{
 		return $this->belongsTo(DichVu::class, 'dich_vu_id');
+	}
+
+	public function goiKham(): BelongsTo
+	{
+		return $this->belongsTo(GoiKham::class, 'goi_kham_id');
 	}
 }
