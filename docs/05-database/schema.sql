@@ -73,6 +73,7 @@ CREATE TABLE nguoi_dung (
     mat_khau VARCHAR(255) NOT NULL COMMENT 'Mật khẩu đã hash',
     vai_tro_id INT NOT NULL,
     hinh_anh VARCHAR(255) COMMENT 'Đường dẫn ảnh đại diện',
+    hinh_anh_public_id VARCHAR(255) COMMENT 'Cloudinary public_id của ảnh đại diện',
     trang_thai ENUM('hoat_dong', 'tam_khoa', 'khoa') DEFAULT 'hoat_dong',
     lan_dang_nhap_cuoi TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -697,7 +698,7 @@ CREATE TABLE chi_dinh (
 -- Mô tả: Bảng lưu trữ các tài liệu liên quan đến hồ sơ (file) bệnh án của bệnh nhân.
 CREATE TABLE tai_lieu_ho_so (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    ma_tai_lieu VARCHAR(20) NOT NULL UNIQUE COMMENT 'VD: TL20240116001',
+    ma_tai_lieu VARCHAR(80) NOT NULL UNIQUE COMMENT 'VD: TL30032026220510-PK004',
     phieu_kham_id INT NOT NULL,
     
     loai_tai_lieu ENUM(
@@ -714,8 +715,7 @@ CREATE TABLE tai_lieu_ho_so (
     ) NOT NULL,
     
     ten_tai_lieu VARCHAR(200) NOT NULL,
-    file_url VARCHAR(500) NOT NULL COMMENT 'URL file trên cloud storage',
-    file_name VARCHAR(255) NOT NULL COMMENT 'Tên file gốc',
+    file_public_id VARCHAR(500) NOT NULL COMMENT 'Cloudinary public_id của tài liệu',
     ngay_tao DATE NOT NULL,
     ghi_chu TEXT,
     

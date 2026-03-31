@@ -13,6 +13,7 @@ return new class extends Migration {
 			$table->string('mat_khau');
 			$table->foreignId('vai_tro_id')->constrained('vai_tro')->restrictOnDelete();
 			$table->string('hinh_anh')->nullable();
+			$table->string('hinh_anh_public_id')->nullable();
 			$table->enum('trang_thai', ['hoat_dong', 'tam_khoa', 'khoa'])->default('hoat_dong');
 			$table->timestamp('lan_dang_nhap_cuoi')->nullable();
 			$table->timestamps();

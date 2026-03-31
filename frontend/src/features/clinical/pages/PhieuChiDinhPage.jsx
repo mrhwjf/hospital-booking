@@ -1,12 +1,24 @@
 import ServiceTable from "../components/ServiceTable";
 import SelectedServices from "../components/SelectedServices";
-import { useEffect, useState } from "react";
-import { Alert, Spin, Tag } from "antd";
-import { createChiDinh, getDichVuList } from "../../../Services/clinicals/phieuChiDinhService";
+import { useEffect, useMemo, useState } from "react";
+import { Alert, Button, Select, Spin, Tag } from "antd";
+import { createChiDinh, getChiDinhList, getDichVuList } from "../../../Services/clinicals/phieuChiDinhService";
+import { getLichSuPhieuKham } from "../../../Services/patients/lichSuKhamService";
+
+const BENH_NHAN_ID = 1;
 
 export default function PhieuChiDinhPage() {
+  const params = new URLSearchParams(window.location.search);
+  const urlPhieuKhamId = Number(params.get("id")) || null;
+
   const [services, setServices] = useState([]);
+  const [existingChiDinh, setExistingChiDinh] = useState([]);
+  const [phieuKhamOptions, setPhieuKhamOptions] = useState([]);
+  const [activePhieuKhamId, setActivePhieuKhamId] = useState(urlPhieuKhamId);
+  const [pendingPhieuKhamId, setPendingPhieuKhamId] = useState(urlPhieuKhamId);
   const [loadingServices, setLoadingServices] = useState(true);
+  const [loadingPhieuKham, setLoadingPhieuKham] = useState(true);
+  const [loadingExisting, setLoadingExisting] = useState(true);
   const [selectedServices, setSelectedServices] = useState([]);
   const [isSaving, setIsSaving] = useState(false);
   const [saveError, setSaveError] = useState("");
@@ -35,12 +47,103 @@ export default function PhieuChiDinhPage() {
       }
     }
 
+    async function loadPhieuKhamOptions() {
+      setLoadingPhieuKham(true);
+
+      try {
+        const items = await getLichSuPhieuKham(BENH_NHAN_ID, { per_page: 100 });
+
+        if (!mounted) {
+          return;
+        }
+
+        setPhieuKhamOptions(items);
+
+        const hasUrlPhieuKham = items.some((item) => item.id === urlPhieuKhamId);
+        const resolvedPhieuKhamId = hasUrlPhieuKham ? urlPhieuKhamId : (items?.[0]?.id ?? null);
+
+        setActivePhieuKhamId(resolvedPhieuKhamId);
+        setPendingPhieuKhamId(resolvedPhieuKhamId);
+      } catch (error) {
+        if (mounted) {
+          setSaveError(error.response?.data?.message || "Không tải được danh sách phiếu khám.");
+          setPhieuKhamOptions([]);
+          setActivePhieuKhamId(null);
+          setPendingPhieuKhamId(null);
+        }
+      } finally {
+        if (mounted) {
+          setLoadingPhieuKham(false);
+        }
+      }
+    }
+
     loadServices();
+    loadPhieuKhamOptions();
 
     return () => {
       mounted = false;
     };
-  }, []);
+  }, [urlPhieuKhamId]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    async function loadExistingChiDinh() {
+      if (!activePhieuKhamId) {
+        if (mounted) {
+          setExistingChiDinh([]);
+          setLoadingExisting(false);
+          setSaveError("Thiếu phiếu khám. Vui lòng chọn phiếu khám để xem/ghi phiếu chỉ định.");
+        }
+        return;
+      }
+
+      setLoadingExisting(true);
+
+      try {
+        const items = await getChiDinhList(activePhieuKhamId);
+
+        if (mounted) {
+          setExistingChiDinh(items);
+          setSelectedServices([]);
+        }
+      } catch (error) {
+        if (mounted) {
+          setSaveError(error.response?.data?.message || "Không tải được phiếu chỉ định.");
+        }
+      } finally {
+        if (mounted) {
+          setLoadingExisting(false);
+        }
+      }
+    }
+
+    loadExistingChiDinh();
+
+    return () => {
+      mounted = false;
+    };
+  }, [activePhieuKhamId]);
+
+  const activePhieuKham = useMemo(
+    () => phieuKhamOptions.find((item) => item.id === activePhieuKhamId) ?? null,
+    [phieuKhamOptions, activePhieuKhamId]
+  );
+
+  function handleApplyPhieuKham() {
+    if (!pendingPhieuKhamId) {
+      setSaveError("Vui lòng chọn phiếu khám trước khi xem phiếu chỉ định.");
+      return;
+    }
+
+    setSaveError("");
+    setSuccessMessage("");
+    setActivePhieuKhamId(pendingPhieuKhamId);
+
+    const nextUrl = `${window.location.pathname}?page=chi-dinh&id=${pendingPhieuKhamId}`;
+    window.history.replaceState({}, "", nextUrl);
+  }
 
   async function handleSaveChiDinh() {
     if (selectedServices.length === 0) {
@@ -54,17 +157,20 @@ export default function PhieuChiDinhPage() {
     setSuccessMessage("");
 
     try {
-      const params = new URLSearchParams(window.location.search);
-      const phieuKhamId = params.get("id") || "1";
+      if (!activePhieuKhamId) {
+        setSaveError("Thiếu phiếu khám. Không thể lưu chỉ định.");
+        return;
+      }
 
       const items = selectedServices.map((service) => ({
         dich_vu_id: Number(service.id),
         so_luong: Number(service.quantity ?? 1),
       }));
 
-      await createChiDinh(phieuKhamId, { items });
+      const createdItems = await createChiDinh(activePhieuKhamId, { items });
       setSuccessMessage("Đã lưu phiếu chỉ định thành công.");
       setSelectedServices([]);
+      setExistingChiDinh(createdItems);
     } catch (error) {
       setSaveError(error.response?.data?.message || "Không lưu được phiếu chỉ định.");
     } finally {
@@ -134,13 +240,57 @@ export default function PhieuChiDinhPage() {
                 <div className="mt-1 rounded-lg px-3 py-2 text-sm font-medium border border-red-200 bg-red-50 text-red-600">
                   ✱ Chẩn đoán sơ bộ: Sốt xuất huyết Dengue ngày 1
                 </div>
+
+                <p className="mt-3 text-sm font-medium text-[#0F766E]">
+                  Bệnh nhân test: BN#{BENH_NHAN_ID} | Phiếu khám đang xem: {activePhieuKham?.ma_phieu_kham ?? (activePhieuKhamId ? `PK#${activePhieuKhamId}` : "Chưa chọn")}
+                </p>
+
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <Select
+                    size="middle"
+                    className="w-full sm:w-[360px]"
+                    value={pendingPhieuKhamId}
+                    onChange={setPendingPhieuKhamId}
+                    placeholder="Chọn phiếu khám để test"
+                    options={(phieuKhamOptions ?? []).map((item) => ({
+                      value: item.id,
+                      label: `${item.ma_phieu_kham ?? `PK#${item.id}`} - ${item.thoi_gian_tiep_nhan?.slice?.(0, 10) ?? ""}`,
+                    }))}
+                    loading={loadingPhieuKham}
+                  />
+                  <Button type="primary" onClick={handleApplyPhieuKham} disabled={loadingPhieuKham || !phieuKhamOptions.length}>
+                    Xem phiếu khám này
+                  </Button>
+                </div>
               </div>
             </div>
           </div>
 
-          {loadingServices ? (
+          {loadingServices || loadingPhieuKham || loadingExisting ? (
             <div className="bg-white rounded-[10px] p-8 border border-slate-200 flex justify-center">
-              <Spin tip="Đang tải dịch vụ..." />
+              <Spin tip="Đang tải dữ liệu chỉ định..." />
+            </div>
+          ) : existingChiDinh.length > 0 ? (
+            <div className="bg-white rounded-[10px] p-5 border border-slate-200">
+              <h3 className="text-2xl font-semibold text-[#0F172A] mb-2">Phiếu chỉ định đã lưu</h3>
+              <p className="text-sm text-slate-500 mb-4">
+                Phiếu khám này đã có phiếu chỉ định. Form tạo mới đã được ẩn để đảm bảo mỗi phiếu khám chỉ có 1 phiếu chỉ định.
+              </p>
+              <div className="space-y-3">
+                {existingChiDinh.map((item, index) => (
+                  <div key={item.id} className="rounded-lg border border-slate-200 bg-slate-50 p-4 flex items-center justify-between gap-4">
+                    <div>
+                      <p className="font-semibold text-[#0F172A]">
+                        {index + 1}. {item.dich_vu?.ten_dich_vu || `Dịch vụ #${item.dich_vu_id}`}
+                      </p>
+                      <p className="text-sm text-slate-500 mt-1">
+                        Trạng thái: {item.trang_thai} | Ngày chỉ định: {item.ngay_chi_dinh || "-"}
+                      </p>
+                    </div>
+                    <Tag color="cyan">SL: {item.so_luong || 1}</Tag>
+                  </div>
+                ))}
+              </div>
             </div>
           ) : (
             <ServiceTable
@@ -153,12 +303,21 @@ export default function PhieuChiDinhPage() {
 
         {/* RIGHT */}
         <div className="col-span-5">
-          <SelectedServices
-            services={selectedServices}
-            setSelectedServices={setSelectedServices}
-            onSave={handleSaveChiDinh}
-            isSaving={isSaving}
-          />
+          {existingChiDinh.length > 0 ? (
+            <div className="bg-white rounded-[10px] p-5 h-full border border-slate-200">
+              <h3 className="text-xl font-semibold text-[#0F172A] mb-2">Tóm tắt phiếu chỉ định</h3>
+              <p className="text-sm text-slate-500">
+                Tổng số dịch vụ: <strong>{existingChiDinh.length}</strong>
+              </p>
+            </div>
+          ) : (
+            <SelectedServices
+              services={selectedServices}
+              setSelectedServices={setSelectedServices}
+              onSave={handleSaveChiDinh}
+              isSaving={isSaving}
+            />
+          )}
         </div>
       </div>
     </div>

@@ -26,6 +26,7 @@ class DatabaseSeeder extends Seeder
             ChuyenKhoaSeeder::class,
             DichVuSeeder::class,
             PhieuKhamSeeder::class,
+            TaiLieuHoSoSeeder::class,
             ChiDinhSeeder::class,
         ]);
     }

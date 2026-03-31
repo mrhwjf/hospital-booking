@@ -18,6 +18,7 @@ Route::prefix('v1')->group(function () {
 
     require __DIR__.'/api/v1/clinical.php';
     require __DIR__.'/api/v1/patients.php';
+    require __DIR__.'/api/v1/cloudinary.php';
 
 });
 

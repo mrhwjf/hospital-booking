@@ -18,7 +18,7 @@ export default function RecordsToolbar({
           value={keyword}
           onChange={onKeywordChange}
           prefix={<SearchOutlined className="text-slate-400" />}
-          placeholder="Tìm theo mã tài liệu, tên file, mã bệnh nhân, tên bệnh nhân..."
+          placeholder="Tìm theo mã tài liệu, tên tài liệu, mã bệnh nhân, tên bệnh nhân..."
           className="xl:flex-1"
         />
 
@@ -34,9 +34,11 @@ export default function RecordsToolbar({
           <Button size="large" icon={<ReloadOutlined />} onClick={onReset}>
             Đặt lại lọc
           </Button>
-          <Button type="primary" size="large" icon={<PlusOutlined />} onClick={onAdd}>
-            Thêm tài liệu
-          </Button>
+          {onAdd ? (
+            <Button type="primary" size="large" icon={<PlusOutlined />} onClick={onAdd}>
+              Thêm tài liệu
+            </Button>
+          ) : null}
         </div>
       </div>
     </div>

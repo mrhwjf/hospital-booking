@@ -6,6 +6,7 @@ export default function RecordsTable({
   documents,
   selectedDocumentId,
   onSelect,
+  onPreview,
   onDetail,
   onEdit,
   onDelete,
@@ -36,7 +37,7 @@ export default function RecordsTable({
       render: (_, record) => (
         <div>
           <div className="font-medium text-[#0F172A]">{record.ten_tai_lieu}</div>
-          <div className="text-xs text-slate-500 mt-1">{record.file_name}</div>
+          <div className="mt-1 text-xs text-slate-500">{record.file_public_id || "Chưa upload tệp"}</div>
         </div>
       ),
     },
@@ -75,45 +76,58 @@ export default function RecordsTable({
     {
       title: "Thao tác",
       key: "actions",
-      width: 220,
+      width: 280,
       render: (_, record) => (
         <Space size={6}>
+          <Button
+            size="small"
+            onClick={(event) => {
+              event.stopPropagation();
+              onPreview?.(record);
+            }}
+          >
+            Xem tài liệu
+          </Button>
           <Button
             size="small"
             icon={<EyeOutlined />}
             onClick={(event) => {
               event.stopPropagation();
-              onDetail(record);
+              onDetail?.(record);
             }}
           >
             Chi tiết
           </Button>
-          <Button
-            size="small"
-            icon={<EditOutlined />}
-            onClick={(event) => {
-              event.stopPropagation();
-              onEdit(record);
-            }}
-          >
-            Sửa
-          </Button>
-          <Popconfirm
-            title="Xóa tài liệu"
-            description="Bạn chắc chắn muốn xóa tài liệu này?"
-            okText="Xóa"
-            cancelText="Hủy"
-            onConfirm={() => onDelete(record)}
-          >
+          {onEdit ? (
             <Button
               size="small"
-              danger
-              icon={<DeleteOutlined />}
-              onClick={(event) => event.stopPropagation()}
+              icon={<EditOutlined />}
+              onClick={(event) => {
+                event.stopPropagation();
+                onEdit(record);
+              }}
             >
-              Xóa
+              Sửa
             </Button>
-          </Popconfirm>
+          ) : null}
+          {onDelete ? (
+            <Popconfirm
+              title="Xóa tài liệu"
+              description="Bạn chắc chắn muốn xóa tài liệu này?"
+              okText="Xóa"
+              cancelText="Hủy"
+              onConfirm={() => onDelete(record)}
+            >
+              <Button
+                size="small"
+                danger
+                icon={<DeleteOutlined />}
+                onClick={(event) => event.stopPropagation()}
+              >
+                Xóa
+              </Button>
+            </Popconfirm>
+          ) : null}
         </Space>
       ),
     },
@@ -124,7 +138,6 @@ export default function RecordsTable({
       <div className="mb-4 flex items-center justify-between gap-3">
         <div>
           <h2 className="text-lg font-semibold text-[#0F172A]">Danh sách tài liệu</h2>
-          <p className="mt-1 text-sm text-slate-500">Bảng FE hiển thị theo schema tai_lieu_ho_so, có thể xem, sửa, xóa từng dòng.</p>
         </div>
         <Tag color="cyan">{documents.length} bản ghi</Tag>
       </div>

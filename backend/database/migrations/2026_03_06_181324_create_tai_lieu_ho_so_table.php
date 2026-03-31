@@ -9,7 +9,7 @@ return new class extends Migration {
 	{
 		Schema::create('tai_lieu_ho_so', function (Blueprint $table) {
 			$table->id();
-			$table->string('ma_tai_lieu', 20)->unique();
+			$table->string('ma_tai_lieu', 80)->unique();
 			$table->foreignId('phieu_kham_id')->constrained('phieu_kham')->cascadeOnDelete();
 			$table->enum('loai_tai_lieu', [
 				'ket_qua_xet_nghiem',
@@ -24,8 +24,7 @@ return new class extends Migration {
 				'khac',
 			]);
 			$table->string('ten_tai_lieu', 200);
-			$table->string('file_url', 500);
-			$table->string('file_name');
+			$table->string('file_public_id', 500);
 			$table->date('ngay_tao');
 			$table->text('ghi_chu')->nullable();
 			$table->timestamps();

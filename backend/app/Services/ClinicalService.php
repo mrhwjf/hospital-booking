@@ -46,6 +46,17 @@ class ClinicalService
     public function createChiDinh(int $phieuKhamId, array $data): Collection
     {
         $phieuKham = PhieuKham::findOrFail($phieuKhamId);
+
+        $alreadyExists = ChiDinh::query()
+            ->where('phieu_kham_id', $phieuKhamId)
+            ->exists();
+
+        if ($alreadyExists) {
+            throw ValidationException::withMessages([
+                'phieu_kham_id' => 'Phiếu khám này đã có phiếu chỉ định. Không thể tạo thêm.',
+            ]);
+        }
+
         $bacSiId = $data['bac_si_id'] ?? $phieuKham->bac_si_id;
 
         if (!$bacSiId) {

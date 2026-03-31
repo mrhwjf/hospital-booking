@@ -7,13 +7,13 @@ export default function DocumentFormModal({
   formState,
   fileList,
   documentTypeOptions,
-  phieuKhamOptions,
   onChange,
   onUpload,
   onRemoveUpload,
   onCancel,
   onSubmit,
   submitText,
+  submitting,
 }) {
   return (
     <Modal
@@ -25,28 +25,9 @@ export default function DocumentFormModal({
       centered
       destroyOnHidden
     >
-      <p className="mt-1 mb-4 text-sm text-slate-500">Form FE bám đúng các cột lưu trong bảng tai_lieu_ho_so.</p>
+      <p className="mb-4 mt-1 text-sm text-slate-500">Nhập metadata tài liệu và tải tệp thật lên Cloudinary.</p>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <div>
-          <label className="mb-2 block text-sm font-medium text-[#0F172A]">Mã tài liệu</label>
-          <Input size="large" value={formState.ma_tai_lieu} onChange={(event) => onChange("ma_tai_lieu", event.target.value)} placeholder="TL-2026-005" />
-        </div>
-
-        <div>
-          <label className="mb-2 block text-sm font-medium text-[#0F172A]">Phiếu khám liên kết</label>
-          <Select
-            size="large"
-            className="w-full"
-            value={formState.phieu_kham_id}
-            onChange={(value) => onChange("phieu_kham_id", value)}
-            options={phieuKhamOptions.map((item) => ({
-              value: item.id,
-              label: `${item.ma_phieu_kham} • ${item.benh_nhan.ma_benh_nhan}`,
-            }))}
-          />
-        </div>
-
         <div>
           <label className="mb-2 block text-sm font-medium text-[#0F172A]">Loại tài liệu</label>
           <Select
@@ -68,10 +49,6 @@ export default function DocumentFormModal({
           <Input size="large" type="date" value={formState.ngay_tao} onChange={(event) => onChange("ngay_tao", event.target.value)} />
         </div>
 
-        <div>
-          <label className="mb-2 block text-sm font-medium text-[#0F172A]">Tên file lưu</label>
-          <Input size="large" value={formState.file_name} onChange={(event) => onChange("file_name", event.target.value)} placeholder="ket-qua-xquang.pdf" />
-        </div>
       </div>
 
       <div className="mt-4">
@@ -92,8 +69,8 @@ export default function DocumentFormModal({
       </div>
 
       <div className="mt-6 flex justify-end gap-3">
-        <Button size="large" onClick={onCancel}>Hủy</Button>
-        <Button type="primary" size="large" onClick={onSubmit}>{submitText}</Button>
+        <Button size="large" onClick={onCancel} disabled={submitting}>Hủy</Button>
+        <Button type="primary" size="large" onClick={onSubmit} loading={submitting}>{submitText}</Button>
       </div>
     </Modal>
   );
