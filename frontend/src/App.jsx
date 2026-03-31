@@ -4,6 +4,7 @@ import { Card, ConfigProvider, Segmented, Space } from 'antd'
 import LichHenCuaToiPage from './features/scheduling/pages/patients/LichHenCuaToiPage'
 import DatLichPage from './features/scheduling/pages/patients/DatLichPage'
 import LeTanQuanLyLichHenPage from './features/scheduling/pages/receptionist/LeTanQuanLyLichHenPage'
+import AdminDoctorScheduleModulePage from './features/admin/pages/doctor-schedule/AdminDoctorScheduleModulePage'
 
 function App() {
   const [view, setView] = useState('dat-lich')
@@ -33,6 +34,7 @@ function App() {
                 { label: 'Dat lich', value: 'dat-lich' },
                 { label: 'Lich hen cua toi', value: 'lich-cua-toi' },
                 { label: 'Le tan quan ly', value: 'le-tan' },
+                { label: 'Admin lich bac si', value: 'admin-lich-bac-si' },
               ]}
             />
           </Card>
@@ -40,6 +42,7 @@ function App() {
           {view === 'dat-lich' && <DatLichPage />}
           {view === 'lich-cua-toi' && <LichHenCuaToiPage />}
           {view === 'le-tan' && <LeTanQuanLyLichHenPage />}
+          {view === 'admin-lich-bac-si' && <AdminDoctorScheduleModulePage />}
         </Space>
       </main>
     </ConfigProvider>

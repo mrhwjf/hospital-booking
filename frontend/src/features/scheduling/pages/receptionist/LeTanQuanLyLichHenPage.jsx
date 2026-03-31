@@ -534,6 +534,7 @@ export default function LeTanQuanLyLichHenPage() {
 				patientName: appointment.benh_nhan?.ho_ten || '-',
 				doctorName: appointment.bac_si?.ho_ten || '-',
 				specialtyName: appointment.chuyen_khoa?.ten_chuyen_khoa || '-',
+				roomName: appointment.khung_gio_kham?.phong_kham?.ten_phong || 'Chưa xác định',
 				slotLabel: slot ? `${formatTimeLabel(slot.gio_bat_dau)} - ${formatTimeLabel(slot.gio_ket_thuc)}` : 'Chưa xác định',
 				total,
 				canCheckIn:
@@ -548,6 +549,7 @@ export default function LeTanQuanLyLichHenPage() {
 		{ title: 'Bệnh nhân', dataIndex: 'patientName', key: 'patientName' },
 		{ title: 'Bác sĩ', dataIndex: 'doctorName', key: 'doctorName' },
 		{ title: 'Chuyên khoa', dataIndex: 'specialtyName', key: 'specialtyName' },
+		{ title: 'Phòng khám', dataIndex: 'roomName', key: 'roomName' },
 		{
 			title: 'Ngày giờ',
 			key: 'date',
@@ -1168,6 +1170,7 @@ export default function LeTanQuanLyLichHenPage() {
 								<Text><Text strong>Bệnh nhân:</Text> {checkingInAppointment.patientName || checkingInAppointment.benh_nhan?.ho_ten || '-'}</Text>
 								<Text><Text strong>Ngày hẹn:</Text> {checkingInAppointment.ngay_hen}</Text>
 								<Text><Text strong>Khung giờ:</Text> {checkingInAppointment.slotLabel || 'Chưa xác định'}</Text>
+								<Text><Text strong>Phòng khám:</Text> {checkingInAppointment.roomName || 'Chưa xác định'}</Text>
 							</Space>
 						</Card>
 					)}

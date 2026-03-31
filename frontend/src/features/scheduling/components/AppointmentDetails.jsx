@@ -52,6 +52,7 @@ export default function AppointmentDetails({ appointment }) {
 
 	const statusMeta = appointmentStatusMeta[appointment.trang_thai]
 	const slot = appointment.khung_gio_kham
+	const roomName = slot?.phong_kham?.ten_phong || null
 
 	const items = (appointment.dich_vu_lich_hens || []).map((item) => {
 		if (item.dich_vu) {
@@ -114,6 +115,10 @@ export default function AppointmentDetails({ appointment }) {
 								{slot
 									? `${formatTimeLabel(slot.gio_bat_dau)} - ${formatTimeLabel(slot.gio_ket_thuc)}`
 									: 'Chưa gắn khung giờ'}
+							</Descriptions.Item>
+
+							<Descriptions.Item label="Phòng khám">
+								{roomName || 'Chưa xác định'}
 							</Descriptions.Item>
 
 							<Descriptions.Item label="Lý do khám">

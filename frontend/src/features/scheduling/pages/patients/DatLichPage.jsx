@@ -169,7 +169,7 @@ export default function DatLichPage() {
 					maxBookingDays: Number(map.SO_NGAY_DAT_TRUOC_TOI_DA) || 30,
 				})
 			} catch {
-				message.warning('Khong the tai cau hinh dat lich, he thong dang dung gia tri mac dinh.')
+				message.warning('Không thể tải cấu hình đặt lịch, hệ thống đang dùng giá trị mặc định.')
 			}
 		}
 
@@ -263,11 +263,12 @@ export default function DatLichPage() {
 
 	const selectedSlots = calendarSlots
 	const selectedSlot = selectedSlots.find((slot) => slot.slot_key === booking.khung_gio_id)
+	const selectedRoomName = selectedSlot?.phong_kham?.ten_phong || selectedSlot?.phong_kham?.ma_phong || 'Chưa xác định'
 
 	const selectedServiceRows = Object.entries(booking.items.dich_vu || {}).map(([id, qty]) => {
 		const item = services.find((service) => service.id === Number(id))
 		return {
-			type: 'Dich vu',
+			type: 'Dịch vụ',
 			name: item?.ten_dich_vu,
 			qty,
 			unitPrice: item?.gia_dich_vu || 0,
@@ -277,7 +278,7 @@ export default function DatLichPage() {
 	const selectedPackageRows = Object.entries(booking.items.goi_kham || {}).map(([id, qty]) => {
 		const item = packages.find((pkg) => pkg.id === Number(id))
 		return {
-			type: 'Goi kham',
+			type: 'Gói khám',
 			name: item?.ten_goi_kham,
 			qty,
 			unitPrice: item?.gia_goi_kham || 0,
@@ -519,7 +520,7 @@ export default function DatLichPage() {
 							<Alert
 								type="info"
 								showIcon
-								message={`Quy dinh dat lich: Dat truoc toi da ${bookingRules.maxBookingDays} ngay, huy truoc it nhat ${bookingRules.minCancelHours} gio, doi lich truoc it nhat ${bookingRules.minRescheduleHours} gio.`}
+								message={`Quy định đặt lịch: Đặt trước tối đa ${bookingRules.maxBookingDays} ngày, hủy trước ít nhất ${bookingRules.minCancelHours} giờ, đổi lịch trước ít nhất ${bookingRules.minRescheduleHours} giờ.`}
 							/>
 
 							{step === 0 && (
@@ -724,6 +725,7 @@ export default function DatLichPage() {
 											<Text>
 												Khung giờ: <Text strong>{selectedSlot ? `${String(selectedSlot.gio_bat_dau).slice(0, 5)} - ${String(selectedSlot.gio_ket_thuc).slice(0, 5)}` : 'Chưa chọn'}</Text>
 											</Text>
+											<Text>Phòng khám: <Text strong>{selectedRoomName}</Text></Text>
 										</div>
 									</Card>
 

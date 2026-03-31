@@ -133,6 +133,7 @@ export default function LichHenCuaToiPage() {
 					...appointment,
 					doctorName: appointment.bac_si?.ho_ten || '-',
 					specialtyName: appointment.chuyen_khoa?.ten_chuyen_khoa || '-',
+					roomName: appointment.khung_gio_kham?.phong_kham?.ten_phong || 'Chưa xác định',
 					slotLabel: slot
 						? `${formatTimeLabel(slot.gio_bat_dau)} - ${formatTimeLabel(slot.gio_ket_thuc)}`
 						: 'Chưa xác định',
@@ -229,6 +230,11 @@ export default function LichHenCuaToiPage() {
 					<Text type="secondary">{record.slotLabel}</Text>
 				</Space>
 			),
+		},
+		{
+			title: 'Phòng khám',
+			dataIndex: 'roomName',
+			key: 'roomName',
 		},
 		{
 			title: 'Trạng thái',
@@ -351,6 +357,7 @@ export default function LichHenCuaToiPage() {
 													<Text type="secondary">
 														{row.ngay_hen} | {row.slotLabel}
 													</Text>
+													<Text type="secondary">Phòng: {row.roomName}</Text>
 													<Text strong>{formatCurrency(row.total)}</Text>
 
 													<Space wrap>
