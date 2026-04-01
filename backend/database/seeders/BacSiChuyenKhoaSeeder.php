@@ -46,13 +46,13 @@ class BacSiChuyenKhoaSeeder extends Seeder
         if (isset($bacSi['BS-0001'])) {
             DB::table('chuyen_khoa')
                 ->where('ma_chuyen_khoa', 'NOI')
-            ->update(['truong_khoa_id' => $bacSi['BS-0001'], 'updated_at' => now()]);
+                ->update(['truong_khoa_id' => $bacSi['BS-0001'], 'updated_at' => now()]);
         }
 
         if (isset($bacSi['BS-0002'])) {
             DB::table('chuyen_khoa')
                 ->where('ma_chuyen_khoa', 'NHI')
-            ->update(['truong_khoa_id' => $bacSi['BS-0002'], 'updated_at' => now()]);
+                ->update(['truong_khoa_id' => $bacSi['BS-0002'], 'updated_at' => now()]);
         }
     }
 }
