@@ -2,7 +2,6 @@
 
 namespace App\Resources;
 
-<<<<<<< HEAD
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Resources\Json\JsonResource;
@@ -53,27 +52,3 @@ class ApiResponse
 		return $data;
 	}
 }
-=======
-use Illuminate\Http\JsonResponse;
-
-class ApiResponse
-{
-    public static function success(mixed $data = null, string $message = 'OK', int $status = 200): JsonResponse
-    {
-        return response()->json([
-            'success' => true,
-            'data' => $data,
-            'message' => $message,
-        ], $status);
-    }
-
-    public static function error(string $message = 'Error', mixed $data = null, int $status = 400): JsonResponse
-    {
-        return response()->json([
-            'success' => false,
-            'data' => $data,
-            'message' => $message,
-        ], $status);
-    }
-}
->>>>>>> feature/admin
