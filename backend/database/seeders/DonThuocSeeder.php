@@ -13,8 +13,8 @@ class DonThuocSeeder extends Seeder
 
         $rows = [
             [
-                'ma_don_thuoc' => 'DT0001',
-                'phieu_kham_id' => $phieu['PK0001'] ?? null,
+                'ma_don_thuoc' => 'DT-20260316-09050065',
+                'phieu_kham_id' => $phieu['PK-20260316-08000032'] ?? null,
                 'ngay_ke' => '2026-03-16',
                 'ghi_chu' => 'Don thuoc sau kham ngoai tru.',
                 'trang_thai' => 'da_cap',

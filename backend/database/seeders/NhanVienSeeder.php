@@ -11,38 +11,34 @@ class NhanVienSeeder extends Seeder
     {
         $users = DB::table('nguoi_dung')->pluck('id', 'email');
 
-        $rows = [
-            [
-                'ma_nhan_vien' => 'NV0001',
-                'nguoi_dung_id' => $users['staff1@hospital.local'] ?? $users['doctor1@gmail.com'] ?? null,
-                'ho_ten' => 'Le Thi Thu',
-                'so_dien_thoai' => '0922000001',
-                'chuc_vu' => 'le_tan',
-                'ngay_vao_lam' => '2024-01-10',
-                'trang_thai' => 'hoat_dong',
+        $ho = ['Lê', 'Trần', 'Nguyễn', 'Phạm', 'Bùi', 'Đỗ', 'Đặng', 'Võ', 'Phan', 'Hồ'];
+        $dem = ['Thị', 'Văn', 'Gia', 'Ngọc', 'Minh', 'Thanh', 'Quốc', 'Bảo'];
+        $ten = ['Thu', 'Khánh', 'Linh', 'Huy', 'An', 'Việt', 'Hà', 'Trang', 'Ngân', 'Duy'];
+        $chucVu = ['le_tan', 'nhan_vien_y_te', 'dieu_duong'];
+
+        $rows = [];
+
+        foreach (range(1, 50) as $index) {
+            $rows[] = [
+                'ma_nhan_vien' => sprintf('NV-%04d', $index),
+                'nguoi_dung_id' => $users["staff{$index}@hospital.local"] ?? null,
+                'ho_ten' => sprintf(
+                    '%s %s %s',
+                    $ho[$index % count($ho)],
+                    $dem[$index % count($dem)],
+                    $ten[$index % count($ten)],
+                ),
+                'so_dien_thoai' => '0922' . str_pad((string) $index, 6, '0', STR_PAD_LEFT),
+                'chuc_vu' => $chucVu[$index % count($chucVu)],
+                'ngay_vao_lam' => now()->subYears(1 + ($index % 12))->subDays($index * 5)->format('Y-m-d'),
+                'trang_thai' => $index % 19 === 0 ? 'tam_khoa' : 'hoat_dong',
                 'ghi_chu' => null,
                 'created_at' => now(),
                 'updated_at' => now(),
-            ],
-            [
-                'ma_nhan_vien' => 'NV0002',
-                'nguoi_dung_id' => $users['staff2@hospital.local'] ?? $users['doctor2@gmail.com'] ?? null,
-                'ho_ten' => 'Pham Van Khanh',
-                'so_dien_thoai' => '0922000002',
-                'chuc_vu' => 'nhan_vien_y_te',
-                'ngay_vao_lam' => '2023-06-20',
-                'trang_thai' => 'hoat_dong',
-                'ghi_chu' => null,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-        ];
-
-        $rows = array_values(array_filter($rows, fn(array $row) => $row['nguoi_dung_id'] !== null));
-
-        if (empty($rows)) {
-            return;
+            ];
         }
+
+        $rows = array_values(array_filter($rows, fn(array $row) => !is_null($row['nguoi_dung_id'])));
 
         DB::table('nhan_vien')->upsert(
             $rows,

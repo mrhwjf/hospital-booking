@@ -2,57 +2,65 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
 class BenhNhanSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        DB::table('benh_nhan')->upsert([
-            [
-                'ma_benh_nhan' => 'BN001',
-                'ho_ten' => 'Nguyen Van A',
-                'ngay_sinh' => '1995-05-10',
-                'gioi_tinh' => 'nam',
-                'so_dien_thoai' => '0987654321',
-                'email' => 'benhnhan1@gmail.com',
-                'dia_chi' => 'TP HCM',
-                'nhom_mau' => 'O+',
-                'trang_thai' => 'hoat_dong',
+        $users = DB::table('nguoi_dung')->pluck('id', 'email');
+
+        $ho = ['Nguyễn', 'Trần', 'Lê', 'Phạm', 'Hoàng', 'Phan', 'Vũ', 'Đặng', 'Bùi', 'Đỗ'];
+        $dem = ['Văn', 'Thị', 'Hữu', 'Minh', 'Gia', 'Anh', 'Đức', 'Quỳnh', 'Ngọc', 'Thanh'];
+        $ten = ['An', 'Bình', 'Chi', 'Duy', 'Hạnh', 'Khánh', 'Linh', 'My', 'Nam', 'Phúc', 'Quân', 'Trang'];
+        $diaChi = ['Quận 1, TP.HCM', 'Quận 3, TP.HCM', 'Thủ Đức, TP.HCM', 'Quận 7, TP.HCM', 'Bình Thạnh, TP.HCM'];
+        $nhomMau = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-'];
+
+        $rows = [];
+
+        foreach (range(1, 50) as $index) {
+            $cccd = match ($index) {
+                1 => '079093001111',
+                2 => '079093002222',
+                default => '079093' . str_pad((string) (2000 + $index), 6, '0', STR_PAD_LEFT),
+            };
+
+            $fullName = sprintf(
+                '%s %s %s',
+                $ho[$index % count($ho)],
+                $dem[$index % count($dem)],
+                $ten[$index % count($ten)],
+            );
+
+            $rows[] = [
+                'ma_benh_nhan' => 'BN-' . $cccd,
+                'nguoi_dung_id' => $users["patient{$index}@hospital.local"] ?? null,
+                'ho_ten' => $fullName,
+                'ngay_sinh' => now()->subYears(18 + ($index % 45))->subDays($index)->format('Y-m-d'),
+                'gioi_tinh' => $index % 3 === 0 ? 'khac' : ($index % 2 === 0 ? 'nu' : 'nam'),
+                'so_dien_thoai' => '0901' . str_pad((string) $index, 6, '0', STR_PAD_LEFT),
+                'email' => "patient{$index}@hospital.local",
+                'so_cccd' => $cccd,
+                'dia_chi' => $diaChi[$index % count($diaChi)],
+                'nguoi_lien_he' => $ho[($index + 2) % count($ho)] . ' ' . $ten[($index + 3) % count($ten)],
+                'sdt_nguoi_lien_he' => '0909' . str_pad((string) $index, 6, '0', STR_PAD_LEFT),
+                'nhom_mau' => $nhomMau[$index % count($nhomMau)],
+                'tien_su_di_ung' => $index % 5 === 0 ? 'Dị ứng hải sản nhẹ' : null,
+                'tien_su_benh' => $index % 4 === 0 ? 'Tăng huyết áp' : null,
+                'ghi_chu' => null,
+                'trang_thai' => $index % 17 === 0 ? 'khoa' : 'hoat_dong',
                 'created_at' => now(),
-                'updated_at' => now()
-            ],
-            [
-                'ma_benh_nhan' => 'BN002',
-                'ho_ten' => 'Tran Thi B',
-                'ngay_sinh' => '1988-11-22',
-                'gioi_tinh' => 'nu',
-                'so_dien_thoai' => '0987654322',
-                'email' => 'benhnhan2@gmail.com',
-                'dia_chi' => 'Da Nang',
-                'nhom_mau' => 'A+',
-                'trang_thai' => 'hoat_dong',
-                'created_at' => now(),
-                'updated_at' => now()
-            ],
-            [
-                'ma_benh_nhan' => 'BN003',
-                'ho_ten' => 'Le Van C',
-                'ngay_sinh' => '2000-01-15',
-                'gioi_tinh' => 'nam',
-                'so_dien_thoai' => '0987654323',
-                'email' => 'benhnhan3@gmail.com',
-                'dia_chi' => 'Ha Noi',
-                'nhom_mau' => 'B+',
-                'trang_thai' => 'hoat_dong',
-                'created_at' => now(),
-                'updated_at' => now()
-            ]
-        ], ['ma_benh_nhan'], ['ho_ten', 'ngay_sinh', 'gioi_tinh', 'so_dien_thoai', 'email', 'dia_chi', 'nhom_mau', 'trang_thai', 'updated_at']);
+                'updated_at' => now(),
+            ];
+        }
+
+        $rows = array_values(array_filter($rows, fn(array $row) => !is_null($row['nguoi_dung_id'])));
+
+        DB::table('benh_nhan')->upsert(
+            $rows,
+            ['ma_benh_nhan'],
+            ['nguoi_dung_id', 'ho_ten', 'ngay_sinh', 'gioi_tinh', 'so_dien_thoai', 'email', 'so_cccd', 'dia_chi', 'nguoi_lien_he', 'sdt_nguoi_lien_he', 'nhom_mau', 'tien_su_di_ung', 'tien_su_benh', 'ghi_chu', 'trang_thai', 'updated_at']
+        );
     }
 }
