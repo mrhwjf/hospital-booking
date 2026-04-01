@@ -765,7 +765,7 @@ export default function DoctorWorkSchedulePage() {
 			<Card className="border-[#E2E8F0]">
 				<Space align="center" wrap className="w-full justify-between">
 					<Title level={4} style={{ marginBottom: 0 }}>Quản lý lịch làm việc bác sĩ</Title>
-					<Space>
+					<Space wrap>
 						<Button icon={<ReloadOutlined />} onClick={handleReloadAll} loading={loadingSupport || loadingDoctors}>
 							Tải lại dữ liệu
 						</Button>
@@ -843,7 +843,7 @@ export default function DoctorWorkSchedulePage() {
 									}}
 									onRow={(record) => ({
 										onClick: () => setSelectedDoctorId(record.id),
-										className: selectedDoctorId === record.id ? 'bg-emerald-50 cursor-pointer' : 'cursor-pointer',
+										className: selectedDoctorId === record.id ? 'bg-emerald-100 cursor-pointer' : 'cursor-pointer',
 									})}
 								/>
 							</Card>
@@ -923,7 +923,8 @@ export default function DoctorWorkSchedulePage() {
 				confirmLoading={templateSubmitting}
 				width={760}
 				styles={ADMIN_MODAL_STYLES}
-				destroyOnClose
+				destroyOnHidden
+				centered
 			>
 				<Form layout="vertical" form={templateForm}>
 					{editingTemplate && (
@@ -992,8 +993,10 @@ export default function DoctorWorkSchedulePage() {
 				okText="Lưu phân công"
 				cancelText="Đóng"
 				width={1080}
-				destroyOnClose
+				destroyOnHidden
+				centered
 				styles={ADMIN_MODAL_STYLES}
+				bodyStyle={{ maxHeight: '70vh', overflowY: 'auto' }}
 				footer={[
 					<Button key="cancel" onClick={() => setAssignModalOpen(false)}>Đóng</Button>,
 					<Button key="preview" icon={<EyeOutlined />} onClick={handlePreviewAssignment} disabled={!canPreviewAssignment}>
@@ -1169,7 +1172,8 @@ export default function DoctorWorkSchedulePage() {
 				onOk={handleSubmitEditAssignment}
 				confirmLoading={editAssignmentSubmitting}
 				styles={ADMIN_MODAL_STYLES}
-				destroyOnClose
+				destroyOnHidden
+				centered
 			>
 				<Form layout="vertical" form={editAssignmentForm}>
 					<Form.Item name="phong_kham_id" label="Phòng khám" rules={[{ required: true, message: 'Chọn phòng khám' }]}>

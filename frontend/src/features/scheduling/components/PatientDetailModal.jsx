@@ -25,7 +25,8 @@ export default function PatientDetailModal({ open, patient, onClose }) {
 			footer={null}
 			width={860}
 			centered
-			destroyOnClose
+			destroyOnHidden
+			bodyStyle={{ maxHeight: '70vh', overflowY: 'auto' }}
 		>
 			<div className="rounded-xl border border-slate-200 bg-slate-50 p-4 md:p-5">
 				<Descriptions bordered size="small" column={1} className="bg-white">

@@ -928,30 +928,12 @@ class SchedulingService
 
 	private function generateAppointmentCode(): string
 	{
-		$prefix = 'LH' . now()->format('Ymd');
-		$lastCode = LichHen::query()
-			->where('ma_lich_hen', 'like', $prefix . '%')
-			->lockForUpdate()
-			->orderByDesc('ma_lich_hen')
-			->value('ma_lich_hen');
-
-		$next = $lastCode ? ((int) substr($lastCode, -3)) + 1 : 1;
-
-		return $prefix . str_pad((string) $next, 3, '0', STR_PAD_LEFT);
+		return 'LH-' . now()->format('Ymd-Hisv');
 	}
 
 	private function generateMedicalFormCode(): string
 	{
-		$prefix = 'PK' . now()->format('Ymd');
-		$lastCode = PhieuKham::query()
-			->where('ma_phieu_kham', 'like', $prefix . '%')
-			->lockForUpdate()
-			->orderByDesc('ma_phieu_kham')
-			->value('ma_phieu_kham');
-
-		$next = $lastCode ? ((int) substr($lastCode, -3)) + 1 : 1;
-
-		return $prefix . str_pad((string) $next, 3, '0', STR_PAD_LEFT);
+		return 'PK-' . now()->format('Ymd-Hisv');
 	}
 
 	private function generatePatientCode(): string

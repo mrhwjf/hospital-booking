@@ -1,13 +1,47 @@
 import { useState } from 'react'
-import { Card, ConfigProvider, Segmented, Space } from 'antd'
+import { ConfigProvider } from 'antd'
 
 import LichHenCuaToiPage from './features/scheduling/pages/patients/LichHenCuaToiPage'
 import DatLichPage from './features/scheduling/pages/patients/DatLichPage'
 import LeTanQuanLyLichHenPage from './features/scheduling/pages/receptionist/LeTanQuanLyLichHenPage'
 import AdminDoctorScheduleModulePage from './features/admin/pages/doctor-schedule/AdminDoctorScheduleModulePage'
+import LichSuKhamPage from './features/patients/pages/lich-su-kham/LichSuKhamPage'
+import StaffProfilePage from './features/clinical/pages/StaffProfilePage'
+import StaffLayout from './components/layout/StaffLayout'
+
+const MODULE_OPTIONS = [
+  { label: 'Đặt lịch', value: 'dat-lich' },
+  { label: 'Lịch hẹn của tôi', value: 'lich-cua-toi' },
+  { label: 'Lịch sử khám', value: 'lich-su-kham' },
+  { label: 'Hồ sơ nhân viên', value: 'ho-so-nhan-vien' },
+  { label: 'Lễ tân quản lý', value: 'le-tan' },
+  { label: 'Admin lịch bác sĩ', value: 'admin-lich-bac-si' },
+  { label: 'Đăng xuất', value: 'logout' },
+]
 
 function App() {
   const [view, setView] = useState('dat-lich')
+
+  const renderActiveView = () => {
+    switch (view) {
+      case 'dat-lich':
+        return <DatLichPage />
+      case 'lich-cua-toi':
+        return <LichHenCuaToiPage />
+      case 'lich-su-kham':
+        return <LichSuKhamPage />
+      case 'ho-so-nhan-vien':
+        return <StaffProfilePage />
+      case 'le-tan':
+        return <LeTanQuanLyLichHenPage />
+      case 'admin-lich-bac-si':
+        return <AdminDoctorScheduleModulePage />
+      case 'logout':
+        return null;
+      default:
+        return <DatLichPage />
+    }
+  }
 
   return (
     <ConfigProvider
@@ -24,29 +58,16 @@ function App() {
         },
       }}
     >
-      <main className="min-h-screen bg-[#F8FAFC] p-4 md:p-6">
-        <Space direction="vertical" size={16} className="w-full">
-          <Card className="border-[#E2E8F0]">
-            <Segmented
-              value={view}
-              onChange={setView}
-              options={[
-                { label: 'Dat lich', value: 'dat-lich' },
-                { label: 'Lich hen cua toi', value: 'lich-cua-toi' },
-                { label: 'Le tan quan ly', value: 'le-tan' },
-                { label: 'Admin lich bac si', value: 'admin-lich-bac-si' },
-              ]}
-            />
-          </Card>
-
-          {view === 'dat-lich' && <DatLichPage />}
-          {view === 'lich-cua-toi' && <LichHenCuaToiPage />}
-          {view === 'le-tan' && <LeTanQuanLyLichHenPage />}
-          {view === 'admin-lich-bac-si' && <AdminDoctorScheduleModulePage />}
-        </Space>
-      </main>
+      <StaffLayout
+        menuItems={MODULE_OPTIONS}
+        activeKey={view}
+        onMenuChange={setView}
+        staffName="Lê Thị Thu"
+      >
+        {renderActiveView()}
+      </StaffLayout>
     </ConfigProvider>
   )
 }
 
-export default App;
+export default App

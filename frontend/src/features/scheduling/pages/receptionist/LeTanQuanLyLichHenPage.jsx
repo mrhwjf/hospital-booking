@@ -802,7 +802,8 @@ export default function LeTanQuanLyLichHenPage() {
 				confirmLoading={isCreating}
 				width={960}
 				centered
-				destroyOnClose
+				destroyOnHidden
+				bodyStyle={{ maxHeight: '70vh', overflowY: 'auto' }}
 			>
 				<Space direction="vertical" size={12} className="w-full">
 					<Card className="border-[#E2E8F0]">

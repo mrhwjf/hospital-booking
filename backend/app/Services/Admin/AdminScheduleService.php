@@ -1164,13 +1164,13 @@ class AdminScheduleService
 	{
 		$shiftPrefix = $this->resolveShiftTypeCode($gioBatDau);
 		$weekdayCode = $this->resolveWeekdayCode($thuTrongTuan);
-		$prefix = "CA_{$shiftPrefix}_{$weekdayCode}";
+		$prefix = "CA-{$shiftPrefix}-{$weekdayCode}";
 
 		for ($attempt = 0; $attempt < 10; $attempt++) {
 			$salt = config('app.key') . '|' . microtime(true) . '|' . random_int(100000, 999999);
 			$hashInput = "{$gioBatDau}|{$gioKetThuc}|{$thuTrongTuan}|{$salt}";
 			$suffix = strtoupper(substr(hash('sha1', $hashInput), 0, 8));
-			$code = "{$prefix}_{$suffix}";
+			$code = "{$prefix}-{$suffix}";
 
 			$exists = LichLamViec::query()->where('ma_ca', $code)->exists();
 			if (!$exists) {
