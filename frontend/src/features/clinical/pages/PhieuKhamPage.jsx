@@ -4,7 +4,58 @@ import PatientCard from "../components/PatientCard";
 import VitalSigns from "../components/VitalSigns";
 import ClinicalNotes from "../components/ClinicalNotes";
 import ClinicalActions from "../components/ClinicalActions";
-import { getPhieuKham, updatePhieuKham } from "../../../Services/clinicals/phieuKhamService";
+import { getPhieuKham, updatePhieuKham } from "../../../Services/clinicalService";
+
+function pickValue(incoming, fallback) {
+  return incoming === undefined || incoming === null ? fallback : incoming;
+}
+
+function normalizePhieuKhamPayload(data = {}) {
+  const rawPatient = data?.benh_nhan || {};
+  const rawDoctor = data?.bac_si || {};
+
+  return {
+    ...data,
+    benh_nhan: {
+      ...rawPatient,
+      id: rawPatient?.id,
+      ho_ten: pickValue(rawPatient?.ho_ten, rawPatient?.ten),
+      ma_benh_nhan: pickValue(rawPatient?.ma_benh_nhan, rawPatient?.ma),
+      so_dien_thoai: pickValue(rawPatient?.so_dien_thoai, rawPatient?.sdt),
+      tuoi: rawPatient?.tuoi,
+      gioi_tinh: rawPatient?.gioi_tinh,
+    },
+    bac_si: {
+      ...rawDoctor,
+      id: rawDoctor?.id,
+      ho_ten: pickValue(rawDoctor?.ho_ten, rawDoctor?.ten),
+      ma_bac_si: pickValue(rawDoctor?.ma_bac_si, rawDoctor?.ma),
+    },
+    ma_icd10_chinh: pickValue(data?.ma_icd10_chinh, data?.ma_icd10),
+  };
+}
+
+function mergePhieuKhamData(previousData, nextData) {
+  const previous = previousData || {};
+  const next = nextData || {};
+
+  return {
+    ...previous,
+    ...next,
+    benh_nhan: {
+      ...(previous.benh_nhan || {}),
+      ...(next.benh_nhan || {}),
+    },
+    bac_si: {
+      ...(previous.bac_si || {}),
+      ...(next.bac_si || {}),
+    },
+    lich_hen: {
+      ...(previous.lich_hen || {}),
+      ...(next.lich_hen || {}),
+    },
+  };
+}
 
 function formatDateTime(value) {
   if (!value) {
@@ -57,7 +108,7 @@ function createFormData(data) {
   };
 }
 
-export default function PhieuKhamPage() {
+export default function PhieuKhamPage({ phieuKhamId, refreshKey = 0, onPhieuKhamChange }) {
   const [phieuKham, setPhieuKham] = useState(null);
   const [formData, setFormData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -67,8 +118,12 @@ export default function PhieuKhamPage() {
   const [saveError, setSaveError] = useState("");
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const id = params.get("id") || "1";
+    if (!phieuKhamId) {
+      setPhieuKham(null);
+      setFormData(null);
+      setLoading(false);
+      return;
+    }
 
     let isMounted = true;
 
@@ -77,11 +132,12 @@ export default function PhieuKhamPage() {
       setLoadError("");
 
       try {
-        const data = await getPhieuKham(id);
+        const data = await getPhieuKham(phieuKhamId);
+        const normalized = normalizePhieuKhamPayload(data);
 
         if (isMounted) {
-          setPhieuKham(data);
-          setFormData(createFormData(data));
+          setPhieuKham(normalized);
+          setFormData(createFormData(normalized));
         }
       } catch (loadError) {
         if (isMounted) {
@@ -99,7 +155,9 @@ export default function PhieuKhamPage() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [phieuKhamId, refreshKey]);
+
+  const isLocked = phieuKham?.trang_thai === "hoan_thanh";
 
   if (loading) {
     return (
@@ -138,6 +196,10 @@ export default function PhieuKhamPage() {
   }
 
   function handleEditToggle() {
+    if (isLocked) {
+      return;
+    }
+
     if (isEditing) {
       setFormData(createFormData(phieuKham));
       setIsEditing(false);
@@ -157,9 +219,14 @@ export default function PhieuKhamPage() {
 
     try {
       const updated = await updatePhieuKham(phieuKham.id, formData);
-      setPhieuKham(updated);
-      setFormData(createFormData(updated));
+      const normalizedUpdated = normalizePhieuKhamPayload(updated);
+      const mergedPhieuKham = mergePhieuKhamData(phieuKham, normalizedUpdated);
+      setPhieuKham(mergedPhieuKham);
+      setFormData(createFormData(mergePhieuKhamData(formData, normalizedUpdated)));
       setIsEditing(false);
+      if (typeof onPhieuKhamChange === "function") {
+        onPhieuKhamChange(mergedPhieuKham);
+      }
       alert("Đã lưu phiếu khám thành công.");
     } catch (saveError) {
       setSaveError(saveError.response?.data?.message || "Không lưu được phiếu khám.");
@@ -214,6 +281,7 @@ export default function PhieuKhamPage() {
                   className="p-2 border rounded text-sm min-w-[140px]"
                   value={formData?.trang_thai || "tiep_nhan"}
                   onChange={(event) => handleFieldChange("trang_thai", event.target.value)}
+                  disabled={isLocked}
                 >
                   <option value="tiep_nhan">Tiếp nhận</option>
                   <option value="dang_kham">Đang khám</option>
@@ -241,7 +309,7 @@ export default function PhieuKhamPage() {
               isSaving={saving}
               onEdit={handleEditToggle}
               onSubmit={handleSave}
-              disabled={!isEditing || saving}
+              disabled={!isEditing || saving || isLocked}
             />
           </div>
         </div>

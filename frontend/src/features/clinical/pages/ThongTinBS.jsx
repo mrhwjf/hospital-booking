@@ -10,6 +10,7 @@ import {
   Row,
   Col,
   Alert,
+  Select,
 } from "antd";
 import {
   PhoneOutlined,
@@ -25,7 +26,7 @@ import ConfigProvider from "antd/lib/config-provider";
 import {
   getThongTinBacSiStatic,
   getThongTinBacSiWeekly,
-} from "../../../api/clinicalApi";
+} from "../../../Services/clinicalService";
 
 dayjs.locale("vi");
 
@@ -296,7 +297,8 @@ const ScheduleTimetable = ({
  * Trang thông tin bác sĩ
  * Hiển thị: thông tin bác sĩ, chuyên khoa, và lịch làm việc
  */
-const ThongTinBS = () => {
+const ThongTinBS = ({ selectedDoctorId, onDoctorChange }) => {
+  const activeDoctorId = Number(selectedDoctorId) || 1;
   const [bacSiInfo, setBacSiInfo] = useState(null);
   const [chuyenKhoa, setChuyenKhoa] = useState([]);
   const [lichLamViec, setLichLamViec] = useState([]);
@@ -332,7 +334,7 @@ const ThongTinBS = () => {
 
     try {
       const response = await getThongTinBacSiStatic(
-        { bac_si_id: 1 },
+        { bac_si_id: activeDoctorId },
         { signal: controller.signal },
       );
       if (
@@ -366,7 +368,7 @@ const ThongTinBS = () => {
         setLoadingStatic(false);
       }
     }
-  }, []);
+  }, [activeDoctorId]);
 
   const fetchWeeklySchedule = useCallback(async (weekOffset) => {
     scheduleAbortRef.current?.abort();
@@ -380,7 +382,7 @@ const ThongTinBS = () => {
     try {
       const response = await getThongTinBacSiWeekly(
         {
-          bac_si_id: 1,
+          bac_si_id: activeDoctorId,
           week_offset: weekOffset,
         },
         { signal: controller.signal },
@@ -420,7 +422,7 @@ const ThongTinBS = () => {
         setLoadingSchedule(false);
       }
     }
-  }, []);
+  }, [activeDoctorId]);
 
   useEffect(() => {
     fetchStaticInfo();
@@ -428,7 +430,11 @@ const ThongTinBS = () => {
 
   useEffect(() => {
     fetchWeeklySchedule(selectedWeek);
-  }, [selectedWeek]);
+  }, [selectedWeek, fetchWeeklySchedule]);
+
+  useEffect(() => {
+    setSelectedWeek(0);
+  }, [activeDoctorId]);
 
   if (loadingStatic) {
     return (
@@ -485,6 +491,31 @@ const ThongTinBS = () => {
     <ConfigProvider locale={viVN}>
       <div className="bg-linear-to-br from-slate-50 to-slate-100 min-h-screen py-6 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto space-y-6">
+          <Card className="shadow-lg border-0 rounded-[10px]">
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <div>
+                <h3 className="text-lg font-semibold text-slate-900">Bác sĩ đang thao tác</h3>
+                <p className="text-sm text-slate-500">Chọn bác sĩ để test luồng khám trước khi tích hợp đăng nhập.</p>
+              </div>
+              <Select
+                value={activeDoctorId}
+                onChange={(value) => {
+                  if (typeof onDoctorChange === "function") {
+                    onDoctorChange(value);
+                  }
+                }}
+                style={{ width: 220 }}
+                options={[
+                  { value: 1, label: "Bác sĩ #1" },
+                  { value: 2, label: "Bác sĩ #2" },
+                  { value: 3, label: "Bác sĩ #3" },
+                  { value: 4, label: "Bác sĩ #4" },
+                  { value: 5, label: "Bác sĩ #5" },
+                ]}
+              />
+            </div>
+          </Card>
+
           {/* Header */}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h3 className="text-2xl font-bold text-slate-900">

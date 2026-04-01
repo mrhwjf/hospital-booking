@@ -1,5 +1,5 @@
 import { useDeferredValue, useEffect, useMemo, useState, startTransition } from "react";
-import { Button, Select, Tag, message } from "antd";
+import { message } from "antd";
 import {
   FolderOpenOutlined,
 } from "@ant-design/icons";
@@ -19,16 +19,11 @@ import {
   getTaiLieuSignedUrl,
   updateHoSoTaiLieu,
   uploadHoSoTaiLieuFile,
-} from "../../../Services/patients/hoSoTaiLieuService";
-import { getLichSuPhieuKham } from "../../../Services/patients/lichSuKhamService";
+} from "../../../Services/clinicalService";
 
-const BENH_NHAN_ID = 1;
-export default function HoSoTaiLieuPage() {
-  const urlParams = new URLSearchParams(window.location.search);
-  const urlPhieuKhamId = Number(urlParams.get("id")) || null;
+export default function HoSoTaiLieuPage({ benhNhanId, phieuKhamId, isLocked = false, refreshKey = 0 }) {
 
   const [documents, setDocuments] = useState([]);
-  const [phieuKhamOptions, setPhieuKhamOptions] = useState([]);
   const [selectedDocumentId, setSelectedDocumentId] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -37,7 +32,7 @@ export default function HoSoTaiLieuPage() {
   const [typeFilter, setTypeFilter] = useState("all");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [formState, setFormState] = useState(createEmptyForm(urlPhieuKhamId));
+  const [formState, setFormState] = useState(createEmptyForm(phieuKhamId));
   const [fileList, setFileList] = useState([]);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
   const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
@@ -45,8 +40,6 @@ export default function HoSoTaiLieuPage() {
   const [previewDocument, setPreviewDocument] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [previewLoading, setPreviewLoading] = useState(false);
-  const [activePhieuKhamId, setActivePhieuKhamId] = useState(urlPhieuKhamId);
-  const [pendingPhieuKhamId, setPendingPhieuKhamId] = useState(urlPhieuKhamId);
   const [messageApi, contextHolder] = message.useMessage();
 
   const deferredKeyword = useDeferredValue(keyword.trim().toLowerCase());
@@ -54,7 +47,7 @@ export default function HoSoTaiLieuPage() {
   const hydratedDocuments = useMemo(() => documents, [documents]);
 
   async function fetchDocuments() {
-    if (!activePhieuKhamId) {
+    if (!benhNhanId || !phieuKhamId) {
       setDocuments([]);
       setSelectedDocumentId(null);
       setLoading(false);
@@ -66,9 +59,9 @@ export default function HoSoTaiLieuPage() {
     setError(null);
 
     try {
-      const data = await getHoSoTaiLieuByBenhNhan(BENH_NHAN_ID, {
+      const data = await getHoSoTaiLieuByBenhNhan(benhNhanId, {
         per_page: 100,
-        phieu_kham_id: activePhieuKhamId,
+        phieu_kham_id: phieuKhamId,
       });
       setDocuments(data);
       setSelectedDocumentId((prev) => prev ?? data?.[0]?.id ?? null);
@@ -80,31 +73,8 @@ export default function HoSoTaiLieuPage() {
   }
 
   useEffect(() => {
-    getLichSuPhieuKham(BENH_NHAN_ID, { per_page: 100 })
-      .then((items) => {
-        setPhieuKhamOptions(items);
-
-        const hasUrlPhieuKham = items.some((item) => item.id === urlPhieuKhamId);
-        const resolvedPhieuKhamId = hasUrlPhieuKham ? urlPhieuKhamId : (items?.[0]?.id ?? null);
-
-        setActivePhieuKhamId(resolvedPhieuKhamId);
-        setPendingPhieuKhamId(resolvedPhieuKhamId);
-      })
-      .catch(() => {
-        setPhieuKhamOptions([]);
-        setActivePhieuKhamId(null);
-        setPendingPhieuKhamId(null);
-      });
-  }, [urlPhieuKhamId]);
-
-  useEffect(() => {
     fetchDocuments();
-  }, [activePhieuKhamId]);
-
-  const activePhieuKham = useMemo(
-    () => phieuKhamOptions.find((item) => item.id === activePhieuKhamId) ?? null,
-    [phieuKhamOptions, activePhieuKhamId]
-  );
+  }, [benhNhanId, phieuKhamId, refreshKey]);
 
   const filteredDocuments = hydratedDocuments.filter((document) => {
     const matchesType = typeFilter === "all" || document.loai_tai_lieu === typeFilter;
@@ -153,7 +123,7 @@ export default function HoSoTaiLieuPage() {
     setPreviewLoading(true);
     setIsPreviewModalOpen(true);
 
-    getTaiLieuSignedUrl(BENH_NHAN_ID, document.id)
+    getTaiLieuSignedUrl(benhNhanId, document.id)
       .then((url) => {
         setPreviewUrl(url);
       })
@@ -164,8 +134,12 @@ export default function HoSoTaiLieuPage() {
   }
 
   async function handleDeleteDocument(document) {
+    if (isLocked) {
+      return;
+    }
+
     try {
-      await deleteHoSoTaiLieu(BENH_NHAN_ID, document.id);
+      await deleteHoSoTaiLieu(benhNhanId, document.id);
       await fetchDocuments();
       messageApi.success("Đã xóa tài liệu thành công.");
     } catch (err) {
@@ -189,19 +163,26 @@ export default function HoSoTaiLieuPage() {
     setFileList([]);
   }
 
-  function resetForm(phieuKhamId = activePhieuKhamId) {
-    const nextForm = createEmptyForm(phieuKhamId);
+  function resetForm(targetPhieuKhamId = phieuKhamId) {
+    const nextForm = createEmptyForm(targetPhieuKhamId);
 
     setFormState(nextForm);
     setFileList([]);
   }
 
   function handleOpenAddModal() {
-    resetForm(activePhieuKhamId);
+    if (isLocked) {
+      return;
+    }
+    resetForm(phieuKhamId);
     setIsAddModalOpen(true);
   }
 
   function handleOpenEditModal(document) {
+    if (isLocked) {
+      return;
+    }
+
     setFormState({
       id: document.id,
       ma_tai_lieu: document.ma_tai_lieu,
@@ -216,7 +197,7 @@ export default function HoSoTaiLieuPage() {
   }
 
   function validateForm() {
-    if (!activePhieuKhamId) {
+    if (!phieuKhamId) {
       messageApi.error("Thiếu phiếu khám ngữ cảnh. Vui lòng quay lại và chọn phiếu khám.");
       return false;
     }
@@ -244,15 +225,16 @@ export default function HoSoTaiLieuPage() {
     setIsSubmitting(true);
 
     try {
-      const created = await createHoSoTaiLieu(BENH_NHAN_ID, {
-        phieu_kham_id: activePhieuKhamId,
+      const created = await createHoSoTaiLieu(benhNhanId, {
+        per_page: 100,
+        phieu_kham_id: phieuKhamId,
         loai_tai_lieu: formState.loai_tai_lieu,
         ten_tai_lieu: formState.ten_tai_lieu,
         ngay_tao: formState.ngay_tao,
         ghi_chu: formState.ghi_chu || null,
       });
 
-      await uploadHoSoTaiLieuFile(BENH_NHAN_ID, created.id, uploadFile);
+      await uploadHoSoTaiLieuFile(benhNhanId, created.id, uploadFile);
       await fetchDocuments();
 
       setIsAddModalOpen(false);
@@ -275,8 +257,8 @@ export default function HoSoTaiLieuPage() {
     setIsSubmitting(true);
 
     try {
-      await updateHoSoTaiLieu(BENH_NHAN_ID, formState.id, {
-        phieu_kham_id: Number(formState.phieu_kham_id ?? activePhieuKhamId),
+      await updateHoSoTaiLieu(benhNhanId, formState.id, {
+        phieu_kham_id: Number(formState.phieu_kham_id ?? phieuKhamId),
         loai_tai_lieu: formState.loai_tai_lieu,
         ten_tai_lieu: formState.ten_tai_lieu,
         ngay_tao: formState.ngay_tao,
@@ -284,7 +266,7 @@ export default function HoSoTaiLieuPage() {
       });
 
       if (uploadFile) {
-        await uploadHoSoTaiLieuFile(BENH_NHAN_ID, formState.id, uploadFile);
+        await uploadHoSoTaiLieuFile(benhNhanId, formState.id, uploadFile);
       }
 
       await fetchDocuments();
@@ -305,21 +287,6 @@ export default function HoSoTaiLieuPage() {
     });
   }
 
-  function handleApplyPhieuKham() {
-    if (!pendingPhieuKhamId) {
-      messageApi.error("Vui lòng chọn phiếu khám để xem tài liệu.");
-      return;
-    }
-
-    setActivePhieuKhamId(pendingPhieuKhamId);
-    setSelectedDocumentId(null);
-    resetForm(pendingPhieuKhamId);
-
-    const nextUrl = `${window.location.pathname}?page=ho-so&id=${pendingPhieuKhamId}`;
-    window.history.replaceState({}, "", nextUrl);
-  }
-
-
   return (
     <div className="min-h-screen p-6 md:p-8" style={{ background: "linear-gradient(180deg, #ECFDF5 0%, #F8FAFC 18%, #F8FAFC 100%)" }}>
       {contextHolder}
@@ -338,24 +305,8 @@ export default function HoSoTaiLieuPage() {
                 Màn hình FE mô phỏng nghiệp vụ lưu trữ tài liệu khám bệnh theo đúng các trường trong bảng tai_lieu_ho_so, đồng thời hiển thị liên kết tới phiếu khám và bệnh nhân tương ứng.
               </p>
               <p className="mt-2 text-sm font-medium text-[#0F766E]">
-                Phiếu khám đang xem: {activePhieuKham?.ma_phieu_kham ?? (activePhieuKhamId ? `PK#${activePhieuKhamId}` : "Chưa chọn")}
+                Bệnh nhân: BN#{benhNhanId} | Phiếu khám đang xem: {phieuKhamId ? `PK#${phieuKhamId}` : "Chưa chọn"}
               </p>
-              <div className="mt-3 flex flex-wrap items-center gap-2">
-                <Select
-                  size="middle"
-                  className="w-full sm:w-[360px]"
-                  value={pendingPhieuKhamId}
-                  onChange={setPendingPhieuKhamId}
-                  placeholder="Chọn phiếu khám để test"
-                  options={(phieuKhamOptions ?? []).map((item) => ({
-                    value: item.id,
-                    label: `${item.ma_phieu_kham ?? `PK#${item.id}`} - ${item.thoi_gian_tiep_nhan?.slice?.(0, 10) ?? ""}`,
-                  }))}
-                />
-                <Button onClick={handleApplyPhieuKham} type="primary">
-                  Xem tài liệu phiếu này
-                </Button>
-              </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3 lg:w-[420px]">
@@ -407,6 +358,7 @@ export default function HoSoTaiLieuPage() {
                 onDetail={handleOpenDetailModal}
                 onEdit={handleOpenEditModal}
                 onDelete={handleDeleteDocument}
+                disabled={isLocked}
               />
             </div>
           </div>

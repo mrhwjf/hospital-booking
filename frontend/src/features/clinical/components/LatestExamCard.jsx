@@ -1,7 +1,7 @@
 import { CalendarOutlined } from "@ant-design/icons";
 import { formatDate, getTrangThaiLabel } from "../utils/lichSuKhamUtils";
 
-export default function LatestExamCard({ record }) {
+export default function LatestExamCard({ record, onViewDetail }) {
   if (!record) {
     return (
       <div className="rounded-2xl border border-slate-200 bg-white p-5 text-sm text-slate-500">
@@ -21,7 +21,7 @@ export default function LatestExamCard({ record }) {
           <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Ngày khám</div>
           <div className="mt-2 flex items-center gap-2 text-xl font-bold text-slate-900">
             <CalendarOutlined className="text-slate-400" />
-            {formatDate(record.created_at)}
+            {formatDate(record.thoi_gian_tiep_nhan || record.created_at)}
           </div>
         </div>
 
@@ -37,7 +37,10 @@ export default function LatestExamCard({ record }) {
         </div>
 
         <div className="col-span-12 flex items-start justify-end md:col-span-3">
-          <button className="inline-flex items-center gap-2 rounded-xl bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-700">
+          <button
+            onClick={() => onViewDetail?.(record)}
+            className="inline-flex items-center gap-2 rounded-xl bg-teal-600 px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-teal-700"
+          >
             Xem chi tiết
             <span>→</span>
           </button>

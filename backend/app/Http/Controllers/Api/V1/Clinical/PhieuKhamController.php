@@ -53,6 +53,10 @@ class PhieuKhamController extends Controller
             ->where('bac_si_id', $doctor_id)
             ->with(['benhNhan', 'bacSi']);
 
+        if ($request->has('benh_nhan_id')) {
+            $query->where('benh_nhan_id', (int) $request->get('benh_nhan_id'));
+        }
+
         // Lọc theo trạng thái
         if ($request->has('trang_thai')) {
             $query->where('trang_thai', $request->get('trang_thai'));
@@ -74,9 +78,6 @@ class PhieuKhamController extends Controller
                 ->orWhere('ma_phieu_kham', 'like', $search);
             });
         }
-
-        // Sắp xếp: Chờ kê đơn -> Đang khám -> Tiếp nhận -> Hoàn thành
-        $trameThaiOrder = ['cho_ke_don' => 0, 'dang_kham' => 1, 'tiep_nhan' => 2, 'hoan_thanh' => 3];
 
         $phieuKhams = $query
             ->orderByRaw("FIELD(trang_thai, 'cho_ke_don', 'dang_kham', 'tiep_nhan', 'hoan_thanh')")

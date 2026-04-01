@@ -49,11 +49,6 @@ export default function VitalSigns({ data, editable = false, onChange = () => {}
           <Input value={toInputValue(data?.mach)} {...renderInputProps(editable, onChange, "mach")} style={{ borderRadius: 8, borderColor: "#E2E8F0" }} />
         </div>
 
-        <div>
-          <label className="block text-xs text-gray-500 mb-1">SPO2 (%)</label>
-          <Input value="" readOnly placeholder="Chưa có dữ liệu" style={{ borderRadius: 8, borderColor: "#E2E8F0" }} />
-        </div>
-
       </div>
 
       <div className="grid grid-cols-4 gap-5 mt-4">
@@ -72,10 +67,6 @@ export default function VitalSigns({ data, editable = false, onChange = () => {}
           <Input value={toInputValue(data?.mach)} {...renderInputProps(editable, onChange, "mach")} style={{ borderRadius: 8, borderColor: "#E2E8F0" }} />
         </div>
 
-        <div>
-          <label className="block text-xs text-gray-500 mb-1">Ghi chú ngắn</label>
-          <Input value={data?.tinh_trang || ""} {...renderInputProps(editable, onChange, "tinh_trang")} placeholder="Chưa có dữ liệu" style={{ borderRadius: 8, borderColor: "#E2E8F0" }} />
-        </div>
       </div>
     </div>
   );

@@ -1,6 +1,6 @@
 import { formatDate } from "../utils/lichSuKhamUtils";
 
-export default function ExamHistoryList({ records }) {
+export default function ExamHistoryList({ records, onViewDetail }) {
   return (
     <div className="flex flex-col gap-3">
       {records.map((record) => {
@@ -29,7 +29,10 @@ export default function ExamHistoryList({ records }) {
             </div>
 
             <div className="col-span-12 text-right md:col-span-2">
-              <button className="inline-flex items-center gap-1 text-sm font-semibold text-teal-700 hover:text-teal-800">
+              <button
+                onClick={() => onViewDetail?.(record)}
+                className="inline-flex items-center gap-1 text-sm font-semibold text-teal-700 hover:text-teal-800"
+              >
                 Chi tiết
                 <span>›</span>
               </button>

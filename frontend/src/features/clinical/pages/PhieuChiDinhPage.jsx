@@ -1,23 +1,14 @@
 import ServiceTable from "../components/ServiceTable";
 import SelectedServices from "../components/SelectedServices";
 import { useEffect, useMemo, useState } from "react";
-import { Alert, Button, Select, Spin, Tag } from "antd";
-import { createChiDinh, getChiDinhList, getDichVuList } from "../../../Services/clinicals/phieuChiDinhService";
-import { getLichSuPhieuKham } from "../../../Services/patients/lichSuKhamService";
+import { Alert, Spin, Tag } from "antd";
+import { createChiDinh, getChiDinhList, getDichVuList } from "../../../Services/clinicalService";
 
-const BENH_NHAN_ID = 1;
-
-export default function PhieuChiDinhPage() {
-  const params = new URLSearchParams(window.location.search);
-  const urlPhieuKhamId = Number(params.get("id")) || null;
+export default function PhieuChiDinhPage({ benhNhanId, phieuKhamId, isLocked = false, refreshKey = 0 }) {
 
   const [services, setServices] = useState([]);
   const [existingChiDinh, setExistingChiDinh] = useState([]);
-  const [phieuKhamOptions, setPhieuKhamOptions] = useState([]);
-  const [activePhieuKhamId, setActivePhieuKhamId] = useState(urlPhieuKhamId);
-  const [pendingPhieuKhamId, setPendingPhieuKhamId] = useState(urlPhieuKhamId);
   const [loadingServices, setLoadingServices] = useState(true);
-  const [loadingPhieuKham, setLoadingPhieuKham] = useState(true);
   const [loadingExisting, setLoadingExisting] = useState(true);
   const [selectedServices, setSelectedServices] = useState([]);
   const [isSaving, setIsSaving] = useState(false);
@@ -47,50 +38,18 @@ export default function PhieuChiDinhPage() {
       }
     }
 
-    async function loadPhieuKhamOptions() {
-      setLoadingPhieuKham(true);
-
-      try {
-        const items = await getLichSuPhieuKham(BENH_NHAN_ID, { per_page: 100 });
-
-        if (!mounted) {
-          return;
-        }
-
-        setPhieuKhamOptions(items);
-
-        const hasUrlPhieuKham = items.some((item) => item.id === urlPhieuKhamId);
-        const resolvedPhieuKhamId = hasUrlPhieuKham ? urlPhieuKhamId : (items?.[0]?.id ?? null);
-
-        setActivePhieuKhamId(resolvedPhieuKhamId);
-        setPendingPhieuKhamId(resolvedPhieuKhamId);
-      } catch (error) {
-        if (mounted) {
-          setSaveError(error.response?.data?.message || "Không tải được danh sách phiếu khám.");
-          setPhieuKhamOptions([]);
-          setActivePhieuKhamId(null);
-          setPendingPhieuKhamId(null);
-        }
-      } finally {
-        if (mounted) {
-          setLoadingPhieuKham(false);
-        }
-      }
-    }
-
     loadServices();
-    loadPhieuKhamOptions();
 
     return () => {
       mounted = false;
     };
-  }, [urlPhieuKhamId]);
+  }, []);
 
   useEffect(() => {
     let mounted = true;
 
     async function loadExistingChiDinh() {
-      if (!activePhieuKhamId) {
+      if (!phieuKhamId) {
         if (mounted) {
           setExistingChiDinh([]);
           setLoadingExisting(false);
@@ -102,7 +61,7 @@ export default function PhieuChiDinhPage() {
       setLoadingExisting(true);
 
       try {
-        const items = await getChiDinhList(activePhieuKhamId);
+        const items = await getChiDinhList(phieuKhamId);
 
         if (mounted) {
           setExistingChiDinh(items);
@@ -124,26 +83,7 @@ export default function PhieuChiDinhPage() {
     return () => {
       mounted = false;
     };
-  }, [activePhieuKhamId]);
-
-  const activePhieuKham = useMemo(
-    () => phieuKhamOptions.find((item) => item.id === activePhieuKhamId) ?? null,
-    [phieuKhamOptions, activePhieuKhamId]
-  );
-
-  function handleApplyPhieuKham() {
-    if (!pendingPhieuKhamId) {
-      setSaveError("Vui lòng chọn phiếu khám trước khi xem phiếu chỉ định.");
-      return;
-    }
-
-    setSaveError("");
-    setSuccessMessage("");
-    setActivePhieuKhamId(pendingPhieuKhamId);
-
-    const nextUrl = `${window.location.pathname}?page=chi-dinh&id=${pendingPhieuKhamId}`;
-    window.history.replaceState({}, "", nextUrl);
-  }
+  }, [phieuKhamId, refreshKey]);
 
   async function handleSaveChiDinh() {
     if (selectedServices.length === 0) {
@@ -157,7 +97,7 @@ export default function PhieuChiDinhPage() {
     setSuccessMessage("");
 
     try {
-      if (!activePhieuKhamId) {
+      if (!phieuKhamId) {
         setSaveError("Thiếu phiếu khám. Không thể lưu chỉ định.");
         return;
       }
@@ -167,7 +107,7 @@ export default function PhieuChiDinhPage() {
         so_luong: Number(service.quantity ?? 1),
       }));
 
-      const createdItems = await createChiDinh(activePhieuKhamId, { items });
+      const createdItems = await createChiDinh(phieuKhamId, { items });
       setSuccessMessage("Đã lưu phiếu chỉ định thành công.");
       setSelectedServices([]);
       setExistingChiDinh(createdItems);
@@ -177,6 +117,13 @@ export default function PhieuChiDinhPage() {
       setIsSaving(false);
     }
   }
+
+  const pageLabel = useMemo(() => {
+    if (!phieuKhamId) {
+      return "Chưa chọn";
+    }
+    return `PK#${phieuKhamId}`;
+  }, [phieuKhamId]);
 
   return (
     <div className="p-8 min-h-screen" style={{ background: "#F8FAFC" }}>
@@ -242,31 +189,13 @@ export default function PhieuChiDinhPage() {
                 </div>
 
                 <p className="mt-3 text-sm font-medium text-[#0F766E]">
-                  Bệnh nhân test: BN#{BENH_NHAN_ID} | Phiếu khám đang xem: {activePhieuKham?.ma_phieu_kham ?? (activePhieuKhamId ? `PK#${activePhieuKhamId}` : "Chưa chọn")}
+                  Bệnh nhân: BN#{benhNhanId} | Phiếu khám đang xem: {pageLabel}
                 </p>
-
-                <div className="mt-3 flex flex-wrap items-center gap-2">
-                  <Select
-                    size="middle"
-                    className="w-full sm:w-[360px]"
-                    value={pendingPhieuKhamId}
-                    onChange={setPendingPhieuKhamId}
-                    placeholder="Chọn phiếu khám để test"
-                    options={(phieuKhamOptions ?? []).map((item) => ({
-                      value: item.id,
-                      label: `${item.ma_phieu_kham ?? `PK#${item.id}`} - ${item.thoi_gian_tiep_nhan?.slice?.(0, 10) ?? ""}`,
-                    }))}
-                    loading={loadingPhieuKham}
-                  />
-                  <Button type="primary" onClick={handleApplyPhieuKham} disabled={loadingPhieuKham || !phieuKhamOptions.length}>
-                    Xem phiếu khám này
-                  </Button>
-                </div>
               </div>
             </div>
           </div>
 
-          {loadingServices || loadingPhieuKham || loadingExisting ? (
+          {loadingServices || loadingExisting ? (
             <div className="bg-white rounded-[10px] p-8 border border-slate-200 flex justify-center">
               <Spin tip="Đang tải dữ liệu chỉ định..." />
             </div>
@@ -297,6 +226,7 @@ export default function PhieuChiDinhPage() {
               services={services}
               selectedServices={selectedServices}
               setSelectedServices={setSelectedServices}
+              disabled={isLocked}
             />
           )}
         </div>
@@ -314,8 +244,8 @@ export default function PhieuChiDinhPage() {
             <SelectedServices
               services={selectedServices}
               setSelectedServices={setSelectedServices}
-              onSave={handleSaveChiDinh}
-              isSaving={isSaving}
+              onSave={isLocked ? undefined : handleSaveChiDinh}
+              isSaving={isSaving || isLocked}
             />
           )}
         </div>

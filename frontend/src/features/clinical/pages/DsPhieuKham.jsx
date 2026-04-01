@@ -12,7 +12,7 @@ import {
   message,
 } from "antd";
 import { SearchOutlined, UserOutlined } from "@ant-design/icons";
-import { getPhieuKhamList } from "../../../api/clinicalApi";
+import { getPhieuKhamList } from "../../../Services/clinicalService";
 
 const PRIMARY = "#0F766E"; // Teal từ ui-guidelines
 
@@ -110,14 +110,7 @@ export default function DsPhieuKham() {
         }
 
         const response = await getPhieuKhamList(params);
-
-        if (response?.success) {
-          setPhieuKhams(response.data || []);
-        } else {
-          message.error(
-            response?.message || "Không thể tải dữ liệu phiếu khám",
-          );
-        }
+        setPhieuKhams(response || []);
       } catch (error) {
         console.error("Error fetching phiếu khám:", error);
         message.error("Lỗi khi tải dữ liệu phiếu khám");

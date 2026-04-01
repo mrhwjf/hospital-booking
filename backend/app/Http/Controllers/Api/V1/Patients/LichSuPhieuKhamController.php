@@ -13,7 +13,7 @@ class LichSuPhieuKhamController extends Controller
 
     public function index(Request $request, int $benhNhanId)
     {
-        $filters = $request->only(['tu_ngay', 'den_ngay', 'per_page']);
+        $filters = $request->only(['tu_ngay', 'den_ngay', 'per_page', 'bac_si_id', 'trang_thai']);
 
         $paginator = $this->patientService->getLichSuPhieuKham($benhNhanId, $filters);
 

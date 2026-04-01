@@ -69,7 +69,7 @@ export default function PatientCard({ patient, appointment }) {
         </h2>
 
         <p className="text-sm text-gray-400 mt-0.5">
-          {getAgeText(patient?.ngay_sinh)}&nbsp;•&nbsp;{gender}&nbsp;•&nbsp;{patientCode}
+          {Number.isFinite(patient?.tuoi) ? `${patient.tuoi} tuổi` : getAgeText(patient?.ngay_sinh)}&nbsp;•&nbsp;{gender}&nbsp;•&nbsp;{patientCode}
         </p>
       </div>
 

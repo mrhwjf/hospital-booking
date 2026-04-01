@@ -27,10 +27,10 @@ import {
   getDonThuocByPhieuKham,
   searchThuoc,
   updateDonThuocItems,
-} from "../../../api/clinicalApi";
+} from "../../../Services/clinicalService";
 
 const PRIMARY = "#1c7a71";
-const PHIEU_KHAM_ID = 5;
+const DEFAULT_PHIEU_KHAM_ID = null;
 
 // dữ liệu tĩnh giả lập, sẽ được thay bằng dữ liệu thật từ API sau này
 const patient = {
@@ -63,7 +63,8 @@ const EMPTY_DRAFT = {
   note: "",
 };
 
-export default function DonThuocPage() {
+export default function DonThuocPage({ phieuKhamId = DEFAULT_PHIEU_KHAM_ID, isLocked = false, refreshKey = 0 }) {
+
   const [prescriptions, setPrescriptions] = useState([]);   // danh sách thuốc trong đơn hiện tại
 
   const [medicineOptions, setMedicineOptions] = useState([]);  // danh sách thuốc để chọn khi thêm mới
@@ -96,15 +97,22 @@ export default function DonThuocPage() {
 
     // Hàm để tải dữ liệu đơn thuốc và danh sách thuốc khi component được mount
     const fetchPageData = async () => {
+      if (!phieuKhamId) {
+        setDonThuocId(null);
+        setPrescriptions([]);
+        nextId.current = 1;
+        return;
+      }
+
       try {
         setIsLoadingMedicines(true);
         const [medicineResponse, donThuocResponse] = await Promise.allSettled([
           searchThuoc({ per_page: 100 }),
-          getDonThuocByPhieuKham(PHIEU_KHAM_ID),
+          getDonThuocByPhieuKham(phieuKhamId),
         ]);
 
         if (medicineResponse.status === "fulfilled") {
-          const options = (medicineResponse.value?.data ?? []).map((row) => ({
+          const options = (medicineResponse.value ?? []).map((row) => ({
             label: `${row.ten_thuoc} (${row.ma_thuoc})`,
             value: row.id,
             medicineName: row.ten_thuoc,
@@ -115,7 +123,7 @@ export default function DonThuocPage() {
         }
 
         if (donThuocResponse.status === "fulfilled") {
-          const donThuoc = donThuocResponse.value?.data;
+          const donThuoc = donThuocResponse.value;
           const rows = mapApiItemsToRows(donThuoc?.items ?? []);
 
           setDonThuocId(donThuoc?.id ?? null);
@@ -130,10 +138,14 @@ export default function DonThuocPage() {
     };
 
     fetchPageData();
-  }, []);
+  }, [phieuKhamId, refreshKey]);
 
   // Hàm để thêm mới hoặc cập nhật thuốc vào danh sách đơn thuốc tạm thời khi người dùng nhấn nút lưu trong form thêm/chỉnh sửa
   const submitPrescriptionFromDraft = () => {
+    if (isLocked) {
+      return;
+    }
+
     if (!draftPrescription.medicineId || !draftPrescription.medicine.trim()) {
       message.warning("Vui lòng chọn thuốc trước khi thêm");
       return;
@@ -194,6 +206,10 @@ export default function DonThuocPage() {
 
   // Hàm để xóa một dòng thuốc khỏi danh sách đơn thuốc tạm thời khi người dùng nhấn nút xóa, nếu đang chỉnh sửa dòng đó thì sẽ hủy chỉnh sửa luôn
   const removeRow = (id) => {
+    if (isLocked) {
+      return;
+    }
+
     setPrescriptions((prev) => prev.filter((r) => r.id !== id));
     if (editingId === id) {
       setEditingId(null);
@@ -203,6 +219,10 @@ export default function DonThuocPage() {
 
   // Hàm để bắt đầu chỉnh sửa một dòng thuốc, sẽ điền thông tin của dòng đó vào form thêm/chỉnh sửa
   const startEditRow = (row) => {
+    if (isLocked) {
+      return;
+    }
+
     setEditingId(row.id);
     setDraftPrescription({
       medicineId: row.thuocId,
@@ -223,6 +243,10 @@ export default function DonThuocPage() {
 
   // Hủy toàn bộ đơn thuốc: xóa trên DB nếu đã lưu, reset UI về trạng thái trống
   const handleDeletePrescription = async () => {
+    if (isLocked) {
+      return;
+    }
+
     if (donThuocId) {
       try {
         await deleteDonThuoc(donThuocId);
@@ -242,6 +266,10 @@ export default function DonThuocPage() {
 
   // Hàm để lưu đơn thuốc, sẽ gọi API để tạo mới hoặc cập nhật đơn thuốc tùy vào việc đã có donThuocId hay chưa, sau khi lưu thành công sẽ hiển thị thông báo và cập nhật lại donThuocId nếu là lần đầu tiên lưu
   const savePrescription = async () => {
+    if (isLocked) {
+      return;
+    }
+
     if (!prescriptions.length) {
       message.warning("Đơn thuốc chưa có thuốc nào");
       return;
@@ -272,12 +300,12 @@ export default function DonThuocPage() {
 
     try {
       setIsSaving(true);
-      const createResponse = await createDonThuoc(PHIEU_KHAM_ID, {
+      const createResponse = await createDonThuoc(phieuKhamId, {
         ngay_ke: new Date().toISOString().slice(0, 10),
         ghi_chu: null,
       });
 
-      const createdId = createResponse?.data?.id;
+      const createdId = createResponse?.id;
       if (!createdId) {
         throw new Error("create_failed");
       }
@@ -445,7 +473,7 @@ export default function DonThuocPage() {
                         <div className="text-sm text-gray-600 mb-1.5">
                           Số lượng
                         </div>
-                        <Input                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              Number
+                        <InputNumber
                           size="large"
                           value={draftPrescription.quantity}
                           onChange={(v) => updateDraft("quantity", v || 1)}
@@ -520,6 +548,7 @@ export default function DonThuocPage() {
                               )
                             }
                             onClick={submitPrescriptionFromDraft}
+                            disabled={isLocked}
                           >
                             {editingId !== null ? "Lưu" : null}
                           </Button>
@@ -596,6 +625,7 @@ export default function DonThuocPage() {
                                   icon={<EditOutlined />}
                                   size="middle"
                                   onClick={() => startEditRow(row)}
+                                  disabled={isLocked}
                                 />
                                 <Button
                                   type="text"
@@ -603,6 +633,7 @@ export default function DonThuocPage() {
                                   icon={<DeleteOutlined />}
                                   size="middle"
                                   onClick={() => removeRow(row.id)}
+                                  disabled={isLocked}
                                 />
                               </div>
                             </td>
@@ -628,6 +659,7 @@ export default function DonThuocPage() {
                       icon={<CloseCircleOutlined />}
                       className="font-bold"
                       onClick={handleDeletePrescription}
+                      disabled={isLocked}
                     >
                       Hủy kê đơn
                     </Button>
@@ -650,6 +682,7 @@ export default function DonThuocPage() {
                         style={{ paddingInline: 28 }}
                         loading={isSaving}
                         onClick={savePrescription}
+                        disabled={isLocked}
                       >
                         Lưu &amp; Kết thúc
                       </Button>

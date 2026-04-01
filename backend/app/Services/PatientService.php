@@ -28,9 +28,18 @@ class PatientService
         BenhNhan::findOrFail($benhNhanId);
 
         $query = PhieuKham::with(self::LICH_SU_RELATIONS)
-            ->forPatient($benhNhanId)
-            ->where('trang_thai', 'hoan_thanh')
-            ->orderByDesc('thoi_gian_tiep_nhan');
+            ->forPatient($benhNhanId);
+
+        if (!empty($filters['bac_si_id'])) {
+            $query->where('bac_si_id', (int) $filters['bac_si_id']);
+        }
+
+        if (!empty($filters['trang_thai']) && $filters['trang_thai'] !== 'all') {
+            $query->where('trang_thai', (string) $filters['trang_thai']);
+        }
+
+        $query->orderByDesc('thoi_gian_tiep_nhan')
+            ->orderByDesc('id');
 
         if (!empty($filters['tu_ngay'])) {
             $query->whereDate('thoi_gian_tiep_nhan', '>=', $filters['tu_ngay']);
