@@ -9,48 +9,39 @@ class DichVuLichHenSeeder extends Seeder
 {
     public function run(): void
     {
-        $dichVuTheoChuyenKhoa = DB::table('dich_vu')
-            ->where('trang_thai', 'hoat_dong')
-            ->orderBy('id')
-            ->get(['id', 'chuyen_khoa_id'])
-            ->groupBy('chuyen_khoa_id');
+        $lichHen = DB::table('lich_hen')->pluck('id', 'ma_lich_hen');
+        $dichVu = DB::table('dich_vu')->pluck('id', 'ma_dich_vu');
+        $goiKham = DB::table('goi_kham')->pluck('id', 'ma_goi_kham');
 
-        if ($dichVuTheoChuyenKhoa->isEmpty()) {
-            return;
-        }
-
-        $lichHenRows = DB::table('lich_hen')
-            ->orderBy('id')
-            ->get(['id', 'chuyen_khoa_id', 'trang_thai']);
-
-        $rows = [];
-        foreach ($lichHenRows as $lichHen) {
-            $dichVuList = $dichVuTheoChuyenKhoa->get($lichHen->chuyen_khoa_id);
-            if (!$dichVuList || $dichVuList->isEmpty()) {
-                continue;
-            }
-
-            $service = $dichVuList->first();
-
-            $rows[] = [
-                'lich_hen_id' => $lichHen->id,
-                'dich_vu_id' => $service->id,
-                'goi_kham_id' => null,
-                'so_luong' => $lichHen->trang_thai === 'da_hoan_tat' ? 1 : 0,
-                'ghi_chu' => 'Dich vu gan tu dong cho lich hen seed.',
+        $rows = [
+            [
+                'lich_hen_id' => $lichHen['LH-20260316-07250012'] ?? null,
+                'dich_vu_id' => null,
+                'goi_kham_id' => $goiKham['GK-001'] ?? null,
+                'so_luong' => 1,
+                'ghi_chu' => 'Su dung goi kham co ban.',
                 'created_at' => now(),
                 'updated_at' => now(),
-            ];
-        }
+            ],
+            [
+                'lich_hen_id' => $lichHen['LH-20260316-09300045'] ?? null,
+                'dich_vu_id' => $dichVu['DV-019'] ?? null,
+                'goi_kham_id' => null,
+                'so_luong' => 1,
+                'ghi_chu' => null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        ];
 
-        if (empty($rows)) {
-            return;
-        }
+        $rows = array_values(array_filter($rows, function (array $row) {
+            if (is_null($row['lich_hen_id'])) {
+                return false;
+            }
 
-        DB::table('dich_vu_lich_hen')->upsert(
-            $rows,
-            ['lich_hen_id', 'dich_vu_id'],
-            ['so_luong', 'ghi_chu', 'updated_at']
-        );
+            return !is_null($row['dich_vu_id']) || !is_null($row['goi_kham_id']);
+        }));
+
+        DB::table('dich_vu_lich_hen')->upsert($rows, ['lich_hen_id', 'dich_vu_id'], ['goi_kham_id', 'so_luong', 'ghi_chu', 'updated_at']);
     }
 }

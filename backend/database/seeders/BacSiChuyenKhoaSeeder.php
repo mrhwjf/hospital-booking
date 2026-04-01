@@ -9,53 +9,50 @@ class BacSiChuyenKhoaSeeder extends Seeder
 {
     public function run(): void
     {
-        $bacSiIds = DB::table('bac_si')->orderBy('id')->pluck('id')->values();
-        $chuyenKhoaIds = DB::table('chuyen_khoa')->where('trang_thai', 'hoat_dong')->orderBy('id')->pluck('id')->values();
+        $bacSi = DB::table('bac_si')->pluck('id', 'ma_bac_si');
+        $chuyenKhoa = DB::table('chuyen_khoa')->pluck('id', 'ma_chuyen_khoa');
 
-        if ($bacSiIds->isEmpty() || $chuyenKhoaIds->isEmpty()) {
-            return;
-        }
-
-        DB::table('bac_si_chuyen_khoa')
-            ->whereIn('bac_si_id', $bacSiIds)
-            ->delete();
-
-        DB::table('chuyen_khoa')
-            ->whereIn('id', $chuyenKhoaIds)
-            ->update([
-                'truong_khoa_id' => null,
-                'updated_at' => now(),
-            ]);
-
-        $rows = [];
-        foreach ($bacSiIds as $index => $bacSiId) {
-            $chuyenKhoaId = $chuyenKhoaIds[$index % $chuyenKhoaIds->count()];
-
-            $rows[] = [
-                'bac_si_id' => $bacSiId,
-                'chuyen_khoa_id' => $chuyenKhoaId,
+        $rows = [
+            [
+                'bac_si_id' => $bacSi['BS-0001'] ?? null,
+                'chuyen_khoa_id' => $chuyenKhoa['NOI'] ?? null,
                 'la_chuyen_khoa_chinh' => true,
                 'ghi_chu' => null,
                 'created_at' => now(),
                 'updated_at' => now(),
-            ];
+            ],
+            [
+                'bac_si_id' => $bacSi['BS-0001'] ?? null,
+                'chuyen_khoa_id' => $chuyenKhoa['TMH'] ?? null,
+                'la_chuyen_khoa_chinh' => false,
+                'ghi_chu' => 'Ho tro hoi chan.',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+            [
+                'bac_si_id' => $bacSi['BS-0002'] ?? null,
+                'chuyen_khoa_id' => $chuyenKhoa['NHI'] ?? null,
+                'la_chuyen_khoa_chinh' => true,
+                'ghi_chu' => null,
+                'created_at' => now(),
+                'updated_at' => now(),
+            ],
+        ];
+
+        $rows = array_values(array_filter($rows, fn(array $row) => !is_null($row['bac_si_id']) && !is_null($row['chuyen_khoa_id'])));
+
+        DB::table('bac_si_chuyen_khoa')->upsert($rows, ['bac_si_id', 'chuyen_khoa_id'], ['la_chuyen_khoa_chinh', 'ghi_chu', 'updated_at']);
+
+        if (isset($bacSi['BS-0001'])) {
+            DB::table('chuyen_khoa')
+                ->where('ma_chuyen_khoa', 'NOI')
+                ->update(['truong_khoa_id' => $bacSi['BS-0001'], 'updated_at' => now()]);
         }
 
-        DB::table('bac_si_chuyen_khoa')->insert($rows);
-
-        $truongKhoaIds = DB::table('bac_si_chuyen_khoa')
-            ->where('la_chuyen_khoa_chinh', true)
-            ->pluck('bac_si_id', 'chuyen_khoa_id');
-
-        foreach ($chuyenKhoaIds as $chuyenKhoaId) {
-            if (isset($truongKhoaIds[$chuyenKhoaId])) {
-                DB::table('chuyen_khoa')
-                    ->where('id', $chuyenKhoaId)
-                    ->update([
-                        'truong_khoa_id' => $truongKhoaIds[$chuyenKhoaId],
-                        'updated_at' => now(),
-                    ]);
-            }
+        if (isset($bacSi['BS-0002'])) {
+            DB::table('chuyen_khoa')
+                ->where('ma_chuyen_khoa', 'NHI')
+                ->update(['truong_khoa_id' => $bacSi['BS-0002'], 'updated_at' => now()]);
         }
     }
 }

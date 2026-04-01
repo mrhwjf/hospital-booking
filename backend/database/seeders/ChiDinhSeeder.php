@@ -16,9 +16,9 @@ class ChiDinhSeeder extends Seeder
 
         $rows = [
             [
-                'phieu_kham_id' => $phieu['PK0001'] ?? null,
-                'bac_si_id' => $bacSi['BS0001'] ?? null,
-                'dich_vu_id' => $dichVu['DV003'] ?? null,
+                'phieu_kham_id' => $phieu['PK-20260316-08000032'] ?? null,
+                'bac_si_id' => $bacSi['BS-0001'] ?? null,
+                'dich_vu_id' => $dichVu['DV-011'] ?? null,
                 'goi_kham_id' => null,
                 'so_luong' => 1,
                 'trang_thai' => 'da_hoan_thanh',

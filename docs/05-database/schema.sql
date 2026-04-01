@@ -40,7 +40,7 @@ CREATE TABLE quyen (
     ma_quyen VARCHAR(50) NOT NULL UNIQUE COMMENT 'VD: QUAN_LY_NGUOI_DUNG, XEM_BAO_CAO',
     ten_quyen VARCHAR(100) NOT NULL,
     mo_ta TEXT,
-    nhom_quyen VARCHAR(50) COMMENT 'Nhóm quyền để phân loại',
+    nhom_quyen ENUM('quan_tri', 'nguoi_dung', 'le_tan', 'bac_si', 'khac') COMMENT 'Nhóm quyền để phân loại',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     
     INDEX idx_ma_quyen (ma_quyen),
@@ -73,6 +73,7 @@ CREATE TABLE nguoi_dung (
     mat_khau VARCHAR(255) NOT NULL COMMENT 'Mật khẩu đã hash',
     vai_tro_id INT NOT NULL,
     hinh_anh VARCHAR(255) COMMENT 'Đường dẫn ảnh đại diện',
+    hinh_anh_public_id VARCHAR(255) COMMENT 'Cloudinary public_id ảnh đại diện',
     trang_thai ENUM('hoat_dong', 'tam_khoa', 'khoa') DEFAULT 'hoat_dong',
     lan_dang_nhap_cuoi TIMESTAMP NULL,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -94,10 +95,11 @@ CREATE TABLE nguoi_dung (
 -- Mô tả: Bảng lưu trữ các chuyên khoa y tế trong bệnh viện.
 CREATE TABLE chuyen_khoa (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    ma_chuyen_khoa VARCHAR(20) NOT NULL UNIQUE COMMENT 'VD: CK001',
+    ma_chuyen_khoa VARCHAR(20) NOT NULL UNIQUE COMMENT 'Business ID của chuyên khoa, định dạng: NOI hoặc Y_HOC_CO_TRUYEN',
     ten_chuyen_khoa VARCHAR(100) NOT NULL,
     mo_ta TEXT,
     hinh_anh VARCHAR(255),
+    hinh_anh_public_id VARCHAR(255) COMMENT 'Cloudinary public_id ảnh chuyên khoa',
     vi_tri VARCHAR(100) COMMENT 'Vị trí: Tầng/Khu',
     so_dien_thoai VARCHAR(15),
     truong_khoa_id INT NULL COMMENT 'FK đến bac_si, thêm sau',
@@ -116,7 +118,7 @@ CREATE TABLE chuyen_khoa (
 -- Mô tả: Bảng lưu trữ thông tin các phòng khám trong bệnh viện.
 CREATE TABLE phong_kham (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    ma_phong VARCHAR(20) NOT NULL UNIQUE COMMENT 'VD: P101',
+    ma_phong VARCHAR(20) NOT NULL UNIQUE COMMENT 'Business ID của phòng khám, định dạng: PK-<tầng><so_phong> (VD: PK-205)',
     ten_phong VARCHAR(100) NOT NULL,
     chuyen_khoa_id INT,
     vi_tri VARCHAR(100) NOT NULL COMMENT 'VD: Tầng 1, Khu A',
@@ -142,7 +144,7 @@ CREATE TABLE phong_kham (
 -- Mô tả: Bảng lưu trữ các dịch vụ khám chữa bệnh.
 CREATE TABLE dich_vu (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    ma_dich_vu VARCHAR(20) NOT NULL UNIQUE COMMENT 'VD: DV001',
+    ma_dich_vu VARCHAR(20) NOT NULL UNIQUE COMMENT 'Business ID của dịch vụ, định dạng: DV-<stt> (VD: DV-001)',
     ten_dich_vu VARCHAR(200) NOT NULL,
     chuyen_khoa_id INT NOT NULL,
     mo_ta TEXT,
@@ -174,7 +176,7 @@ CREATE TABLE dich_vu (
 -- Mô tả: Bảng lưu trữ các gói khám tổng hợp.
 CREATE TABLE goi_kham (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    ma_goi_kham VARCHAR(20) NOT NULL UNIQUE COMMENT 'VD: GK001',
+    ma_goi_kham VARCHAR(20) NOT NULL UNIQUE COMMENT 'Business ID của gói khám, định dạng: GK-<stt> (VD: GK-001)',
     ten_goi_kham VARCHAR(200) NOT NULL,
     mo_ta TEXT,
     gia_goi_kham DECIMAL(12,0) NOT NULL DEFAULT 0 COMMENT 'Giá VNĐ, Thường < tổng giá các dịch vụ bên dưới',
@@ -217,7 +219,7 @@ CREATE TABLE chi_tiet_goi_kham (
 -- Mô tả: Bảng lưu trữ thông tin bệnh nhân.
 CREATE TABLE benh_nhan (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    ma_benh_nhan VARCHAR(20) NOT NULL UNIQUE COMMENT 'Mã BN tự động sinh: BN000001',
+    ma_benh_nhan VARCHAR(20) NOT NULL UNIQUE COMMENT 'Business ID của bệnh nhân, định dạng: BN-<so_cccd>',
     nguoi_dung_id INT UNIQUE COMMENT 'NULL nếu là walk-in patient',
     ho_ten VARCHAR(100) NOT NULL,
     ngay_sinh DATE NOT NULL,
@@ -254,12 +256,11 @@ CREATE TABLE benh_nhan (
 -- Mô tả: Bảng lưu trữ thông tin nhân viên bệnh viện.
 CREATE TABLE nhan_vien (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    ma_nhan_vien VARCHAR(20) NOT NULL UNIQUE COMMENT 'VD: NV001',
+    ma_nhan_vien VARCHAR(20) NOT NULL UNIQUE COMMENT 'Business ID của nhân viên, định dạng: NV-<stt> (padding 4 số, VD: NV-0001)',
     nguoi_dung_id INT NOT NULL UNIQUE,
     ho_ten VARCHAR(100) NOT NULL,
     so_dien_thoai VARCHAR(15) NOT NULL,
     chuc_vu ENUM('le_tan', 'nhan_vien_y_te', 'dieu_duong') NOT NULL,
-    phong_ban VARCHAR(100),
     ngay_vao_lam DATE NOT NULL,
     trang_thai ENUM('hoat_dong', 'tam_khoa', 'nghi_viec') DEFAULT 'hoat_dong',
     ghi_chu TEXT,
@@ -283,7 +284,7 @@ CREATE TABLE nhan_vien (
 -- Mô tả: Bảng lưu trữ thông tin bác sĩ.
 CREATE TABLE bac_si (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    ma_bac_si VARCHAR(20) NOT NULL UNIQUE COMMENT 'VD: BS001',
+    ma_bac_si VARCHAR(20) NOT NULL UNIQUE COMMENT 'Business ID của bác sĩ, định dạng: BS-<stt> (padding 4 số, VD: BS-0001)',
     nguoi_dung_id INT NOT NULL UNIQUE,
     ho_ten VARCHAR(100) NOT NULL,
     so_dien_thoai VARCHAR(15) NOT NULL,
@@ -386,7 +387,7 @@ CREATE TABLE bac_si_nghi (
 -- Mô tả: Bảng tĩnh lưu các ca làm việc mẫu (theo thứ trong tuần) để gán cho bác sĩ theo ngày.
 CREATE TABLE lich_lam_viec (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    ma_ca VARCHAR(20) NOT NULL UNIQUE COMMENT 'VD: CA_SANG, CA_CHIEU',
+    ma_ca VARCHAR(20) NOT NULL UNIQUE COMMENT 'Business ID của ca làm việc, định dạng: CA-<shiftPrefix>-<weekdayCode>-<suffix>',
     ten_ca VARCHAR(100) NOT NULL,
     thu_trong_tuan TINYINT NOT NULL COMMENT '1=Thứ 2 ... 7=Chủ nhật',
     gio_bat_dau TIME NOT NULL,
@@ -468,7 +469,7 @@ CREATE TABLE khung_gio_kham (
 -- Mô tả: Bảng lưu trữ các lý do hủy lịch hẹn.
 CREATE TABLE ly_do_huy (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    ma_ly_do VARCHAR(20) NOT NULL UNIQUE,
+    ma_ly_do VARCHAR(20) NOT NULL UNIQUE COMMENT 'Business ID của lý do hủy, định dạng: <TYPE>_<REASON> (VD: BN_DOI_LICH_KHAM)',
     ten_ly_do VARCHAR(200) NOT NULL,
     loai ENUM('benh_nhan', 'bac_si', 'he_thong') NOT NULL,
     thu_tu INT DEFAULT 0,
@@ -488,11 +489,11 @@ CREATE TABLE ly_do_huy (
 -- Mô tả: Bảng lưu trữ thông tin lịch hẹn khám của bệnh nhân.
 CREATE TABLE lich_hen (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    ma_lich_hen VARCHAR(20) NOT NULL UNIQUE COMMENT 'VD: LH20240116001',
+    ma_lich_hen VARCHAR(20) NOT NULL UNIQUE COMMENT 'Business ID của lịch hẹn, định dạng: LH-<YYYYMMDD>-<HHMMSSmmm>',
     benh_nhan_id INT NOT NULL,
     bac_si_id INT NOT NULL,
     chuyen_khoa_id INT NOT NULL,
-    khung_gio_id INT UNIQUE COMMENT 'Khung giờ khám đã đặt, chỉ cho 1 bệnh nhân/khung giờ',
+    khung_gio_id INT COMMENT 'Khung giờ khám đã đặt, chỉ cho 1 bệnh nhân/khung giờ',
 
     ngay_hen DATE NOT NULL,
     ly_do_kham TEXT,
@@ -598,7 +599,7 @@ CREATE TABLE icd10 (
 -- Mô tả: Bảng lưu trữ thông tin phiếu khám bệnh của bệnh nhân.
 CREATE TABLE phieu_kham (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    ma_phieu_kham VARCHAR(20) NOT NULL UNIQUE COMMENT 'VD: PK20240116001',
+    ma_phieu_kham VARCHAR(20) NOT NULL UNIQUE COMMENT 'Business ID của phiếu khám, định dạng: PK-<YYYYMMDD>-<HHMMSSmmm>',
     lich_hen_id INT UNIQUE COMMENT 'NULL nếu là walk-in patient',
     benh_nhan_id INT NOT NULL,
     bac_si_id INT NOT NULL,
@@ -685,8 +686,8 @@ CREATE TABLE chi_dinh (
         REFERENCES phieu_kham(id) ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT fk_cdxn_dich_vu FOREIGN KEY (dich_vu_id) 
         REFERENCES dich_vu(id) ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT fk_cdxn_goi_kham FOREIGN KEY (goi_kham_id) 
-        REFERENCES goi_kham(id) ON DELETE RESTRICT ON UPDATE CASCADE
+    CONSTRAINT fk_cdxn_goi_kham FOREIGN KEY (goi_kham_id)
+        REFERENCES goi_kham(id) ON DELETE RESTRICT ON UPDATE CASCADE,
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================
@@ -697,7 +698,7 @@ CREATE TABLE chi_dinh (
 -- Mô tả: Bảng lưu trữ các tài liệu liên quan đến hồ sơ (file) bệnh án của bệnh nhân.
 CREATE TABLE tai_lieu_ho_so (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    ma_tai_lieu VARCHAR(20) NOT NULL UNIQUE COMMENT 'VD: TL20240116001',
+    ma_tai_lieu VARCHAR(20) NOT NULL UNIQUE COMMENT 'Business ID của tài liệu hồ sơ, định dạng: TL-<YYYYMMDD>-<HHMMSSmmm>',
     phieu_kham_id INT NOT NULL,
     
     loai_tai_lieu ENUM(
@@ -714,8 +715,7 @@ CREATE TABLE tai_lieu_ho_so (
     ) NOT NULL,
     
     ten_tai_lieu VARCHAR(200) NOT NULL,
-    file_url VARCHAR(500) NOT NULL COMMENT 'URL file trên cloud storage',
-    file_name VARCHAR(255) NOT NULL COMMENT 'Tên file gốc',
+    file_public_id VARCHAR(500) NOT NULL COMMENT 'Cloudinary public_id của tài liệu',
     ngay_tao DATE NOT NULL,
     ghi_chu TEXT,
     
@@ -739,7 +739,7 @@ CREATE TABLE tai_lieu_ho_so (
 -- Mô tả: Bảng lưu trữ thông tin các loại thuốc.
 CREATE TABLE thuoc (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    ma_thuoc VARCHAR(20) NOT NULL UNIQUE,
+    ma_thuoc VARCHAR(20) NOT NULL UNIQUE COMMENT 'Business ID của thuốc, định dạng: THUOC-<stt> (VD: THUOC-001)',
     ten_thuoc VARCHAR(200) NOT NULL,
     hoat_chat VARCHAR(200) COMMENT 'Hoạt chất chính của thuốc',
     don_vi ENUM('vien', 'goi', 'ong', 'ml', 'lo', 'hop', 'chai') NOT NULL,
@@ -764,7 +764,7 @@ CREATE TABLE thuoc (
 -- Mô tả: Bảng lưu trữ thông tin đơn thuốc được kê cho bệnh
 CREATE TABLE don_thuoc (
     id INT AUTO_INCREMENT PRIMARY KEY,
-    ma_don_thuoc VARCHAR(20) NOT NULL UNIQUE COMMENT 'VD: DT20240116001',
+    ma_don_thuoc VARCHAR(20) NOT NULL UNIQUE COMMENT 'Business ID của đơn thuốc, định dạng: DT-<YYYYMMDD>-<HHMMSSmmm>',
     phieu_kham_id INT NOT NULL UNIQUE,
     ngay_ke DATE NOT NULL,
     ghi_chu TEXT,
@@ -936,6 +936,7 @@ INSERT INTO icd10 (ma_icd10, ten_chan_doan, nhom_chuong, mo_ta) VALUES
 INSERT INTO cau_hinh_he_thong (khoa, gia_tri, mo_ta, nhom) VALUES
 ('THOI_GIAN_HUY_TOI_THIEU', '12', 'Số giờ tối thiểu trước khi khám để được hủy lịch', 'lich_hen'),
 ('THOI_GIAN_DOI_TOI_THIEU', '24', 'Số giờ tối thiểu trước khi khám để được đổi lịch', 'lich_hen'),
+('THOI_GIAN_CHECKIN_SOM_NHAT', '45', 'Số phút cho phép check-in trước giờ hẹn', 'lich_hen'),
 ('SO_NGAY_DAT_TRUOC_TOI_DA', '30', 'Số ngày tối đa có thể đặt lịch trước', 'lich_hen'),
 ('THOI_LUONG_KHAM_MAC_DINH', '60', 'Thời lượng khám mặc định (phút)', 'lich_hen'),
 ('TEN_BENH_VIEN', 'Bệnh viện ABC', 'Tên bệnh viện/phòng khám', 'chung'),

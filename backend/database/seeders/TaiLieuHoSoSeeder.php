@@ -13,11 +13,11 @@ class TaiLieuHoSoSeeder extends Seeder
 
         $rows = [
             [
-                'ma_tai_lieu' => 'TL0001',
-                'phieu_kham_id' => $phieu['PK0001'] ?? null,
+                'ma_tai_lieu' => 'TL-20260316-10000098',
+                'phieu_kham_id' => $phieu['PK-20260316-08000032'] ?? null,
                 'loai_tai_lieu' => 'ket_qua_xet_nghiem',
                 'ten_tai_lieu' => 'Ket qua xet nghiem co ban',
-                'file_public_id' => 'hospital_booking/medical_documents/appointments_1/document_tl0001',
+                'file_public_id' => 'hospital_booking/medical_documents/appointments_1/document_1.pdf',
                 'ngay_tao' => '2026-03-16',
                 'ghi_chu' => null,
                 'created_at' => now(),
