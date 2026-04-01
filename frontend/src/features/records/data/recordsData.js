@@ -1,0 +1,133 @@
+export const DOCUMENT_TYPE_OPTIONS = [
+  { value: "ket_qua_xet_nghiem", label: "Kết quả xét nghiệm", color: "#2563EB" },
+  { value: "ket_qua_sieu_am", label: "Kết quả siêu âm", color: "#0F766E" },
+  { value: "ket_qua_xquang", label: "Kết quả X-quang", color: "#EA580C" },
+  { value: "ket_qua_ct_scan", label: "Kết quả CT Scan", color: "#7C3AED" },
+  { value: "ket_qua_mri", label: "Kết quả MRI", color: "#1D4ED8" },
+  { value: "ket_qua_noi_soi", label: "Kết quả nội soi", color: "#BE123C" },
+  { value: "phieu_chi_dinh", label: "Phiếu chỉ định", color: "#0891B2" },
+  { value: "bao_cao_phau_thuat", label: "Báo cáo phẫu thuật", color: "#B45309" },
+  { value: "giay_ra_vien", label: "Giấy ra viện", color: "#15803D" },
+  { value: "khac", label: "Khác", color: "#475569" },
+];
+
+export const PHIEU_KHAM_OPTIONS = [
+  {
+    id: 12,
+    ma_phieu_kham: "PK-2026-0012",
+    chan_doan: "Theo dõi viêm phế quản cấp",
+    thoi_gian_tiep_nhan: "2026-03-12T08:15:00",
+    lich_hen: {
+      ngay_hen: "2026-03-12",
+      ly_do_kham: "Ho kéo dài, đau rát họng",
+    },
+    benh_nhan: {
+      id: 5,
+      ma_benh_nhan: "BN-2026-0005",
+      ho_ten: "Nguyễn Thị Minh Anh",
+      ngay_sinh: "1994-08-17",
+      gioi_tinh: "nu",
+      dia_chi: "Quận 3, TP.HCM",
+      so_dien_thoai: "0901234567",
+      tien_su_benh: "Hen suyễn nhẹ, tái phát theo mùa.",
+      tien_su_di_ung: "Dị ứng penicillin",
+    },
+  },
+  {
+    id: 18,
+    ma_phieu_kham: "PK-2026-0018",
+    chan_doan: "Đau đầu chưa rõ nguyên nhân",
+    thoi_gian_tiep_nhan: "2026-03-14T09:40:00",
+    lich_hen: {
+      ngay_hen: "2026-03-14",
+      ly_do_kham: "Đau đầu, chóng mặt, mất ngủ",
+    },
+    benh_nhan: {
+      id: 8,
+      ma_benh_nhan: "BN-2026-0008",
+      ho_ten: "Trần Quốc Bảo",
+      ngay_sinh: "1988-03-02",
+      gioi_tinh: "nam",
+      dia_chi: "Thủ Đức, TP.HCM",
+      so_dien_thoai: "0912233445",
+      tien_su_benh: "Tăng huyết áp độ 1.",
+      tien_su_di_ung: "Không ghi nhận",
+    },
+  },
+  {
+    id: 21,
+    ma_phieu_kham: "PK-2026-0021",
+    chan_doan: "Theo dõi hậu phẫu nội soi",
+    thoi_gian_tiep_nhan: "2026-03-15T10:05:00",
+    lich_hen: {
+      ngay_hen: "2026-03-15",
+      ly_do_kham: "Tái khám sau thủ thuật",
+    },
+    benh_nhan: {
+      id: 11,
+      ma_benh_nhan: "BN-2026-0011",
+      ho_ten: "Lê Hoài Phương",
+      ngay_sinh: "1979-11-26",
+      gioi_tinh: "nu",
+      dia_chi: "Biên Hòa, Đồng Nai",
+      so_dien_thoai: "0987766554",
+      tien_su_benh: "Tiểu đường type 2.",
+      tien_su_di_ung: "Không ghi nhận",
+    },
+  },
+];
+
+export const INITIAL_DOCUMENTS = [
+  {
+    id: 1,
+    ma_tai_lieu: "TL-2026-001",
+    phieu_kham_id: 12,
+    loai_tai_lieu: "ket_qua_xet_nghiem",
+    ten_tai_lieu: "Công thức máu ngày 12/03",
+    file_public_id: "hospital_booking/medical_documents/appointments_12/document_1",
+    ngay_tao: "2026-03-12",
+    ghi_chu: "Đính kèm kết quả CBC và CRP.",
+  },
+  {
+    id: 2,
+    ma_tai_lieu: "TL-2026-002",
+    phieu_kham_id: 18,
+    loai_tai_lieu: "ket_qua_mri",
+    ten_tai_lieu: "MRI sọ não không tiêm thuốc",
+    file_public_id: "hospital_booking/medical_documents/appointments_18/document_2",
+    ngay_tao: "2026-03-14",
+    ghi_chu: "Ưu tiên bác sĩ thần kinh xem trước 15h.",
+  },
+  {
+    id: 3,
+    ma_tai_lieu: "TL-2026-003",
+    phieu_kham_id: 21,
+    loai_tai_lieu: "bao_cao_phau_thuat",
+    ten_tai_lieu: "Báo cáo hậu phẫu nội soi tiêu hóa",
+    file_public_id: "hospital_booking/medical_documents/appointments_21/document_3",
+    ngay_tao: "2026-03-15",
+    ghi_chu: "Lưu cùng hồ sơ tái khám 7 ngày.",
+  },
+  {
+    id: 4,
+    ma_tai_lieu: "TL-2026-004",
+    phieu_kham_id: 12,
+    loai_tai_lieu: "phieu_chi_dinh",
+    ten_tai_lieu: "Phiếu chỉ định xét nghiệm hô hấp",
+    file_public_id: "hospital_booking/medical_documents/appointments_12/document_4",
+    ngay_tao: "2026-03-12",
+    ghi_chu: "Bản scan có chữ ký bác sĩ.",
+  },
+];
+
+export function createEmptyForm(defaultPhieuKhamId) {
+  return {
+    id: null,
+    ma_tai_lieu: "",
+    phieu_kham_id: defaultPhieuKhamId,
+    loai_tai_lieu: DOCUMENT_TYPE_OPTIONS[0].value,
+    ten_tai_lieu: "",
+    ngay_tao: new Date().toISOString().slice(0, 10),
+    ghi_chu: "",
+  };
+}
