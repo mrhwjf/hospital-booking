@@ -14,7 +14,7 @@ class BacSiChuyenKhoaSeeder extends Seeder
 
         $rows = [
             [
-                'bac_si_id' => $bacSi['BS0001'] ?? null,
+                'bac_si_id' => $bacSi['BS-0001'] ?? null,
                 'chuyen_khoa_id' => $chuyenKhoa['NOI'] ?? null,
                 'la_chuyen_khoa_chinh' => true,
                 'ghi_chu' => null,
@@ -22,7 +22,7 @@ class BacSiChuyenKhoaSeeder extends Seeder
                 'updated_at' => now(),
             ],
             [
-                'bac_si_id' => $bacSi['BS0001'] ?? null,
+                'bac_si_id' => $bacSi['BS-0001'] ?? null,
                 'chuyen_khoa_id' => $chuyenKhoa['TMH'] ?? null,
                 'la_chuyen_khoa_chinh' => false,
                 'ghi_chu' => 'Ho tro hoi chan.',
@@ -30,7 +30,7 @@ class BacSiChuyenKhoaSeeder extends Seeder
                 'updated_at' => now(),
             ],
             [
-                'bac_si_id' => $bacSi['BS0002'] ?? null,
+                'bac_si_id' => $bacSi['BS-0002'] ?? null,
                 'chuyen_khoa_id' => $chuyenKhoa['NHI'] ?? null,
                 'la_chuyen_khoa_chinh' => true,
                 'ghi_chu' => null,
@@ -43,16 +43,16 @@ class BacSiChuyenKhoaSeeder extends Seeder
 
         DB::table('bac_si_chuyen_khoa')->upsert($rows, ['bac_si_id', 'chuyen_khoa_id'], ['la_chuyen_khoa_chinh', 'ghi_chu', 'updated_at']);
 
-        if (isset($bacSi['BS0001'])) {
+        if (isset($bacSi['BS-0001'])) {
             DB::table('chuyen_khoa')
                 ->where('ma_chuyen_khoa', 'NOI')
-                ->update(['truong_khoa_id' => $bacSi['BS0001'], 'updated_at' => now()]);
+            ->update(['truong_khoa_id' => $bacSi['BS-0001'], 'updated_at' => now()]);
         }
 
-        if (isset($bacSi['BS0002'])) {
+        if (isset($bacSi['BS-0002'])) {
             DB::table('chuyen_khoa')
                 ->where('ma_chuyen_khoa', 'NHI')
-                ->update(['truong_khoa_id' => $bacSi['BS0002'], 'updated_at' => now()]);
+            ->update(['truong_khoa_id' => $bacSi['BS-0002'], 'updated_at' => now()]);
         }
     }
 }

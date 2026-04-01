@@ -13,7 +13,7 @@ class BacSiNghiSeeder extends Seeder
 
         $rows = [
             [
-                'bac_si_id' => $bacSi['BS0001'] ?? null,
+                'bac_si_id' => $bacSi['BS-0001'] ?? null,
                 'ngay' => '2026-03-20',
                 'gio_bat_dau' => null,
                 'gio_ket_thuc' => null,
@@ -22,7 +22,7 @@ class BacSiNghiSeeder extends Seeder
                 'created_at' => now(),
             ],
             [
-                'bac_si_id' => $bacSi['BS0002'] ?? null,
+                'bac_si_id' => $bacSi['BS-0002'] ?? null,
                 'ngay' => '2026-03-22',
                 'gio_bat_dau' => '13:30:00',
                 'gio_ket_thuc' => '17:00:00',

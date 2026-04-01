@@ -27,9 +27,9 @@ class LichLamViecBacSiSeeder extends Seeder
             }
 
             $rows[] = [
-                'bac_si_id' => $bacSi['BS0001'] ?? null,
+                'bac_si_id' => $bacSi['BS-0001'] ?? null,
                 'lich_lam_viec_id' => $ca['CA_SANG_T' . $thu] ?? null,
-                'phong_kham_id' => $phong['PK101'] ?? null,
+                'phong_kham_id' => $phong['PK-101'] ?? null,
                 'ngay_lam_viec' => $date->format('Y-m-d'),
                 'ghi_chu' => null,
                 'trang_thai' => 'hoat_dong',
@@ -38,9 +38,9 @@ class LichLamViecBacSiSeeder extends Seeder
             ];
 
             $rows[] = [
-                'bac_si_id' => $bacSi['BS0002'] ?? null,
+                'bac_si_id' => $bacSi['BS-0002'] ?? null,
                 'lich_lam_viec_id' => $ca['CA_CHIEU_T' . $thu] ?? null,
-                'phong_kham_id' => $phong['PK201'] ?? null,
+                'phong_kham_id' => $phong['PK-201'] ?? null,
                 'ngay_lam_viec' => $date->format('Y-m-d'),
                 'ghi_chu' => null,
                 'trang_thai' => 'hoat_dong',

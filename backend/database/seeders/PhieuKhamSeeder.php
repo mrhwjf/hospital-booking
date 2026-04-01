@@ -9,17 +9,22 @@ class PhieuKhamSeeder extends Seeder
 {
     public function run(): void
     {
-        $lichHen = DB::table('lich_hen')->pluck('id', 'ma_lich_hen');
-        $benhNhan = DB::table('benh_nhan')->pluck('id', 'ma_benh_nhan');
-        $bacSi = DB::table('bac_si')->pluck('id', 'ma_bac_si');
         $users = DB::table('nguoi_dung')->pluck('id', 'email');
+
+        $appointment = DB::table('lich_hen')
+            ->where('ma_lich_hen', 'LH-20260316-07250012')
+            ->first(['id', 'benh_nhan_id', 'bac_si_id']);
+
+        if (is_null($appointment)) {
+            return;
+        }
 
         DB::table('phieu_kham')->upsert([
             [
-                'ma_phieu_kham' => 'PK0001',
-                'lich_hen_id' => $lichHen['LH0001'] ?? null,
-                'benh_nhan_id' => $benhNhan['BN0001'] ?? null,
-                'bac_si_id' => $bacSi['BS0001'] ?? null,
+                'ma_phieu_kham' => 'PK-20260316-08000032',
+                'lich_hen_id' => $appointment->id,
+                'benh_nhan_id' => $appointment->benh_nhan_id,
+                'bac_si_id' => $appointment->bac_si_id,
                 'nguoi_tao_id' => $users['doctor1@hospital.local'] ?? null,
                 'thoi_gian_tiep_nhan' => now()->subDays(1),
                 'mach' => 78,
