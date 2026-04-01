@@ -1113,7 +1113,7 @@ SELECT
     bs.hoc_vi,
     COUNT(lh.id) as tong_lich_hen,
     SUM(CASE WHEN lh.trang_thai = 'da_hoan_tat' THEN 1 ELSE 0 END) as so_ca_da_hoan_tat,
-    SUM(CASE WHEN lh.trang_thai = 'khong_den' THEN 1 ELSE 0 END) as so_ca_khong_den
+    SUM(CASE WHEN lh.trang_thai = 'khong_den' THEN  1 ELSE 0 END) as so_ca_khong_den
 FROM bac_si bs
 LEFT JOIN lich_hen lh ON bs.id = lh.bac_si_id
 GROUP BY bs.id, bs.ma_bac_si, bs.ho_ten, bs.hoc_vi;
