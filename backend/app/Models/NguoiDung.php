@@ -8,11 +8,13 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Foundation\Auth\User as Authenticatable;
+use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
 class NguoiDung extends Authenticatable
 {
-	use HasApiTokens, HasFactory;
+	use HasFactory, HasApiTokens, Notifiable;
 
 	protected $table = 'nguoi_dung';
 
@@ -25,9 +27,22 @@ class NguoiDung extends Authenticatable
 		'lan_dang_nhap_cuoi',
 	];
 
+	protected $hidden = ['mat_khau'];
+
 	protected $casts = [
 		'lan_dang_nhap_cuoi' => 'datetime',
 	];
+
+	// Ánh xạ field mật khẩu sang tên cột thực trong DB
+	public function getAuthPassword(): string
+	{
+		return $this->mat_khau;
+	}
+
+	public function getAuthPasswordName(): string
+	{
+		return 'mat_khau';
+	}
 
 	public function scopeActive(Builder $query): Builder
 	{
