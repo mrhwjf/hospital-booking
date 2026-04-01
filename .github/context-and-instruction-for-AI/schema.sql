@@ -40,9 +40,9 @@ CREATE TABLE quyen (
     ma_quyen VARCHAR(50) NOT NULL UNIQUE COMMENT 'VD: QUAN_LY_NGUOI_DUNG, XEM_BAO_CAO',
     ten_quyen VARCHAR(100) NOT NULL,
     mo_ta TEXT,
-    nhom_quyen VARCHAR(50) COMMENT 'Nhóm quyền để phân loại',
+    nhom_quyen ENUM('quan_tri', 'nguoi_dung', 'le_tan', 'bac_si', 'khac') COMMENT 'Nhóm quyền để phân loại',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    
+
     INDEX idx_ma_quyen (ma_quyen),
     INDEX idx_nhom_quyen (nhom_quyen)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -259,21 +259,21 @@ CREATE TABLE nhan_vien (
     ho_ten VARCHAR(100) NOT NULL,
     so_dien_thoai VARCHAR(15) NOT NULL,
     chuc_vu ENUM('le_tan', 'nhan_vien_y_te', 'dieu_duong') NOT NULL,
-    phong_ban VARCHAR(100),
     ngay_vao_lam DATE NOT NULL,
     trang_thai ENUM('hoat_dong', 'tam_khoa', 'nghi_viec') DEFAULT 'hoat_dong',
     ghi_chu TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    
+
     UNIQUE KEY uk_ma_nhan_vien (ma_nhan_vien),
     UNIQUE KEY uk_nguoi_dung_id (nguoi_dung_id),
     INDEX idx_chuc_vu (chuc_vu),
     INDEX idx_trang_thai (trang_thai),
-    
-    CONSTRAINT fk_nv_nguoi_dung FOREIGN KEY (nguoi_dung_id) 
+
+    CONSTRAINT fk_nv_nguoi_dung FOREIGN KEY (nguoi_dung_id)
         REFERENCES nguoi_dung(id) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
 
 -- ============================================
 -- BẢNG BÁC SĨ
@@ -492,11 +492,11 @@ CREATE TABLE lich_hen (
     benh_nhan_id INT NOT NULL,
     bac_si_id INT NOT NULL,
     chuyen_khoa_id INT NOT NULL,
-    khung_gio_id INT UNIQUE COMMENT 'Khung giờ khám đã đặt, chỉ cho 1 bệnh nhân/khung giờ',
+    khung_gio_id INT COMMENT 'Khung giờ khám đã đặt, chỉ cho 1 bệnh nhân/khung giờ',
 
     ngay_hen DATE NOT NULL,
     ly_do_kham TEXT,
-    
+
     trang_thai ENUM('dang_cho', 'da_thanh_toan', 'da_xac_nhan', 'da_hoan_tat', 'da_huy', 'khong_den') DEFAULT 'dang_cho',
     nguoi_tao_id INT COMMENT 'Người tạo lịch hẹn, có thể là bệnh nhân hoặc nhân viên lễ tân',
     gio_den_thuc_te TIME COMMENT 'Giờ check-in thực tế',
@@ -509,7 +509,7 @@ CREATE TABLE lich_hen (
     ghi_chu_noi_bo TEXT COMMENT 'Ghi chú chỉ nhân viên thấy',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    
+
     UNIQUE KEY uk_ma_lich_hen (ma_lich_hen),
     INDEX idx_benh_nhan_id (benh_nhan_id),
     INDEX idx_bac_si_id (bac_si_id),
@@ -520,20 +520,20 @@ CREATE TABLE lich_hen (
     INDEX idx_benh_nhan_ngay (benh_nhan_id, ngay_hen),
     INDEX idx_nguoi_tao_id (nguoi_tao_id),
     INDEX idx_nguoi_tiep_nhan_id (nguoi_tiep_nhan_id),
-    
-    CONSTRAINT fk_lh_benh_nhan FOREIGN KEY (benh_nhan_id) 
+
+    CONSTRAINT fk_lh_benh_nhan FOREIGN KEY (benh_nhan_id)
         REFERENCES benh_nhan(id) ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT fk_lh_bac_si FOREIGN KEY (bac_si_id) 
+    CONSTRAINT fk_lh_bac_si FOREIGN KEY (bac_si_id)
         REFERENCES bac_si(id) ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT fk_lh_chuyen_khoa FOREIGN KEY (chuyen_khoa_id) 
+    CONSTRAINT fk_lh_chuyen_khoa FOREIGN KEY (chuyen_khoa_id)
         REFERENCES chuyen_khoa(id) ON DELETE RESTRICT ON UPDATE CASCADE,
-    CONSTRAINT fk_lh_khung_gio FOREIGN KEY (khung_gio_id) 
+    CONSTRAINT fk_lh_khung_gio FOREIGN KEY (khung_gio_id)
         REFERENCES khung_gio_kham(id) ON DELETE SET NULL ON UPDATE CASCADE,
-    CONSTRAINT fk_lh_nguoi_tao FOREIGN KEY (nguoi_tao_id) 
+    CONSTRAINT fk_lh_nguoi_tao FOREIGN KEY (nguoi_tao_id)
         REFERENCES nguoi_dung(id) ON DELETE SET NULL ON UPDATE CASCADE,
     CONSTRAINT fk_lh_nguoi_tiep_nhan FOREIGN KEY (nguoi_tiep_nhan_id)
         REFERENCES nguoi_dung(id) ON DELETE SET NULL ON UPDATE CASCADE,
-    CONSTRAINT fk_lh_ly_do_huy FOREIGN KEY (ly_do_huy_id) 
+    CONSTRAINT fk_lh_ly_do_huy FOREIGN KEY (ly_do_huy_id)
         REFERENCES ly_do_huy(id) ON DELETE SET NULL ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -665,6 +665,7 @@ CREATE TABLE chi_dinh (
     bac_si_id INT NOT NULL COMMENT 'Bác sĩ chỉ định',
 
     dich_vu_id INT NULL,
+    goi_kham_id INT NULL,
 
     so_luong INT DEFAULT 1 COMMENT 'Số lượng chỉ định',
 
@@ -673,17 +674,19 @@ CREATE TABLE chi_dinh (
     ghi_chu TEXT COMMENT 'Ghi chú cho chỉ định',
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    
+
     INDEX idx_phieu_kham_id (phieu_kham_id),
     INDEX idx_bac_si_id (bac_si_id),
     INDEX idx_dich_vu_id (dich_vu_id),
     INDEX idx_trang_thai (trang_thai),
     INDEX idx_ngay_chi_dinh (ngay_chi_dinh),
-    
-    CONSTRAINT fk_cdxn_phieu_kham FOREIGN KEY (phieu_kham_id) 
+
+    CONSTRAINT fk_cdxn_phieu_kham FOREIGN KEY (phieu_kham_id)
         REFERENCES phieu_kham(id) ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT fk_cdxn_dich_vu FOREIGN KEY (dich_vu_id) 
-        REFERENCES dich_vu(id) ON DELETE RESTRICT ON UPDATE CASCADE
+    CONSTRAINT fk_cdxn_dich_vu FOREIGN KEY (dich_vu_id)
+        REFERENCES dich_vu(id) ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT fk_cdxn_goi_kham FOREIGN KEY (goi_kham_id)
+        REFERENCES goi_kham(id) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================
@@ -696,10 +699,10 @@ CREATE TABLE tai_lieu_ho_so (
     id INT AUTO_INCREMENT PRIMARY KEY,
     ma_tai_lieu VARCHAR(20) NOT NULL UNIQUE COMMENT 'VD: TL20240116001',
     phieu_kham_id INT NOT NULL,
-    
+
     loai_tai_lieu ENUM(
         'ket_qua_xet_nghiem',
-        'ket_qua_sieu_am', 
+        'ket_qua_sieu_am',
         'ket_qua_xquang',
         'ket_qua_ct_scan',
         'ket_qua_mri',
@@ -709,22 +712,21 @@ CREATE TABLE tai_lieu_ho_so (
         'giay_ra_vien',
         'khac'
     ) NOT NULL,
-    
+
     ten_tai_lieu VARCHAR(200) NOT NULL,
-    file_url VARCHAR(500) NOT NULL COMMENT 'URL file trên cloud storage',
-    file_name VARCHAR(255) NOT NULL COMMENT 'Tên file gốc',
+    file_public_id VARCHAR(500) NOT NULL COMMENT 'Cloudinary public_id của tài liệu',
     ngay_tao DATE NOT NULL,
     ghi_chu TEXT,
-    
+
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-    
+
     UNIQUE KEY uk_ma_tai_lieu (ma_tai_lieu),
     INDEX idx_phieu_kham_id (phieu_kham_id),
     INDEX idx_loai_tai_lieu (loai_tai_lieu),
     INDEX idx_ngay_tao (ngay_tao),
-    
-    CONSTRAINT fk_tl_phieu_kham FOREIGN KEY (phieu_kham_id) 
+
+    CONSTRAINT fk_tl_phieu_kham FOREIGN KEY (phieu_kham_id)
         REFERENCES phieu_kham(id) ON DELETE CASCADE ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
@@ -862,16 +864,16 @@ INSERT INTO vai_tro (ma_vai_tro, ten_vai_tro, mo_ta) VALUES
 
 -- Thêm quyền mặc định
 INSERT INTO quyen (ma_quyen, ten_quyen, nhom_quyen) VALUES
-('QUAN_LY_NGUOI_DUNG', 'Quản lý người dùng', 'Quản lý'),
-('QUAN_LY_BAC_SI', 'Quản lý bác sĩ', 'Quản lý'),
-('QUAN_LY_CHUYEN_KHOA', 'Quản lý chuyên khoa', 'Quản lý'),
-('QUAN_LY_LICH_HEN', 'Quản lý lịch hẹn', 'Nghiệp vụ'),
-('XEM_BAO_CAO', 'Xem báo cáo', 'Báo cáo'),
-('CAU_HINH_HE_THONG', 'Cấu hình hệ thống', 'Hệ thống'),
-('XEM_NHAT_KY', 'Xem nhật ký hoạt động', 'Hệ thống'),
-('DAT_LICH_KHAM', 'Đặt lịch khám', 'Nghiệp vụ'),
-('KHAM_BENH', 'Khám bệnh', 'Nghiệp vụ'),
-('KE_DON_THUOC', 'Kê đơn thuốc', 'Nghiệp vụ');
+('QUAN_LY_NGUOI_DUNG', 'Quản lý người dùng', 'quan_tri'),
+('QUAN_LY_BAC_SI', 'Quản lý bác sĩ', 'quan_tri'),
+('QUAN_LY_CHUYEN_KHOA', 'Quản lý chuyên khoa', 'quan_tri'),
+('QUAN_LY_LICH_HEN', 'Quản lý lịch hẹn', 'le_tan'),
+('XEM_BAO_CAO', 'Xem báo cáo', 'quan_tri'),
+('CAU_HINH_HE_THONG', 'Cấu hình hệ thống', 'quan_tri'),
+('XEM_NHAT_KY', 'Xem nhật ký hoạt động', 'quan_tri'),
+('DAT_LICH_KHAM', 'Đặt lịch khám', 'nguoi_dung'),
+('KHAM_BENH', 'Khám bệnh', 'bac_si'),
+('KE_DON_THUOC', 'Kê đơn thuốc', 'bac_si');
 
 -- Gán quyền cho vai trò Admin
 INSERT INTO vai_tro_quyen (vai_tro_id, quyen_id)

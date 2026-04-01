@@ -665,6 +665,7 @@ CREATE TABLE chi_dinh (
     bac_si_id INT NOT NULL COMMENT 'Bác sĩ chỉ định',
 
     dich_vu_id INT NULL,
+    goi_kham_id INT NULL,
 
     so_luong INT DEFAULT 1 COMMENT 'Số lượng chỉ định',
 
@@ -683,7 +684,9 @@ CREATE TABLE chi_dinh (
     CONSTRAINT fk_cdxn_phieu_kham FOREIGN KEY (phieu_kham_id) 
         REFERENCES phieu_kham(id) ON DELETE CASCADE ON UPDATE CASCADE,
     CONSTRAINT fk_cdxn_dich_vu FOREIGN KEY (dich_vu_id) 
-        REFERENCES dich_vu(id) ON DELETE RESTRICT ON UPDATE CASCADE
+        REFERENCES dich_vu(id) ON DELETE RESTRICT ON UPDATE CASCADE,
+    CONSTRAINT fk_cdxn_goi_kham FOREIGN KEY (goi_kham_id) 
+        REFERENCES goi_kham(id) ON DELETE RESTRICT ON UPDATE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 -- ============================================

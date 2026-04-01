@@ -17,3 +17,14 @@ use Illuminate\Support\Facades\Route;
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
+
+/*
+|--------------------------------------------------------------------------
+| V1 API Routes
+|--------------------------------------------------------------------------
+*/
+Route::prefix('v1')->group(function () {
+    require base_path('routes/api/v1/admin.php');
+    require base_path('routes/api/v1/cloudinary.php');
+    require base_path('routes/api/v1/reports.php');
+});
