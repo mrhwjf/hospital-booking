@@ -8,7 +8,7 @@ const httpClient = axios.create({
 // Request interceptor - Thêm authorization token
 httpClient.interceptors.request.use(
     (config) => {
-        const token = localStorage.getItem('token');
+        const token = localStorage.getItem('auth_token');
         if (token) {
             config.headers.Authorization = `Bearer ${token}`;
         }
@@ -17,9 +17,9 @@ httpClient.interceptors.request.use(
     (error) => Promise.reject(error)
 );
 
-// Response interceptor - Giữ response structure từ Laravel
+// Response interceptor - Trả về response.data để đơn giản
 httpClient.interceptors.response.use(
-    (response) => response,
+    (response) => response.data,
     (error) => Promise.reject(error),
 )
 

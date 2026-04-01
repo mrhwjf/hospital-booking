@@ -17,7 +17,9 @@ import httpClient from './httpClient';
  * @throws {Error} API error or network error
  */
 export const getPatientDashboard = () => {
-  return httpClient.get('/dashboard/patient');
+  return httpClient.get('/dashboard/patient').then((response) => {
+    return response?.data ?? response;
+  });
 };
 
 /**
@@ -62,7 +64,7 @@ export const getTestToken = async () => {
       // Save token to localStorage
       localStorage.setItem('auth_token', data.data.access_token);
       localStorage.setItem('test_mode', 'true');
-      
+
       console.log('✅ Test token created:', {
         user: data.data.email,
         patient: data.data.ma_benh_nhan
@@ -91,7 +93,7 @@ export const getTestDashboard = async () => {
   try {
     // Get test token
     const tokenData = await getTestToken();
-    
+
     // Set auth header with test token
     const response = await fetch('/api/v1/dashboard/patient', {
       headers: {

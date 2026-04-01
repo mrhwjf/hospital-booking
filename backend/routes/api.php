@@ -40,8 +40,8 @@ Route::prefix('services')->middleware('role:public')->group(function () {
 });
 
 Route::prefix('v1')->group(function () {
-   // require __DIR__.'/api/v1/auth.php';
-    require __DIR__.'/api/v1/patients.php';
-    require __DIR__.'/api/v1/profile.php';
-    require __DIR__.'/api/v1/dashboard.php';
+    require __DIR__ . '/api/v1/auth.php';
+    require __DIR__ . '/api/v1/patients.php';
+    require __DIR__ . '/api/v1/profile.php';
+    require __DIR__ . '/api/v1/dashboard.php';
 });

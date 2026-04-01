@@ -1,72 +1,77 @@
-import { useState } from 'react';
-import { Dropdown, Button, Avatar } from 'antd';
-import { UserOutlined, LogoutOutlined } from '@ant-design/icons';
-import { Link, useLocation, Outlet } from 'react-router-dom';
+import { useState } from "react";
+import { Dropdown, Button, Avatar } from "antd";
+import { UserOutlined, LogoutOutlined } from "@ant-design/icons";
+import { Link, useLocation, Outlet } from "react-router-dom";
 
 export default function PatientLayout() {
   const location = useLocation();
   const [user] = useState({
-    name: 'Nguyễn Văn A',
-    email: 'user@example.com'
+    name: "Nguyễn Văn A",
+    email: "user@example.com",
   });
 
   // Menu items cho Profile dropdown
   const profileMenuItems = [
     {
-      key: '1',
-      label: 'Thông tin cá nhân',
-      onClick: () => window.location.href = '/patient/profile'
+      key: "1",
+      label: "Thông tin cá nhân",
+      onClick: () => (window.location.href = "/patient/profile"),
     },
     {
-      key: '2',
-      label: 'Thông tin tài khoản',
-      onClick: () => window.location.href = '/patient/account'
+      key: "2",
+      label: "Thông tin tài khoản",
+      onClick: () => (window.location.href = "/patient/account"),
     },
     {
-      type: 'divider'
+      type: "divider",
     },
     {
-      key: '3',
-      label: 'Đăng xuất',
+      key: "3",
+      label: "Đăng xuất",
       icon: <LogoutOutlined />,
       danger: true,
       onClick: () => {
         // Handle logout
-        localStorage.removeItem('token');
-        window.location.href = '/login';
-      }
-    }
+        localStorage.removeItem("auth_token");
+        localStorage.removeItem("vai_tro");
+        localStorage.removeItem("user_id");
+        localStorage.removeItem("user_name");
+        localStorage.removeItem("payload");
+        window.location.href = "/login";
+      },
+    },
   ];
 
   // Menu items cho Navigation dropdown (Hồ sơ)
   const profileNavMenuItems = [
     {
-      key: '1',
-      label: 'Thông tin cá nhân',
-      onClick: () => window.location.href = '/patient/profile'
+      key: "1",
+      label: "Thông tin cá nhân",
+      onClick: () => (window.location.href = "/patient/profile"),
     },
     {
-      key: '2',
-      label: 'Thông tin tài khoản',
-      onClick: () => window.location.href = '/patient/account'
-    }
+      key: "2",
+      label: "Thông tin tài khoản",
+      onClick: () => (window.location.href = "/patient/account"),
+    },
   ];
 
   // Menu items cho Khám phá dropdown
   const exploreMenuItems = [
     {
-      key: '1',
-      label: 'Chuyên khoa & Bác sĩ',
-      onClick: () => window.location.href = '/explore'
+      key: "1",
+      label: "Chuyên khoa & Bác sĩ",
+      onClick: () => (window.location.href = "/explore"),
     },
     {
-      key: '2',
-      label: 'Dịch vụ & Gói khám',
-      onClick: () => window.location.href = '/services'
-    }
+      key: "2",
+      label: "Dịch vụ & Gói khám",
+      onClick: () => (window.location.href = "/services"),
+    },
   ];
 
-  const isActive = (path) => location.pathname === path || location.pathname.startsWith(path + '/');
+  const isActive = (path) =>
+    location.pathname === path || location.pathname.startsWith(path + "/");
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
@@ -76,65 +81,60 @@ export default function PatientLayout() {
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
             <Link to="/" className="flex items-center gap-2 flex-shrink-0">
-              <img 
-                src="/logo3.png" 
-                alt="Healthcare Logo" 
+              <img
+                src="/logo3.png"
+                alt="Healthcare Logo"
                 className="h-65 w-auto"
               />
-              
             </Link>
 
             {/* Navigation - Căn phải */}
             <nav className="hidden md:flex items-center gap-6 ml-auto mr-6">
-              <Link 
+              <Link
                 to="/"
                 className={`text-sm font-medium transition-colors ${
-                  isActive('/') && location.pathname === '/'
-                    ? 'text-teal-700' 
-                    : 'text-gray-600 hover:text-teal-700'
-                }`}
-              >
+                  isActive("/") && location.pathname === "/"
+                    ? "text-teal-700"
+                    : "text-gray-600 hover:text-teal-700"
+                }`}>
                 Giới thiệu
               </Link>
 
               {/* Khám phá Dropdown */}
-              <Dropdown 
-                menu={{ items: exploreMenuItems }}
-                trigger={['click']}
-              >
-                <button className={`text-sm font-medium transition-colors cursor-pointer flex items-center gap-1 ${
-                  isActive('/explore') || isActive('/services')
-                    ? 'text-teal-700'
-                    : 'text-gray-600 hover:text-teal-700'
-                }`}>
+              <Dropdown menu={{ items: exploreMenuItems }} trigger={["click"]}>
+                <button
+                  className={`text-sm font-medium transition-colors cursor-pointer flex items-center gap-1 ${
+                    isActive("/explore") || isActive("/services")
+                      ? "text-teal-700"
+                      : "text-gray-600 hover:text-teal-700"
+                  }`}>
                   Khám phá
                   <span className="text-xs">▾</span>
                 </button>
               </Dropdown>
 
               {/* Hồ sơ Dropdown */}
-              <Dropdown 
+              <Dropdown
                 menu={{ items: profileNavMenuItems }}
-                trigger={['click']}
-              >
-                <button className={`text-sm font-medium transition-colors cursor-pointer flex items-center gap-1 ${
-                  isActive('/patient')
-                    ? 'text-teal-700'
-                    : 'text-gray-600 hover:text-teal-700'
-                }`}>
+                trigger={["click"]}>
+                <button
+                  className={`text-sm font-medium transition-colors cursor-pointer flex items-center gap-1 ${
+                    isActive("/patient")
+                      ? "text-teal-700"
+                      : "text-gray-600 hover:text-teal-700"
+                  }`}>
                   Hồ sơ
                   <span className="text-xs">▾</span>
                 </button>
               </Dropdown>
 
-              <Link 
+              <Link
                 to="/booking"
                 className={`text-sm font-medium transition-colors ${
-                  isActive('/booking') 
-                    ? 'text-teal-700' 
-                    : 'text-gray-600 hover:text-teal-700'
-                }`}
-              >
+                  isActive("/booking")
+                    ? "text-teal-700"
+                    : "text-gray-600 hover:text-teal-700"
+                }`}>
                 Đặt khám
               </Link>
             </nav>
@@ -142,12 +142,11 @@ export default function PatientLayout() {
             {/* Right Actions */}
             <div className="flex items-center gap-4">
               {/* Avatar with Dropdown */}
-              <Dropdown 
+              <Dropdown
                 menu={{ items: profileMenuItems }}
-                trigger={['click']}
-                placement="bottomRight"
-              >
-                <Avatar 
+                trigger={["click"]}
+                placement="bottomRight">
+                <Avatar
                   size={40}
                   icon={<UserOutlined />}
                   className="bg-teal-600 cursor-pointer hover:opacity-80 transition-opacity"
@@ -156,8 +155,17 @@ export default function PatientLayout() {
 
               {/* Mobile Menu Button */}
               <button className="md:hidden text-gray-600">
-                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+                <svg
+                  className="w-6 h-6"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4 6h16M4 12h16M4 18h16"
+                  />
                 </svg>
               </button>
             </div>
@@ -177,11 +185,21 @@ export default function PatientLayout() {
           <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
             {/* Company Info */}
             <div>
-              <h3 className="text-black font-bold text-lg mb-4">CÔNG TY TNHH HEALTHCARE VIỆT NAM</h3>
+              <h3 className="text-black font-bold text-lg mb-4">
+                CÔNG TY TNHH HEALTHCARE VIỆT NAM
+              </h3>
               <div className="space-y-2 text-sm">
-                <p><strong>VPĐD:</strong> 3/1 Thành Thái, Phường Diên Hồng, TP. HCM</p>
-                <p><strong>Hotline:</strong> 1900-2805 (8:00 - 17:30 từ T2 đến T7)</p>
-                <p><strong>Số ĐKKD:</strong> 0315268642</p>
+                <p>
+                  <strong>VPĐD:</strong> 3/1 Thành Thái, Phường Diên Hồng, TP.
+                  HCM
+                </p>
+                <p>
+                  <strong>Hotline:</strong> 1900-2805 (8:00 - 17:30 từ T2 đến
+                  T7)
+                </p>
+                <p>
+                  <strong>Số ĐKKD:</strong> 0315268642
+                </p>
               </div>
             </div>
 
@@ -189,10 +207,34 @@ export default function PatientLayout() {
             <div>
               <h3 className="text-black font-bold mb-4">Về Healthcare</h3>
               <ul className="space-y-2 text-sm">
-                <li><a href="#" className="text-black hover:text-gray-700 transition-colors">Giới thiệu về Healthcare</a></li>
-                <li><a href="#" className="text-black hover:text-gray-700 transition-colors">Ban điều hành</a></li>
-                <li><a href="#" className="text-black hover:text-gray-700 transition-colors">Nhân sự & Tuyển dụng</a></li>
-                <li><a href="#" className="text-black hover:text-gray-700 transition-colors">Liên hệ</a></li>
+                <li>
+                  <a
+                    href="#"
+                    className="text-black hover:text-gray-700 transition-colors">
+                    Giới thiệu về Healthcare
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="#"
+                    className="text-black hover:text-gray-700 transition-colors">
+                    Ban điều hành
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="#"
+                    className="text-black hover:text-gray-700 transition-colors">
+                    Nhân sự & Tuyển dụng
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="#"
+                    className="text-black hover:text-gray-700 transition-colors">
+                    Liên hệ
+                  </a>
+                </li>
               </ul>
             </div>
 
@@ -200,10 +242,34 @@ export default function PatientLayout() {
             <div>
               <h3 className="text-black font-bold mb-4">Dịch vụ</h3>
               <ul className="space-y-2 text-sm">
-                <li><a href="#" className="text-black hover:text-gray-700 transition-colors">Đặt khám Bác sĩ</a></li>
-                <li><a href="#" className="text-black hover:text-gray-700 transition-colors">Đặt khám Bệnh viện</a></li>
-                <li><a href="#" className="text-black hover:text-gray-700 transition-colors">Đặt khám Phòng khám</a></li>
-                <li><a href="#" className="text-black hover:text-gray-700 transition-colors">Y360</a></li>
+                <li>
+                  <a
+                    href="#"
+                    className="text-black hover:text-gray-700 transition-colors">
+                    Đặt khám Bác sĩ
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="#"
+                    className="text-black hover:text-gray-700 transition-colors">
+                    Đặt khám Bệnh viện
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="#"
+                    className="text-black hover:text-gray-700 transition-colors">
+                    Đặt khám Phòng khám
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="#"
+                    className="text-black hover:text-gray-700 transition-colors">
+                    Y360
+                  </a>
+                </li>
               </ul>
             </div>
 
@@ -211,10 +277,34 @@ export default function PatientLayout() {
             <div>
               <h3 className="text-black font-bold mb-4">Hỗ trợ</h3>
               <ul className="space-y-2 text-sm">
-                <li><a href="#" className="text-black hover:text-gray-700 transition-colors">Điều khoản sử dụng</a></li>
-                <li><a href="#" className="text-black hover:text-gray-700 transition-colors">Chính sách bảo mật</a></li>
-                <li><a href="#" className="text-black hover:text-gray-700 transition-colors">Chính sách giải quyết khiếu nại</a></li>
-                <li><a href="mailto:cskh@healthcare.vn" className="text-black hover:text-gray-700 transition-colors">cskh@healthcare.vn</a></li>
+                <li>
+                  <a
+                    href="#"
+                    className="text-black hover:text-gray-700 transition-colors">
+                    Điều khoản sử dụng
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="#"
+                    className="text-black hover:text-gray-700 transition-colors">
+                    Chính sách bảo mật
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="#"
+                    className="text-black hover:text-gray-700 transition-colors">
+                    Chính sách giải quyết khiếu nại
+                  </a>
+                </li>
+                <li>
+                  <a
+                    href="mailto:cskh@healthcare.vn"
+                    className="text-black hover:text-gray-700 transition-colors">
+                    cskh@healthcare.vn
+                  </a>
+                </li>
               </ul>
             </div>
           </div>
@@ -249,14 +339,13 @@ export default function PatientLayout() {
           {/* Bottom Text */}
           <div className="border-t border-gray-300 pt-8 text-center text-sm text-black">
             <p className="mb-4">
-              Các thông tin trên Healthcare chỉ dành cho mục đích tham khảo, tra cứu và không thay thế cho việc chẩn đoán hoặc điều trị y khoa.
+              Các thông tin trên Healthcare chỉ dành cho mục đích tham khảo, tra
+              cứu và không thay thế cho việc chẩn đoán hoặc điều trị y khoa.
             </p>
             <p className="mb-4">
               Cần tuyết đối tuân theo hướng dẫn của Bác sĩ và Nhân viên y tế.
             </p>
-            <p>
-              Copyright © 2018 - 2026 Công ty TNHH YouMed Việt Nam.
-            </p>
+            <p>Copyright © 2018 - 2026 Công ty TNHH YouMed Việt Nam.</p>
           </div>
         </div>
       </footer>

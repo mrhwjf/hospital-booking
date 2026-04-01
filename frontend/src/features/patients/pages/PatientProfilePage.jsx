@@ -1,5 +1,8 @@
 import { useEffect, useState, useCallback } from "react";
-import { getPatientProfileTest, updatePatientProfile } from "../../../api/patientApi";
+import {
+  getPatientProfile,
+  updatePatientProfile,
+} from "../../../api/patientApi";
 
 export default function PatientProfilePage() {
   const [profile, setProfile] = useState({});
@@ -9,34 +12,30 @@ export default function PatientProfilePage() {
   const [saving, setSaving] = useState(false);
   const [successMessage, setSuccessMessage] = useState("");
 
-  useEffect(() => {
-    fetchProfile();
-  }, []);
-
   const fetchProfile = useCallback(async () => {
     try {
       setLoading(true);
       setErrors({});
-      // Test endpoint - sử dụng bệnh nhân ID 1
-      const data = await getPatientProfileTest(1);
-      
-      if (data && data.data) {
-        const profileData = data.data;
-        // Format ngay_sinh để hiển thị đúng trong input date
-        if (profileData.ngay_sinh) {
-          profileData.ngay_sinh = profileData.ngay_sinh.split('T')[0]; // Lấy phần YYYY-MM-DD
-        }
-        setProfile(profileData || {});
-      } else {
-        setErrors({ general: "Lỗi tải hồ sơ" });
+      const data = await getPatientProfile();
+
+      if (data?.ngay_sinh) {
+        data.ngay_sinh = data.ngay_sinh.split("T")[0];
       }
+
+      setProfile(data || {});
     } catch (e) {
       console.error("Lỗi tải hồ sơ:", e);
-      setErrors({ general: e.message || "Không thể tải hồ sơ. Vui lòng thử lại." });
+      setErrors({
+        general: e.message || "Không thể tải hồ sơ. Vui lòng thử lại.",
+      });
     } finally {
       setLoading(false);
     }
   }, []);
+
+  useEffect(() => {
+    fetchProfile();
+  }, [fetchProfile]);
 
   const handleChange = useCallback((e) => {
     const { name, value } = e.target;
@@ -49,7 +48,8 @@ export default function PatientProfilePage() {
   const validate = useCallback(() => {
     const errs = {};
     if (!profile.ho_ten?.trim()) errs.ho_ten = "Họ tên là bắt buộc";
-    if (!profile.so_dien_thoai?.trim()) errs.so_dien_thoai = "Số điện thoại là bắt buộc";
+    if (!profile.so_dien_thoai?.trim())
+      errs.so_dien_thoai = "Số điện thoại là bắt buộc";
     if (!profile.ngay_sinh?.trim()) errs.ngay_sinh = "Ngày sinh là bắt buộc";
     if (profile.email?.trim()) {
       const re = /^[^\@\s]+@[^\@\s]+\.[^\@\s]+$/;
@@ -64,38 +64,30 @@ export default function PatientProfilePage() {
     try {
       setSaving(true);
       setSuccessMessage("");
-      
+
       // Chuẩn bị dữ liệu trước khi gửi
       const dataToSave = { ...profile };
-      
-      // Gọi API update
-      const res = await updatePatientProfile(dataToSave);
-      
-      if (res.data.success || res.data) {
-        setEditing(false);
-        setSuccessMessage("Cập nhật hồ sơ thành công!");
-        
-        // Clear success message sau 3 giây
-        setTimeout(() => setSuccessMessage(""), 3000);
-        
-        // Cập nhật lại dữ liệu từ response
-        const data = res.data.data || res.data;
-        if (data.ngay_sinh) {
-          data.ngay_sinh = data.ngay_sinh.split('T')[0];
-        }
-        setProfile(data);
-      } else {
-        setErrors({ general: res.data.message || "Lỗi cập nhật" });
+
+      const updated = await updatePatientProfile(dataToSave);
+
+      if (updated?.ngay_sinh) {
+        updated.ngay_sinh = updated.ngay_sinh.split("T")[0];
       }
+
+      setEditing(false);
+      setSuccessMessage("Cập nhật hồ sơ thành công!");
+      setTimeout(() => setSuccessMessage(""), 3000);
+      setProfile(updated || dataToSave);
     } catch (e) {
       console.error("Lỗi lưu:", e);
-      
-      if (e.response?.status === 401) {
-        setErrors({ general: "⚠️ Phiên đăng nhập hết hạn. Vui lòng đăng nhập lại." });
-      } else if (e.response?.status === 422) {
-        setErrors({ general: "❌ Dữ liệu không hợp lệ. Vui lòng kiểm tra lại." });
+
+      if (e.message?.includes("422")) {
+        setErrors({
+          general: "❌ Dữ liệu không hợp lệ. Vui lòng kiểm tra lại thông tin.",
+        });
       } else {
-        const errMsg = e.response?.data?.message || "Không thể cập nhật hồ sơ. Vui lòng thử lại.";
+        const errMsg =
+          e.message || "Không thể cập nhật hồ sơ. Vui lòng thử lại.";
         setErrors({ general: errMsg });
       }
     } finally {
@@ -146,14 +138,17 @@ export default function PatientProfilePage() {
       {/* Header */}
       <div className="mb-6 flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-900">Hồ sơ bệnh nhân</h1>
-          <p className="text-sm text-slate-600 mt-1">Quản lý và cập nhật thông tin chi tiết của bệnh nhân</p>
+          <h1 className="text-2xl font-semibold text-slate-900">
+            Hồ sơ bệnh nhân
+          </h1>
+          <p className="text-sm text-slate-600 mt-1">
+            Quản lý và cập nhật thông tin chi tiết của bệnh nhân
+          </p>
         </div>
         {!editing && (
           <button
             onClick={() => setEditing(true)}
-            className="px-4 py-2 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2"
-          >
+            className="px-4 py-2 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2">
             <span>✎</span> Cập nhật thông tin
           </button>
         )}
@@ -161,8 +156,7 @@ export default function PatientProfilePage() {
           <button
             onClick={handleCancel}
             disabled={saving}
-            className="px-4 py-2 text-slate-600 font-medium rounded-lg hover:bg-slate-100 transition-colors disabled:opacity-50"
-          >
+            className="px-4 py-2 text-slate-600 font-medium rounded-lg hover:bg-slate-100 transition-colors disabled:opacity-50">
             Hủy
           </button>
         )}
@@ -176,7 +170,9 @@ export default function PatientProfilePage() {
         <div className={cardClass}>
           <div className="flex items-center gap-2 mb-4">
             <span className="text-xl text-teal-700">👤</span>
-            <h2 className="text-lg font-semibold text-slate-900">Thông tin cơ bản</h2>
+            <h2 className="text-lg font-semibold text-slate-900">
+              Thông tin cơ bản
+            </h2>
           </div>
 
           <div className="space-y-4">
@@ -230,7 +226,9 @@ export default function PatientProfilePage() {
                   disabled={!editing}
                   onChange={handleChange}
                 />
-                {errors.ngay_sinh && <p className={errorClass}>{errors.ngay_sinh}</p>}
+                {errors.ngay_sinh && (
+                  <p className={errorClass}>{errors.ngay_sinh}</p>
+                )}
               </div>
               <div>
                 <label className={labelClass}>Giới tính</label>
@@ -239,8 +237,7 @@ export default function PatientProfilePage() {
                   name="gioi_tinh"
                   value={profile.gioi_tinh || ""}
                   disabled={!editing}
-                  onChange={handleChange}
-                >
+                  onChange={handleChange}>
                   <option value="">Chọn</option>
                   <option value="nam">Nam</option>
                   <option value="nu">Nữ</option>
@@ -255,29 +252,33 @@ export default function PatientProfilePage() {
         <div className={cardClass}>
           <div className="flex items-center gap-2 mb-4">
             <span className="text-xl text-teal-700">⚕️</span>
-            <h2 className="text-lg font-semibold text-slate-900">Thông tin y tế</h2>
+            <h2 className="text-lg font-semibold text-slate-900">
+              Thông tin y tế
+            </h2>
           </div>
 
           <div className="space-y-4">
             <div>
               <label className={labelClass}>Nhóm máu</label>
               <div className="flex gap-2 flex-wrap">
-                {["O+", "O-", "A+", "A-", "B+", "B-", "AB+", "AB-"].map((blood) => (
-                  <button
-                    key={blood}
-                    onClick={() => {
-                      if (editing) setProfile({ ...profile, nhom_mau: blood });
-                    }}
-                    disabled={!editing}
-                    className={`px-3 py-2 rounded-lg font-medium transition-colors ${
-                      profile.nhom_mau === blood
-                        ? "bg-teal-700 text-white"
-                        : "bg-slate-100 text-slate-900 border border-slate-200"
-                    } ${!editing ? "cursor-default" : "cursor-pointer hover:bg-slate-200"}`}
-                  >
-                    {blood}
-                  </button>
-                ))}
+                {["O+", "O-", "A+", "A-", "B+", "B-", "AB+", "AB-"].map(
+                  (blood) => (
+                    <button
+                      key={blood}
+                      onClick={() => {
+                        if (editing)
+                          setProfile({ ...profile, nhom_mau: blood });
+                      }}
+                      disabled={!editing}
+                      className={`px-3 py-2 rounded-lg font-medium transition-colors ${
+                        profile.nhom_mau === blood
+                          ? "bg-teal-700 text-white"
+                          : "bg-slate-100 text-slate-900 border border-slate-200"
+                      } ${!editing ? "cursor-default" : "cursor-pointer hover:bg-slate-200"}`}>
+                      {blood}
+                    </button>
+                  ),
+                )}
               </div>
             </div>
 
@@ -328,7 +329,9 @@ export default function PatientProfilePage() {
         <div className={cardClass}>
           <div className="flex items-center gap-2 mb-4">
             <span className="text-xl text-teal-700">📞</span>
-            <h2 className="text-lg font-semibold text-slate-900">Thông tin liên hệ</h2>
+            <h2 className="text-lg font-semibold text-slate-900">
+              Thông tin liên hệ
+            </h2>
           </div>
 
           <div className="space-y-4">
@@ -344,7 +347,9 @@ export default function PatientProfilePage() {
                   onChange={handleChange}
                   placeholder="0901 234 567"
                 />
-                {errors.so_dien_thoai && <p className={errorClass}>{errors.so_dien_thoai}</p>}
+                {errors.so_dien_thoai && (
+                  <p className={errorClass}>{errors.so_dien_thoai}</p>
+                )}
               </div>
               <div>
                 <label className={labelClass}>Email</label>
@@ -380,7 +385,9 @@ export default function PatientProfilePage() {
         <div className={cardClass}>
           <div className="flex items-center gap-2 mb-4">
             <span className="text-xl text-teal-700">🆘</span>
-            <h2 className="text-lg font-semibold text-slate-900">Liên hệ khẩn cấp</h2>
+            <h2 className="text-lg font-semibold text-slate-900">
+              Liên hệ khẩn cấp
+            </h2>
           </div>
 
           <div className="space-y-4">
@@ -419,15 +426,13 @@ export default function PatientProfilePage() {
           <button
             onClick={handleCancel}
             disabled={saving}
-            className="px-6 py-2 border border-slate-300 text-slate-900 font-medium rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-          >
+            className="px-6 py-2 border border-slate-300 text-slate-900 font-medium rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
             Hủy
           </button>
           <button
             onClick={handleSave}
             disabled={saving}
-            className="px-6 py-2 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
-          >
+            className="px-6 py-2 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
             {saving ? (
               <>
                 <span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full"></span>

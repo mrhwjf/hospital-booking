@@ -1,32 +1,27 @@
-import { useRef, useState } from "react";
+﻿import { useEffect, useRef, useState } from "react";
 import { Checkbox, ConfigProvider, Input, Modal } from "antd";
+import { changePassword, getMe, updateMe } from "../../api/authApi";
 
 const DEFAULT_AVATAR =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Crect width='128' height='128' rx='64' fill='%23E2E8F0'/%3E%3Ccircle cx='64' cy='48' r='22' fill='%2394A3B8'/%3E%3Cpath d='M24 110c4-21 20-34 40-34s36 13 40 34' fill='%2394A3B8'/%3E%3C/svg%3E";
 
 const INITIAL_PROFILE = {
-  fullName: "Nguyễn Văn A",
-  email: "nguyenvana@example.com",
+  fullName: "",
+  email: "",
 };
 
 const INITIAL_PASSWORDS = {
-  currentPassword: "Hoangphuong9812113",
+  currentPassword: "",
   newPassword: "",
   confirmPassword: "",
 };
 
 const COLORS = {
   primary: "#0F766E",
-  primaryHover: "#0c625c",
-  secondary: "#2563EB",
-  success: "#16A34A",
-  successSoft: "#DCFCE7",
-  warning: "#F59E0B",
   danger: "#DC2626",
-  dangerSoft: "#FEE2E2",
-  text: "#0F172A",
   border: "#E2E8F0",
   background: "#F8FAFC",
+  text: "#0F172A",
 };
 
 function Icon({ name, className = "h-5 w-5" }) {
@@ -42,67 +37,6 @@ function Icon({ name, className = "h-5 w-5" }) {
   };
 
   switch (name) {
-    case "hospital":
-      return (
-        <svg {...sharedProps}>
-          <path d="M4 21V7.5A1.5 1.5 0 0 1 5.5 6H10v15" />
-          <path d="M14 21V3.5A1.5 1.5 0 0 1 15.5 2h3A1.5 1.5 0 0 1 20 3.5V21" />
-          <path d="M8 10h.01M8 13h.01M8 16h.01M17 6h.01M17 9h.01M17 12h.01" />
-          <path d="M6.5 21h11" />
-          <path d="M9 8V5m-1.5 1.5h3" />
-        </svg>
-      );
-    case "dashboard":
-      return (
-        <svg {...sharedProps}>
-          <rect x="3" y="3" width="8" height="8" rx="2" />
-          <rect x="13" y="3" width="8" height="5" rx="2" />
-          <rect x="13" y="10" width="8" height="11" rx="2" />
-          <rect x="3" y="13" width="8" height="8" rx="2" />
-        </svg>
-      );
-    case "calendar":
-      return (
-        <svg {...sharedProps}>
-          <rect x="3" y="5" width="18" height="16" rx="2" />
-          <path d="M16 3v4M8 3v4M3 10h18" />
-        </svg>
-      );
-    case "user":
-      return (
-        <svg {...sharedProps}>
-          <path d="M20 21a8 8 0 1 0-16 0" />
-          <circle cx="12" cy="8" r="4" />
-        </svg>
-      );
-    case "message":
-      return (
-        <svg {...sharedProps}>
-          <path d="M7 18 3 21V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H7Z" />
-        </svg>
-      );
-    case "settings":
-      return (
-        <svg {...sharedProps}>
-          <path d="M10.3 3.3a1 1 0 0 1 1.4 0l.9.9a1 1 0 0 0 1 .24l1.23-.33a1 1 0 0 1 1.22.7l.34 1.23a1 1 0 0 0 .73.73l1.23.34a1 1 0 0 1 .7 1.22l-.33 1.23a1 1 0 0 0 .24 1l.9.9a1 1 0 0 1 0 1.4l-.9.9a1 1 0 0 0-.24 1l.33 1.23a1 1 0 0 1-.7 1.22l-1.23.34a1 1 0 0 0-.73.73l-.34 1.23a1 1 0 0 1-1.22.7l-1.23-.33a1 1 0 0 0-1 .24l-.9.9a1 1 0 0 1-1.4 0l-.9-.9a1 1 0 0 0-1-.24l-1.23.33a1 1 0 0 1-1.22-.7l-.34-1.23a1 1 0 0 0-.73-.73l-1.23-.34a1 1 0 0 1-.7-1.22l.33-1.23a1 1 0 0 0-.24-1l-.9-.9a1 1 0 0 1 0-1.4l.9-.9a1 1 0 0 0 .24-1l-.33-1.23a1 1 0 0 1 .7-1.22l1.23-.34a1 1 0 0 0 .73-.73l.34-1.23a1 1 0 0 1 1.22-.7l1.23.33a1 1 0 0 0 1-.24Z" />
-          <circle cx="12" cy="12" r="3" />
-        </svg>
-      );
-    case "bell":
-      return (
-        <svg {...sharedProps}>
-          <path d="M15 17H5.5A1.5 1.5 0 0 1 4 15.5c0-.33.11-.66.31-.93L6 12V9a6 6 0 1 1 12 0v3l1.69 2.57c.2.27.31.6.31.93A1.5 1.5 0 0 1 18.5 17H15" />
-          <path d="M10 20a2 2 0 0 0 4 0" />
-        </svg>
-      );
-    case "help":
-      return (
-        <svg {...sharedProps}>
-          <circle cx="12" cy="12" r="9" />
-          <path d="M9.09 9a3 3 0 1 1 5.82 1c0 2-3 2-3 4" />
-          <path d="M12 17h.01" />
-        </svg>
-      );
     case "camera":
       return (
         <svg {...sharedProps}>
@@ -117,109 +51,53 @@ function Icon({ name, className = "h-5 w-5" }) {
           <path d="m16.5 3.5 4 4L8 20l-4 1 1-4Z" />
         </svg>
       );
-    case "check":
-      return (
-        <svg {...sharedProps}>
-          <circle cx="12" cy="12" r="9" />
-          <path d="m8.5 12 2.5 2.5 4.5-5" />
-        </svg>
-      );
-    case "eye":
-      return (
-        <svg {...sharedProps}>
-          <path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6Z" />
-          <circle cx="12" cy="12" r="3" />
-        </svg>
-      );
-    case "eye-off":
-      return (
-        <svg {...sharedProps}>
-          <path d="m3 3 18 18" />
-          <path d="M10.58 10.58A2 2 0 0 0 13.4 13.4" />
-          <path d="M9.88 5.09A10.94 10.94 0 0 1 12 5c6.5 0 10 7 10 7a17.56 17.56 0 0 1-3.06 3.77" />
-          <path d="M6.71 6.7C4.24 8.18 2.5 12 2.5 12a17.44 17.44 0 0 0 6.13 5.24" />
-        </svg>
-      );
-    case "trash":
-      return (
-        <svg {...sharedProps}>
-          <path d="M3 6h18" />
-          <path d="M8 6V4a1 1 0 0 1 1-1h6a1 1 0 0 1 1 1v2" />
-          <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
-          <path d="M10 11v6M14 11v6" />
-        </svg>
-      );
     default:
       return null;
   }
 }
 
-function PasswordField({
-  label,
-  name,
-  value,
-  visible,
-  onChange,
-  onToggle,
-  hasError = false,
-}) {
-  return (
-    <div className="space-y-2">
-      <label htmlFor={name} className="text-sm font-semibold text-slate-700">
-        {label}
-      </label>
-      <div className="relative">
-        <input
-          id={name}
-          name={name}
-          type={visible ? "text" : "password"}
-          value={value}
-          onChange={onChange}
-          placeholder="********"
-          className={[
-            "w-full rounded-xl border bg-white px-4 py-3 pr-12 text-sm outline-none transition",
-            hasError
-              ? "border-[#DC2626] focus:border-[#DC2626]"
-              : "border-[#E2E8F0] focus:border-[#0F766E]",
-          ].join(" ")}
-          style={{ color: COLORS.text }}
-        />
-        <button
-          type="button"
-          onClick={onToggle}
-          className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-slate-600"
-          aria-label={visible ? "Ẩn mật khẩu" : "Hiện mật khẩu"}>
-          <Icon name={visible ? "eye" : "eye-off"} className="h-4 w-4" />
-        </button>
-      </div>
-    </div>
-  );
-}
-
-function Profile() {
+function AccountProfile() {
   const [profile, setProfile] = useState(INITIAL_PROFILE);
   const [passwords, setPasswords] = useState(INITIAL_PASSWORDS);
-  const [visiblePasswords, setVisiblePasswords] = useState({
-    currentPassword: false,
-    newPassword: false,
-    confirmPassword: false,
-  });
   const [avatarSrc, setAvatarSrc] = useState(DEFAULT_AVATAR);
+
+  const [loadingAccount, setLoadingAccount] = useState(true);
+  const [savingEmail, setSavingEmail] = useState(false);
+  const [savingPassword, setSavingPassword] = useState(false);
+
   const [profileMessage, setProfileMessage] = useState("");
   const [passwordMessage, setPasswordMessage] = useState("");
   const [passwordError, setPasswordError] = useState("");
+
   const [isPasswordModalOpen, setIsPasswordModalOpen] = useState(false);
   const [isEmailModalOpen, setIsEmailModalOpen] = useState(false);
   const [newEmail, setNewEmail] = useState("");
   const [emailConfirmed, setEmailConfirmed] = useState(false);
   const [emailError, setEmailError] = useState("");
+
   const fileInputRef = useRef(null);
 
-  const handleProfileChange = (event) => {
-    const { name, value } = event.target;
-    setProfile((current) => ({ ...current, [name]: value }));
-    setProfileMessage("");
-  };
+  useEffect(() => {
+    const loadAccount = async () => {
+      try {
+        setLoadingAccount(true);
+        const me = await getMe();
+        setProfile({
+          fullName: me?.ho_ten || "",
+          email: me?.email || "",
+        });
+      } catch (error) {
+        const msg =
+          error?.response?.data?.message ||
+          "Khong the tai thong tin tai khoan. Vui long tai lai trang.";
+        setProfileMessage(msg);
+      } finally {
+        setLoadingAccount(false);
+      }
+    };
+
+    loadAccount();
+  }, []);
 
   const handlePasswordChange = (event) => {
     const { name, value } = event.target;
@@ -230,20 +108,16 @@ function Profile() {
 
   const handleAvatarUpload = (event) => {
     const [file] = event.target.files || [];
-
-    if (!file) {
-      return;
-    }
+    if (!file) return;
 
     const objectUrl = URL.createObjectURL(file);
     setAvatarSrc((current) => {
       if (current.startsWith("blob:")) {
         URL.revokeObjectURL(current);
       }
-
       return objectUrl;
     });
-    setProfileMessage("Ảnh đại diện đã được cập nhật.");
+    setProfileMessage("Anh dai dien da duoc cap nhat.");
   };
 
   const handleAvatarReset = () => {
@@ -251,15 +125,9 @@ function Profile() {
       if (current.startsWith("blob:")) {
         URL.revokeObjectURL(current);
       }
-
       return DEFAULT_AVATAR;
     });
-    setProfileMessage("Đã khôi phục ảnh đại diện mặc định.");
-  };
-
-  const handleProfileSubmit = (event) => {
-    event.preventDefault();
-    setProfileMessage("Cập nhật thông tin thành công!");
+    setProfileMessage("Da khoi phuc anh dai dien mac dinh.");
   };
 
   const handleOpenEmailModal = () => {
@@ -274,30 +142,46 @@ function Profile() {
     setEmailError("");
   };
 
-  const handleEmailSubmit = () => {
+  const handleEmailSubmit = async () => {
     const trimmedEmail = newEmail.trim();
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     if (!emailRegex.test(trimmedEmail)) {
-      setEmailError("Email không hợp lệ.");
+      setEmailError("Email khong hop le.");
       return;
     }
 
     if (!emailConfirmed) {
-      setEmailError("Vui lòng xác nhận thay đổi email.");
+      setEmailError("Vui long xac nhan thay doi email.");
       return;
     }
 
-    setProfile((current) => ({ ...current, email: trimmedEmail }));
-    setProfileMessage("Cập nhật email thành công!");
-    setIsEmailModalOpen(false);
-    setEmailError("");
+    try {
+      setSavingEmail(true);
+      const updated = await updateMe({ email: trimmedEmail });
+
+      setProfile((current) => ({
+        ...current,
+        email: updated?.email || trimmedEmail,
+      }));
+      setProfileMessage("Cap nhat email thanh cong!");
+      setIsEmailModalOpen(false);
+      setEmailError("");
+    } catch (error) {
+      const msg =
+        error?.response?.data?.message ||
+        error?.response?.data?.errors?.email?.[0] ||
+        "Khong the cap nhat email.";
+      setEmailError(msg);
+    } finally {
+      setSavingEmail(false);
+    }
   };
 
   const handleOpenPasswordModal = () => {
     setPasswordError("");
     setPasswordMessage("");
-    setPasswords({ currentPassword: "", newPassword: "", confirmPassword: "" });
+    setPasswords(INITIAL_PASSWORDS);
     setIsPasswordModalOpen(true);
   };
 
@@ -306,32 +190,59 @@ function Profile() {
     setPasswordError("");
   };
 
-  const handlePasswordSubmit = (event) => {
+  const handlePasswordSubmit = async (event) => {
     event?.preventDefault?.();
 
+    if (!passwords.currentPassword) {
+      setPasswordError("Vui long nhap mat khau hien tai.");
+      return;
+    }
+
     if (!/[A-Z]/.test(passwords.newPassword)) {
-      setPasswordError("Mật khẩu phải chứa ít nhất 1 chữ hoa.");
-      setPasswordMessage("");
+      setPasswordError("Mat khau moi phai chua it nhat 1 chu hoa.");
       return;
     }
 
     if (passwords.newPassword.length < 8) {
-      setPasswordError("Mật khẩu mới phải có ít nhất 8 ký tự.");
-      setPasswordMessage("");
+      setPasswordError("Mat khau moi phai co it nhat 8 ky tu.");
       return;
     }
 
     if (passwords.newPassword !== passwords.confirmPassword) {
-      setPasswordError("Mật khẩu xác nhận không khớp.");
-      setPasswordMessage("");
+      setPasswordError("Mat khau xac nhan khong khop.");
       return;
     }
 
-    setPasswordError("");
-    setPasswordMessage("Mật khẩu đã được cập nhật.");
-    setPasswords(INITIAL_PASSWORDS);
-    setIsPasswordModalOpen(false);
+    try {
+      setSavingPassword(true);
+      await changePassword({
+        current_password: passwords.currentPassword,
+        new_password: passwords.newPassword,
+        new_password_confirmation: passwords.confirmPassword,
+      });
+
+      setPasswordError("");
+      setPasswordMessage("Mat khau da duoc cap nhat.");
+      setPasswords(INITIAL_PASSWORDS);
+      setIsPasswordModalOpen(false);
+    } catch (error) {
+      const msg =
+        error?.response?.data?.message ||
+        error?.response?.data?.errors?.new_password?.[0] ||
+        "Khong the doi mat khau.";
+      setPasswordError(msg);
+    } finally {
+      setSavingPassword(false);
+    }
   };
+
+  if (loadingAccount) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-sm text-slate-600">Dang tai thong tin tai khoan...</div>
+      </div>
+    );
+  }
 
   return (
     <div
@@ -342,19 +253,30 @@ function Profile() {
           className="overflow-hidden rounded-2xl border bg-white shadow-sm"
           style={{ borderColor: COLORS.border }}>
           <div className="border-b p-6" style={{ borderColor: COLORS.border }}>
-            <h3 className="text-lg font-bold">Thông tin tài khoản</h3>
+            <h3 className="text-lg font-bold">Thong tin tai khoan</h3>
             <p className="text-sm text-slate-500">
-              Cập nhật thông tin tài khoản để chúng tôi có thể phục vụ tốt hơn.
+              Xem va cap nhat email, mat khau tai khoan dang dang nhap.
             </p>
           </div>
 
-          <form onSubmit={handleProfileSubmit} className="space-y-8 p-6 md:p-8">
+          <div className="space-y-8 p-6 md:p-8">
+            {profileMessage ? (
+              <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2 text-sm text-emerald-700">
+                {profileMessage}
+              </div>
+            ) : null}
+            {passwordMessage ? (
+              <div className="rounded-lg bg-emerald-50 border border-emerald-200 px-3 py-2 text-sm text-emerald-700">
+                {passwordMessage}
+              </div>
+            ) : null}
+
             <div className="flex flex-col items-start gap-6 md:flex-row md:items-center">
               <div className="relative">
                 <div className="h-32 w-32 overflow-hidden rounded-full border-4 border-white bg-slate-100 shadow-lg">
                   <img
                     src={avatarSrc}
-                    alt="Ảnh đại diện"
+                    alt="Anh dai dien"
                     className="h-full w-full object-cover"
                   />
                 </div>
@@ -363,7 +285,7 @@ function Profile() {
                   onClick={() => fileInputRef.current?.click()}
                   className="absolute bottom-0 right-0 rounded-full p-2 text-white shadow-lg transition hover:scale-105 cursor-pointer"
                   style={{ backgroundColor: COLORS.primary }}
-                  aria-label="Tải lên ảnh đại diện">
+                  aria-label="Tai len anh dai dien">
                   <Icon name="camera" className="h-4 w-4" />
                 </button>
                 <input
@@ -376,27 +298,22 @@ function Profile() {
               </div>
 
               <div className="space-y-1">
-                <h4 className="font-semibold">Ảnh đại diện</h4>
-                <p className="text-sm text-slate-500">
-                  Hỗ trợ định dạng JPG, PNG. Dung lượng tối đa 2MB.
-                </p>
+                <h4 className="font-semibold">Anh dai dien</h4>
+                <p className="text-sm text-slate-500">Ho tro dinh dang JPG, PNG. Dung luong toi da 2MB.</p>
                 <div className="mt-2 flex gap-2">
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     className="rounded-lg border px-3 py-1 text-sm font-semibold transition hover:bg-[#effaf8] cursor-pointer"
-                    style={{
-                      borderColor: COLORS.primary,
-                      color: COLORS.primary,
-                    }}>
-                    Tải lên
+                    style={{ borderColor: COLORS.primary, color: COLORS.primary }}>
+                    Tai len
                   </button>
                   <button
                     type="button"
                     onClick={handleAvatarReset}
                     className="rounded-lg border px-3 py-1 text-sm font-semibold text-slate-500 transition hover:bg-slate-50 cursor-pointer"
                     style={{ borderColor: COLORS.border }}>
-                    Xóa
+                    Xoa
                   </button>
                 </div>
               </div>
@@ -405,40 +322,38 @@ function Profile() {
             <div className="grid grid-cols-1 gap-6 md:grid-cols-1">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <span className="text-sm font-semibold text-slate-700">
-                    Email:
-                  </span>
-                  <span className="text-sm text-slate-600">
-                    {profile.email}
-                  </span>
+                  <span className="text-sm font-semibold text-slate-700">Email:</span>
+                  <span className="text-sm text-slate-600">{profile.email || "Chua co email"}</span>
                 </div>
                 <button
                   type="button"
                   className="text-slate-500 transition hover:text-slate-700"
-                  aria-label="Chỉnh sửa email"
+                  aria-label="Chinh sua email"
                   onClick={handleOpenEmailModal}>
                   <Icon name="edit" className="h-4 w-4 cursor-pointer" />
                 </button>
               </div>
+
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <span className="text-sm font-semibold text-slate-700">
-                    Mật khẩu hiện tại:
-                  </span>
-                  <span className="text-sm text-slate-600">
-                    ***************
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-semibold text-slate-700">Mat khau:</span>
+                    <span className="text-sm text-slate-600">••••••••••••</span>
+                  </div>
+                  <span className="text-xs text-slate-400">
+                    Mat khau that khong the hien thi vi he thong luu duoi dang ma hoa.
                   </span>
                 </div>
                 <button
                   type="button"
                   className="text-slate-500 transition hover:text-slate-700"
-                  aria-label="Chỉnh sửa mật khẩu"
+                  aria-label="Chinh sua mat khau"
                   onClick={handleOpenPasswordModal}>
                   <Icon name="edit" className="h-4 w-4 cursor-pointer" />
                 </button>
               </div>
             </div>
-          </form>
+          </div>
         </section>
       </main>
 
@@ -449,30 +364,29 @@ function Profile() {
           },
         }}>
         <Modal
-          title="Đổi email"
+          title="Doi email"
           open={isEmailModalOpen}
           onOk={handleEmailSubmit}
           onCancel={handleCloseEmailModal}
-          okText="Cập nhật"
+          okText="Cap nhat"
+          confirmLoading={savingEmail}
           okButtonProps={{
             style: {
               backgroundColor: COLORS.primary,
               borderColor: COLORS.primary,
             },
           }}
-          cancelText="Hủy">
+          cancelText="Huy">
           <div className="space-y-4 pt-2">
             <div className="space-y-1">
-              <label className="text-sm font-semibold text-slate-700">
-                Nhập mật email mới
-              </label>
+              <label className="text-sm font-semibold text-slate-700">Nhap email moi</label>
               <Input
                 value={newEmail}
                 onChange={(event) => {
                   setNewEmail(event.target.value);
                   setEmailError("");
                 }}
-                placeholder="Nhập email mới"
+                placeholder="Nhap email moi"
               />
             </div>
 
@@ -482,7 +396,7 @@ function Profile() {
                 setEmailConfirmed(event.target.checked);
                 setEmailError("");
               }}>
-              Xác nhận thay đổi email
+              Xac nhan thay doi email
             </Checkbox>
 
             {emailError ? (
@@ -494,52 +408,47 @@ function Profile() {
         </Modal>
 
         <Modal
-          title="Đổi mật khẩu"
+          title="Doi mat khau"
           open={isPasswordModalOpen}
           onOk={handlePasswordSubmit}
           onCancel={handleClosePasswordModal}
-          okText="Cập nhật"
+          okText="Cap nhat"
+          confirmLoading={savingPassword}
           okButtonProps={{
             style: {
               backgroundColor: COLORS.primary,
               borderColor: COLORS.primary,
             },
           }}
-          cancelText="Hủy">
+          cancelText="Huy">
           <div className="space-y-4 pt-2">
             <div className="space-y-1">
-              <label className="text-sm font-semibold text-slate-700">
-                Mật khẩu hiện tại
-              </label>
+              <label className="text-sm font-semibold text-slate-700">Mat khau hien tai</label>
               <Input.Password
                 name="currentPassword"
                 value={passwords.currentPassword}
                 onChange={handlePasswordChange}
-                placeholder="Nhập mật khẩu hiện tại"
+                placeholder="Nhap mat khau hien tai"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="text-sm font-semibold text-slate-700">
-                Nhập mật khẩu mới
-              </label>
+              <label className="text-sm font-semibold text-slate-700">Nhap mat khau moi</label>
               <Input.Password
                 name="newPassword"
                 value={passwords.newPassword}
                 onChange={handlePasswordChange}
-                placeholder="Nhập mật khẩu mới"
+                placeholder="Nhap mat khau moi"
               />
             </div>
 
             <div className="space-y-1">
-              <label className="text-sm font-semibold text-slate-700">
-                Xác nhận mật khẩu mới
-              </label>
+              <label className="text-sm font-semibold text-slate-700">Xac nhan mat khau moi</label>
               <Input.Password
                 name="confirmPassword"
                 value={passwords.confirmPassword}
                 onChange={handlePasswordChange}
-                placeholder="Nhập lại mật khẩu mới"
+                placeholder="Nhap lai mat khau moi"
               />
             </div>
 
@@ -555,4 +464,4 @@ function Profile() {
   );
 }
 
-export default Profile;
+export default AccountProfile;

@@ -5,7 +5,7 @@ import httpClient from './httpClient';
  * @returns {Promise}
  */
 export const getPatientProfile = () => {
-  return httpClient.get('/patient-profile');
+  return httpClient.get('/patients/profile');
 };
 
 /**
@@ -25,12 +25,12 @@ export const getPatientProfileTest = (benhNhanId) => {
 /**
  * Update patient profile by ID (test endpoint - no auth required)
  * @param {object} data - Profile data to update
- * @param {number} benhNhanId - Patient ID
+ * @param {number} patientId - Patient ID
  * @returns {Promise}
  */
-export const updatePatientProfileTest = (data, benhNhanId = 1) => {
+export const updatePatientProfileTest = (data, patientId) => {
   // Using raw fetch for test endpoint
-  return fetch(`http://localhost:8000/api/v1/patients/update/${benhNhanId}`, {
+  return fetch(`http://localhost:8000/api/v1/patients/update/${patientId}`, {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
@@ -49,6 +49,5 @@ export const updatePatientProfileTest = (data, benhNhanId = 1) => {
  * @returns {Promise}
  */
 export const updatePatientProfile = (data) => {
-  // For testing, use the test endpoint
-  return updatePatientProfileTest(data, 1);
+  return httpClient.patch('/patients/profile', data);
 };

@@ -24,22 +24,30 @@ function LoginPage() {
     setLoading(true);
     try {
       const data = await login(form.email, form.mat_khau);
+
+      // Lưu token và thông tin người dùng
       localStorage.setItem("auth_token", data.token);
       localStorage.setItem("vai_tro", data.nguoi_dung.vai_tro);
+      localStorage.setItem("user_id", data.nguoi_dung.id);
+      localStorage.setItem("user_name", data.nguoi_dung.ho_ten);
+      localStorage.setItem("payload", JSON.stringify(data.payload));
 
       const vaiTro = data.nguoi_dung.vai_tro;
       if (vaiTro === "ADMIN") {
-        navigate(`/admin/${data.nguoi_dung.id}`);
+        navigate(`/admin/${data.nguoi_dung.id}/dashboard`);
       } else if (vaiTro === "NHANVIEN") {
-        navigate(`/staff/${data.nguoi_dung.id}`);
+        navigate(`/staff/${data.nguoi_dung.id}/dashboard`);
       } else if (vaiTro === "BACSI") {
-        navigate(`/doctor/${data.nguoi_dung.id}`);
+        navigate(`/doctor/${data.nguoi_dung.id}/dashboard`);
       } else {
-        navigate(`/patient/${data.nguoi_dung.id}`);
+        // Bệnh nhân - dùng route theo phiên đăng nhập, không truyền ID trên URL
+        navigate("/patient/dashboard");
       }
     } catch (err) {
+      console.error("Login error:", err);
       const msg =
         err?.response?.data?.message ||
+        err?.message ||
         "Đăng nhập thất bại. Vui lòng kiểm tra lại thông tin.";
       setError(msg);
     } finally {

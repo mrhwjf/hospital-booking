@@ -21,7 +21,7 @@ class GetPatientDashboardRequest extends FormRequest
     {
         // User must be authenticated (enforced by auth:sanctum middleware)
         // User must have patient relationship
-        return $this->user() && $this->user()->benh_nhan;
+        return $this->user() && $this->user()->benhNhan;
     }
 
     /**

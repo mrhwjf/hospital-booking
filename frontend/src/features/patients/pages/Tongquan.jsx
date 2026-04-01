@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from "react";
+import { getPatientDashboard } from "../../../api/dashboardApi";
 
 const Tongquan = () => {
   const [dashboardData, setDashboardData] = useState(null);
@@ -13,19 +14,17 @@ const Tongquan = () => {
     try {
       setLoading(true);
       setError(null);
-      // Test endpoint - không cần auth, sử dụng bệnh nhân ID 1
-      const response = await fetch("http://localhost:8000/api/v1/dashboard/patient/test/2");
-      
-      if (!response.ok) {
-        throw new Error(`API Error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log("Dashboard API Response:", data); // Debug
-      setDashboardData(data.data || data);
+      const response = await getPatientDashboard();
+      const normalizedData = response?.data ?? response;
+      setDashboardData(normalizedData);
     } catch (err) {
       console.error("Error fetching dashboard:", err);
-      setError(err.message);
+      const message =
+        err?.response?.data?.error?.message ||
+        err?.response?.data?.message ||
+        err?.message ||
+        "Không thể tải dữ liệu dashboard";
+      setError(message);
     } finally {
       setLoading(false);
     }
@@ -63,11 +62,10 @@ const Tongquan = () => {
           <p className="text-sm">{error}</p>
           <button
             onClick={fetchDashboardData}
-            className="mt-3 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700"
-          >
+            className="mt-3 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
             Thử lại
           </button>
-        </div>  
+        </div>
       </div>
     );
   }
@@ -80,20 +78,19 @@ const Tongquan = () => {
 
   return (
     <div className="max-w-6xl mx-auto p-8 space-y-8 bg-[#F8FAFC]">
-
       {/* HEADER */}
       <div>
         <h1 className="text-[28px] font-bold text-[#0F172A]">
           Chào mừng quay trở lại, {patientInfo.ho_ten || "Bệnh nhân"}
         </h1>
         <p className="text-gray-500">
-          Hôm nay bạn cảm thấy thế nào? Xem các cập nhật mới nhất về sức khỏe của bạn.
+          Hôm nay bạn cảm thấy thế nào? Xem các cập nhật mới nhất về sức khỏe
+          của bạn.
         </p>
       </div>
 
       {/* THÔNG TIN NHANH */}
       <div className="grid md:grid-cols-2 gap-6">
-
         {/* Mã bệnh nhân */}
         <div className="bg-white border border-[#E2E8F0] rounded-[10px] p-5 flex items-center gap-4 shadow-sm">
           <div className="w-12 h-12 rounded-full bg-teal-100 flex items-center justify-center">
@@ -103,8 +100,10 @@ const Tongquan = () => {
           </div>
 
           <div>
-            <p className="text-sm text-gray-500">Mã bệnh nhân</p>  
-            <p className="font-semibold text-[#0F172A]">{patientInfo.ma_benh_nhan || "N/A"}</p>
+            <p className="text-sm text-gray-500">Mã bệnh nhân</p>
+            <p className="font-semibold text-[#0F172A]">
+              {patientInfo.ma_benh_nhan || "N/A"}
+            </p>
           </div>
         </div>
 
@@ -118,20 +117,18 @@ const Tongquan = () => {
 
           <div>
             <p className="text-sm text-gray-500">Nhóm máu</p>
-            <p className="font-semibold text-[#DC2626]">{patientInfo.nhom_mau || "N/A"}</p>
+            <p className="font-semibold text-[#DC2626]">
+              {patientInfo.nhom_mau || "N/A"}
+            </p>
           </div>
         </div>
-
       </div>
 
       <div className="grid lg:grid-cols-3 gap-8">
-
         {/* LEFT */}
         <div className="lg:col-span-2 space-y-8">
-
           {/* LỊCH HẸN */}
           <section>
-
             <h2 className="text-[20px] font-semibold flex items-center gap-2 text-[#0F172A] mb-4">
               <span className="material-symbols-outlined text-[#0F766E]">
                 event
@@ -146,14 +143,17 @@ const Tongquan = () => {
             ) : (
               <div className="space-y-4">
                 {upcomingAppointments.map((appointment) => (
-                  <div key={appointment.id} className="bg-white border border-[#E2E8F0] rounded-[10px] p-6 shadow-sm">
-
+                  <div
+                    key={appointment.id}
+                    className="bg-white border border-[#E2E8F0] rounded-[10px] p-6 shadow-sm">
                     <h3 className="font-semibold text-lg text-[#0F172A]">
-                      {appointment.chuyen_khoa?.ten_chuyen_khoa || "Khám không xác định"}
+                      {appointment.chuyen_khoa?.ten_chuyen_khoa ||
+                        "Khám không xác định"}
                     </h3>
 
                     <p className="text-gray-500 text-sm">
-                      {formatTime(appointment.gio_hen)} - {formatDate(appointment.ngay_hen)}
+                      {formatTime(appointment.gio_hen)} -{" "}
+                      {formatDate(appointment.ngay_hen)}
                     </p>
 
                     <div className="mt-2">
@@ -177,17 +177,14 @@ const Tongquan = () => {
                         </>
                       )}
                     </div>
-
                   </div>
                 ))}
               </div>
             )}
-
           </section>
 
           {/* LỊCH SỬ KHÁM */}
           <section>
-
             <h2 className="text-[20px] font-semibold flex items-center gap-2 text-[#0F172A] mb-4">
               <span className="material-symbols-outlined text-[#0F766E]">
                 history
@@ -201,11 +198,8 @@ const Tongquan = () => {
               </div>
             ) : (
               <div className="bg-white border border-[#E2E8F0] rounded-[10px] overflow-hidden shadow-sm">
-
                 <table className="w-full text-sm">
-
                   <thead className="bg-[#F8FAFC] text-gray-600">
-
                     <tr>
                       <th className="px-6 py-3 text-left">Ngày khám</th>
                       <th className="px-6 py-3 text-left">Dịch vụ</th>
@@ -213,14 +207,14 @@ const Tongquan = () => {
                       <th className="px-6 py-3 text-left">Trạng thái</th>
                       <th className="px-6 py-3 text-right">Chi tiết</th>
                     </tr>
-
                   </thead>
 
                   <tbody className="divide-y">
-
                     {recentVisitHistory.map((visit) => (
                       <tr key={visit.id}>
-                        <td className="px-6 py-4">{formatDate(visit.ngay_kham)}</td>
+                        <td className="px-6 py-4">
+                          {formatDate(visit.ngay_kham)}
+                        </td>
                         <td className="px-6 py-4">{visit.dich_vu || "N/A"}</td>
                         <td className="px-6 py-4">{visit.bac_si || "N/A"}</td>
 
@@ -231,42 +225,30 @@ const Tongquan = () => {
                         </td>
 
                         <td className="px-6 py-4 text-right">
-
                           <button className="text-[#0F766E] hover:text-[#0d5c56]">
-
                             <span className="material-symbols-outlined">
                               visibility
                             </span>
-
                           </button>
-
                         </td>
                       </tr>
                     ))}
-
                   </tbody>
-
                 </table>
-
               </div>
             )}
-
           </section>
-
         </div>
 
         {/* RIGHT */}
         <div className="space-y-6">
-
           {/* HỒ SƠ SỨC KHỎE */}
           <div className="bg-white border border-[#E2E8F0] rounded-[10px] p-6 shadow-sm">
-
             <h3 className="text-lg font-semibold text-[#0F172A] mb-4">
               Hồ sơ sức khỏe
             </h3>
 
             <div className="space-y-4 text-sm text-gray-700">
-
               <div>
                 <p className="font-medium mb-1">Tiền sử bệnh</p>
                 <p className="text-gray-600">
@@ -280,20 +262,18 @@ const Tongquan = () => {
                   {healthProfile.tien_su_di_ung || "Không có thông tin"}
                 </p>
               </div>
-
             </div>
-
           </div>
 
           {/* NHẮC NHỞ SỨC KHỎE */}
           <div className="bg-[#0F766E] text-white rounded-[10px] p-6 shadow-md relative overflow-hidden">
-
             <h3 className="text-[20px] font-semibold mb-2">
               Nhắc nhở sức khỏe
             </h3>
 
             <p className="text-sm opacity-90 mb-4">
-              {healthReminder.message || "Uống ít nhất 2 lít nước mỗi ngày và đừng quên kiểm tra sức khỏe định kỳ."}
+              {healthReminder.message ||
+                "Uống ít nhất 2 lít nước mỗi ngày và đừng quên kiểm tra sức khỏe định kỳ."}
             </p>
 
             <button className="bg-white/20 hover:bg-white/30 transition px-4 py-2 rounded-lg text-sm">
@@ -301,13 +281,9 @@ const Tongquan = () => {
             </button>
 
             <div className="absolute -bottom-10 -right-10 w-40 h-40 bg-white/10 rounded-full"></div>
-
           </div>
-
         </div>
-
       </div>
-
     </div>
   );
 };

@@ -7,54 +7,54 @@ export const login = (email, mat_khau) => {
     mat_khau,
   });
 };
-
-// Đăng xuất
-export const logout = () => {
-  localStorage.removeItem('token');
-  return httpClient.post('/auth/logout');
-};
-
-// Lấy thông tin user hiện tại
-export const getMe = () => {
-  return httpClient.get('/auth/me');
-};
-
-// Lưu token vào localStorage
-export const setToken = (token) => {
-  localStorage.setItem('token', token);
-};
-
-// Lấy token từ localStorage
-export const getToken = () => {
-  return localStorage.getItem('token');
-};
-
-// Xóa token
-export const clearToken = () => {
-  localStorage.removeItem('token');
-};
-import httpClient from './httpClient'
-
-/**
- * Đăng nhập: trả về { token, nguoi_dung }
- */
-export const login = (email, matKhau) =>
-    httpClient.post('/auth/login', { email, mat_khau: matKhau })
-
 /**
  * Đăng ký bệnh nhân: trả về { token, nguoi_dung }
  */
 export const register = (data) =>
-    httpClient.post('/auth/register', data)
-
+  httpClient.post('/auth/register', data)
 /**
  * Đăng xuất (huỷ token phía server)
+ * // Xóa token khỏi localStorage
  */
-export const logout = () =>
-    httpClient.post('/auth/logout')
+export const logout = () => {
+  clearToken(); // Xóa token khỏi localStorage
+  return httpClient.post('/auth/logout');
+};
 
 /**
  * Lấy thông tin người dùng đang đăng nhập
  */
-export const getMe = () =>
-    httpClient.get('/auth/me')
+export const getMe = () => {
+  return httpClient.get('/auth/me').then((response) => response?.data ?? response);
+};
+
+// Cập nhật thông tin tài khoản hiện tại
+export const updateMe = (data) => {
+  return httpClient.patch('/auth/me', data).then((response) => response?.data ?? response);
+};
+
+// Đổi mật khẩu tài khoản hiện tại
+export const changePassword = (data) => {
+  return httpClient.patch('/auth/change-password', data);
+};
+
+// Lưu token vào localStorage
+export const setToken = (token) => {
+  localStorage.setItem('auth_token', token);
+};
+
+// Lấy token từ localStorage
+export const getToken = () => {
+  return localStorage.getItem('auth_token');
+};
+
+// Xóa token khỏi localStorage
+export const clearToken = () => {
+  localStorage.removeItem('auth_token');
+};
+
+
+
+
+
+

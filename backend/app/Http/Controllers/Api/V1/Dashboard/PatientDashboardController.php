@@ -44,17 +44,16 @@ class PatientDashboardController extends Controller
     {
         try {
             $user = $request->user();
-            $benh_nhan = $user->benh_nhan;
+            $benh_nhan = $user->benhNhan;
 
             // Get dashboard data from service
             $data = $this->dashboardService->getDashboardData($benh_nhan->id);
 
             // Return formatted resource
             return (new PatientDashboardResource($data))->response();
-
         } catch (\Exception $e) {
             Log::error('Patient dashboard error:', ['exception' => $e]);
-            
+
             return response()->json([
                 'error' => [
                     'code' => 'INTERNAL_ERROR',
@@ -82,10 +81,9 @@ class PatientDashboardController extends Controller
 
             // Return formatted resource
             return (new PatientDashboardResource($data))->response();
-
         } catch (\Exception $e) {
             Log::error('Patient dashboard test error:', ['exception' => $e]);
-            
+
             return response()->json([
                 'error' => [
                     'code' => 'INTERNAL_ERROR',

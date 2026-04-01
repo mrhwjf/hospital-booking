@@ -15,6 +15,7 @@ class NguoiDungSeeder extends Seeder
         $rows = [
             [
                 'email' => 'admin@hospital.local',
+                'ho_ten' => 'Admin Hospital',
                 'mat_khau' => Hash::make('12345678'),
                 'vai_tro_id' => $roles['ADMIN'] ?? null,
                 'hinh_anh' => null,
@@ -25,6 +26,7 @@ class NguoiDungSeeder extends Seeder
             ],
             [
                 'email' => 'doctor1@hospital.local',
+                'ho_ten' => 'Bác Sĩ Nguyễn Văn A',
                 'mat_khau' => Hash::make('12345678'),
                 'vai_tro_id' => $roles['BACSI'] ?? null,
                 'hinh_anh' => null,
@@ -35,6 +37,7 @@ class NguoiDungSeeder extends Seeder
             ],
             [
                 'email' => 'doctor2@hospital.local',
+                'ho_ten' => 'Bác Sĩ Trần Thị B',
                 'mat_khau' => Hash::make('12345678'),
                 'vai_tro_id' => $roles['BACSI'] ?? null,
                 'hinh_anh' => null,
@@ -45,6 +48,7 @@ class NguoiDungSeeder extends Seeder
             ],
             [
                 'email' => 'staff1@hospital.local',
+                'ho_ten' => 'Nhân Viên Lê Văn C',
                 'mat_khau' => Hash::make('12345678'),
                 'vai_tro_id' => $roles['NHANVIEN'] ?? null,
                 'hinh_anh' => null,
@@ -55,6 +59,7 @@ class NguoiDungSeeder extends Seeder
             ],
             [
                 'email' => 'staff2@hospital.local',
+                'ho_ten' => 'Nhân Viên Đỗ Thị D',
                 'mat_khau' => Hash::make('12345678'),
                 'vai_tro_id' => $roles['NHANVIEN'] ?? null,
                 'hinh_anh' => null,
@@ -65,6 +70,7 @@ class NguoiDungSeeder extends Seeder
             ],
             [
                 'email' => 'patient1@hospital.local',
+                'ho_ten' => 'Nguyễn Văn Bệnh Nhân',
                 'mat_khau' => Hash::make('12345678'),
                 'vai_tro_id' => $roles['BENHNHAN'] ?? null,
                 'hinh_anh' => null,
@@ -75,6 +81,7 @@ class NguoiDungSeeder extends Seeder
             ],
             [
                 'email' => 'patient2@hospital.local',
+                'ho_ten' => 'Trần Thị Mệnh Bệnh',
                 'mat_khau' => Hash::make('12345678'),
                 'vai_tro_id' => $roles['BENHNHAN'] ?? null,
                 'hinh_anh' => null,
@@ -90,7 +97,7 @@ class NguoiDungSeeder extends Seeder
         DB::table('nguoi_dung')->upsert(
             $rows,
             ['email'],
-            ['mat_khau', 'vai_tro_id', 'hinh_anh', 'trang_thai', 'lan_dang_nhap_cuoi', 'updated_at']
+            ['ho_ten', 'mat_khau', 'vai_tro_id', 'hinh_anh', 'trang_thai', 'lan_dang_nhap_cuoi', 'updated_at']
         );
     }
 }

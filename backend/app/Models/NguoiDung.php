@@ -8,7 +8,6 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
-use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
@@ -20,6 +19,7 @@ class NguoiDung extends Authenticatable
 
 	protected $fillable = [
 		'email',
+		'ho_ten',
 		'mat_khau',
 		'vai_tro_id',
 		'hinh_anh',
