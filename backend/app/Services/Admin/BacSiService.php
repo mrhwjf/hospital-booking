@@ -250,7 +250,13 @@ class BacSiService
 
     private function taoMaBacSi(): string
     {
-        $nextId = (int) DB::table('bac_si')->lockForUpdate()->max('id') + 1;
-        return 'BS' . str_pad((string) $nextId, 4, '0', STR_PAD_LEFT);
+        $maxMaSo = (int) DB::table('bac_si')
+            ->lockForUpdate()
+            ->selectRaw("MAX(CASE WHEN ma_bac_si REGEXP '^BS[0-9]+$' THEN CAST(SUBSTRING(ma_bac_si, 3) AS UNSIGNED) ELSE 0 END) as max_ma_so")
+            ->value('max_ma_so');
+
+        $nextMaSo = $maxMaSo + 1;
+
+        return 'BS' . str_pad((string) $nextMaSo, 4, '0', STR_PAD_LEFT);
     }
 }
