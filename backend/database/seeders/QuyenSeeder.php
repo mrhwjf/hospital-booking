@@ -7,28 +7,28 @@ use Illuminate\Support\Facades\DB;
 
 class QuyenSeeder extends Seeder
 {
-	public function run(): void
-	{
-		$quyen = [
-			['ma_quyen' => 'QUAN_LY_NGUOI_DUNG', 'ten_quyen' => 'Quan ly nguoi dung', 'nhom_quyen' => 'quan_tri'],
-			['ma_quyen' => 'QUAN_LY_BAC_SI', 'ten_quyen' => 'Quan ly bac si', 'nhom_quyen' => 'quan_tri'],
-			['ma_quyen' => 'QUAN_LY_CHUYEN_KHOA', 'ten_quyen' => 'Quan ly chuyen khoa', 'nhom_quyen' => 'quan_tri'],
-			['ma_quyen' => 'QUAN_LY_LICH_HEN', 'ten_quyen' => 'Quan ly lich hen', 'nhom_quyen' => 'le_tan'],
-			['ma_quyen' => 'XEM_BAO_CAO', 'ten_quyen' => 'Xem bao cao', 'nhom_quyen' => 'quan_tri'],
-			['ma_quyen' => 'CAU_HINH_HE_THONG', 'ten_quyen' => 'Cau hinh he thong', 'nhom_quyen' => 'quan_tri'],
-			['ma_quyen' => 'XEM_NHAT_KY', 'ten_quyen' => 'Xem nhat ky hoat dong', 'nhom_quyen' => 'quan_tri'],
-			['ma_quyen' => 'DAT_LICH_KHAM', 'ten_quyen' => 'Dat lich kham', 'nhom_quyen' => 'nguoi_dung'],
-			['ma_quyen' => 'KHAM_BENH', 'ten_quyen' => 'Kham benh', 'nhom_quyen' => 'bac_si'],
-			['ma_quyen' => 'KE_DON_THUOC', 'ten_quyen' => 'Ke don thuoc', 'nhom_quyen' => 'bac_si'],
-		];
+    public function run(): void
+    {
+        $quyen = [
+            ['ma_quyen' => 'QUAN_LY_NGUOI_DUNG', 'ten_quyen' => 'Quan ly nguoi dung', 'nhom_quyen' => 'quan_tri'],
+            ['ma_quyen' => 'QUAN_LY_BAC_SI', 'ten_quyen' => 'Quan ly bac si', 'nhom_quyen' => 'quan_tri'],
+            ['ma_quyen' => 'QUAN_LY_CHUYEN_KHOA', 'ten_quyen' => 'Quan ly chuyen khoa', 'nhom_quyen' => 'quan_tri'],
+            ['ma_quyen' => 'QUAN_LY_LICH_HEN', 'ten_quyen' => 'Quan ly lich hen', 'nhom_quyen' => 'le_tan'],
+            ['ma_quyen' => 'XEM_BAO_CAO', 'ten_quyen' => 'Xem bao cao', 'nhom_quyen' => 'quan_tri'],
+            ['ma_quyen' => 'CAU_HINH_HE_THONG', 'ten_quyen' => 'Cau hinh he thong', 'nhom_quyen' => 'quan_tri'],
+            ['ma_quyen' => 'XEM_NHAT_KY', 'ten_quyen' => 'Xem nhat ky hoat dong', 'nhom_quyen' => 'quan_tri'],
+            ['ma_quyen' => 'DAT_LICH_KHAM', 'ten_quyen' => 'Dat lich kham', 'nhom_quyen' => 'nguoi_dung'],
+            ['ma_quyen' => 'KHAM_BENH', 'ten_quyen' => 'Kham benh', 'nhom_quyen' => 'bac_si'],
+            ['ma_quyen' => 'KE_DON_THUOC', 'ten_quyen' => 'Ke don thuoc', 'nhom_quyen' => 'bac_si'],
+        ];
 
-		$rows = array_map(function (array $item) {
-			$item['mo_ta'] = null;
-			$item['created_at'] = now();
+        $rows = array_map(function (array $item) {
+            $item['mo_ta'] = null;
+            $item['created_at'] = now();
 
-			return $item;
-		}, $quyen);
+            return $item;
+        }, $quyen);
 
-		DB::table('quyen')->upsert($rows, ['ma_quyen'], ['ten_quyen', 'nhom_quyen']);
-	}
+        DB::table('quyen')->upsert($rows, ['ma_quyen'], ['ten_quyen', 'nhom_quyen']);
+    }
 }

@@ -22,18 +22,30 @@ class VaiTroQuyenSeeder extends Seeder
 		$rows = [];
 
 		foreach ($allPermissions as $permissionId) {
+			if (!$adminId) {
+				continue;
+			}
 			$rows[] = ['vai_tro_id' => $adminId, 'quyen_id' => $permissionId, 'created_at' => now()];
 		}
 
 		foreach ($bacSiPermissions as $permissionId) {
+			if (!$bacSiId) {
+				continue;
+			}
 			$rows[] = ['vai_tro_id' => $bacSiId, 'quyen_id' => $permissionId, 'created_at' => now()];
 		}
 
 		foreach ($nhanVienPermissions as $permissionId) {
+			if (!$nhanVienId) {
+				continue;
+			}
 			$rows[] = ['vai_tro_id' => $nhanVienId, 'quyen_id' => $permissionId, 'created_at' => now()];
 		}
 
 		foreach ($benhNhanPermissions as $permissionId) {
+			if (!$benhNhanId) {
+				continue;
+			}
 			$rows[] = ['vai_tro_id' => $benhNhanId, 'quyen_id' => $permissionId, 'created_at' => now()];
 		}
 

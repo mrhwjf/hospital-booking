@@ -450,6 +450,7 @@ CREATE TABLE khung_gio_kham (
     lich_lam_viec_bac_si_id INT NOT NULL,
 
 -- Khung giờ cụ thể trong ngày, dựa vào lich_lam_viec.thoi_luong_kham hoặc tùy chỉnh riêng
+
 gio_bat_dau TIME NOT NULL,
     gio_ket_thuc TIME NOT NULL,
 
@@ -615,6 +616,7 @@ ma_icd10_chinh VARCHAR(10) COMMENT 'Mã ICD-10 chẩn đoán chính',
 tinh_trang ENUM('nhe', 'trung_binh', 'nang'),
 
 -- Hướng điều trị
+
 huong_dieu_tri TEXT,
     loi_dan TEXT COMMENT 'Lời dặn bệnh nhân',
     hen_tai_kham DATE COMMENT 'Ngày tái khám nếu có (chỉ là gợi ý, không tự động tạo lịch)',
@@ -1189,7 +1191,8 @@ VALUES (
 -- ============================================
 
 -- Trigger tự động sinh mã bệnh nhân
-DELIMITER / /
+DELIMITER /
+/
 
 CREATE TRIGGER tr_benh_nhan_before_insert
 BEFORE INSERT ON benh_nhan
@@ -1200,12 +1203,15 @@ BEGIN
     IF NEW.ma_benh_nhan IS NULL OR NEW.ma_benh_nhan = '' THEN
         SET NEW.ma_benh_nhan = CONCAT('BN', LPAD(next_id, 6, '0'));
     END IF;
-END//
+END
+/
+/
 
 DELIMITER;
 
 -- Trigger tự động sinh mã lịch hẹn
-DELIMITER / /
+DELIMITER /
+/
 
 CREATE TRIGGER tr_lich_hen_before_insert
 BEFORE INSERT ON lich_hen
@@ -1219,12 +1225,15 @@ BEGIN
     IF NEW.ma_lich_hen IS NULL OR NEW.ma_lich_hen = '' THEN
         SET NEW.ma_lich_hen = CONCAT('LH', DATE_FORMAT(CURDATE(), '%Y%m%d'), LPAD(today_count, 3, '0'));
     END IF;
-END//
+END
+/
+/
 
 DELIMITER;
 
 -- Trigger tự động sinh mã phiếu khám
-DELIMITER / /
+DELIMITER /
+/
 
 CREATE TRIGGER tr_phieu_kham_before_insert
 BEFORE INSERT ON phieu_kham
@@ -1238,12 +1247,15 @@ BEGIN
     IF NEW.ma_phieu_kham IS NULL OR NEW.ma_phieu_kham = '' THEN
         SET NEW.ma_phieu_kham = CONCAT('PK', DATE_FORMAT(CURDATE(), '%Y%m%d'), LPAD(today_count, 3, '0'));
     END IF;
-END//
+END
+/
+/
 
 DELIMITER;
 
 -- Trigger tự động sinh mã đơn thuốc
-DELIMITER / /
+DELIMITER /
+/
 
 CREATE TRIGGER tr_don_thuoc_before_insert
 BEFORE INSERT ON don_thuoc
@@ -1257,12 +1269,15 @@ BEGIN
     IF NEW.ma_don_thuoc IS NULL OR NEW.ma_don_thuoc = '' THEN
         SET NEW.ma_don_thuoc = CONCAT('DT', DATE_FORMAT(CURDATE(), '%Y%m%d'), LPAD(today_count, 3, '0'));
     END IF;
-END//
+END
+/
+/
 
 DELIMITER;
 
 -- Trigger tự động sinh mã tài liệu
-DELIMITER / /
+DELIMITER /
+/
 
 CREATE TRIGGER tr_tai_lieu_before_insert
 BEFORE INSERT ON tai_lieu_ho_so
@@ -1276,12 +1291,15 @@ BEGIN
     IF NEW.ma_tai_lieu IS NULL OR NEW.ma_tai_lieu = '' THEN
         SET NEW.ma_tai_lieu = CONCAT('TL', DATE_FORMAT(CURDATE(), '%Y%m%d'), LPAD(today_count, 3, '0'));
     END IF;
-END//
+END
+/
+/
 
 DELIMITER;
 
 -- Trigger cập nhật trạng thái khung giờ sau khi thêm lịch hẹn
-DELIMITER / /
+DELIMITER /
+/
 
 CREATE TRIGGER tr_lich_hen_after_insert
 AFTER INSERT ON lich_hen
@@ -1292,12 +1310,15 @@ BEGIN
         SET trang_thai = 'da_dat'
         WHERE id = NEW.khung_gio_id;
     END IF;
-END//
+END
+/
+/
 
 DELIMITER;
 
 -- Trigger cập nhật trạng thái khung giờ khi hủy lịch hẹn
-DELIMITER / /
+DELIMITER /
+/
 
 CREATE TRIGGER tr_lich_hen_after_update
 AFTER UPDATE ON lich_hen
@@ -1327,7 +1348,9 @@ BEGIN
         SET trang_thai = 'trong'
         WHERE id = NEW.khung_gio_id;
     END IF;
-END//
+END
+/
+/
 
 DELIMITER;
 
