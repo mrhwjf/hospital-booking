@@ -28,10 +28,14 @@ function LoginPage() {
       localStorage.setItem("vai_tro", data.nguoi_dung.vai_tro);
 
       const vaiTro = data.nguoi_dung.vai_tro;
-      if (vaiTro === "BENHNHAN") {
-        navigate("/patient");
+      if (vaiTro === "ADMIN") {
+        navigate(`/admin/${data.nguoi_dung.id}`);
+      } else if (vaiTro === "NHANVIEN") {
+        navigate(`/staff/${data.nguoi_dung.id}`);
+      } else if (vaiTro === "BACSI") {
+        navigate(`/doctor/${data.nguoi_dung.id}`);
       } else {
-        navigate("/admin");
+        navigate(`/patient/${data.nguoi_dung.id}`);
       }
     } catch (err) {
       const msg =

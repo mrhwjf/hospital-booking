@@ -33,7 +33,7 @@
 
                             <p style="margin-top:20px">
                                 <a href="http://localhost:5173/login"
-                                    style="background:#0f766e;color:white;padding:12px 20px;text-decoration:none;border-radius:5px;">
+                                    style="display:inline-block;background:#0f766e;color:white;padding:12px 20px;text-decoration:none;border-radius:5px;white-space:nowrap;">
                                     Đăng nhập vào tài khoản của bạn
                                 </a>
                             </p>

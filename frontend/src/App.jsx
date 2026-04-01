@@ -26,6 +26,7 @@ function App() {
 export default App
 import LandingPage from "./components/layout/LandingPage";
 import LoginPage from "./components/layout/LoginPage";
+import Profile from "./components/layout/Profile";
 import RegisterPage from "./components/layout/RegisterPage";
 import { BrowserRouter, Route, Routes } from "react-router-dom";
 
@@ -35,6 +36,7 @@ function App() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/profile" element={<Profile />} />
         <Route path="/register" element={<RegisterPage />} />
       </Routes>
     </BrowserRouter>

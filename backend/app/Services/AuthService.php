@@ -98,7 +98,6 @@ class AuthService
 
         try {
             Mail::to($result['email'])->send(new WelcomeMail($result['ho_ten']));
-            // Mail::to("utphuong2005@gmail.com")->send(new WelcomeMail($result['ho_ten']));
             Log::info('Đã gửi welcome mail thành công.', [
                 'email' => $result['email'],
                 'nguoi_dung_id' => $result['nguoi_dung']['id'] ?? null,
