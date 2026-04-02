@@ -8,7 +8,7 @@ use Illuminate\Support\Facades\Route;
  * 
  * Flow: Client → Route → GetPatientDashboardRequest (auth + validate) → Controller → Service → Model → PatientDashboardResource → JSON Response
  */
-Route::middleware('auth:sanctum')->prefix('dashboard')->group(function () {
+Route::middleware('auth.jwt')->prefix('dashboard')->group(function () {
     /**
      * Get patient dashboard overview
      * 

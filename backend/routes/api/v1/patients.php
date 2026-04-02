@@ -4,7 +4,7 @@ use App\Http\Controllers\Api\V1\Patients\BenhNhanController;
 use Illuminate\Support\Facades\Route;
 
 // Authenticated routes
-Route::prefix('patients')->middleware('auth:sanctum')->group(function () {
+Route::prefix('patients')->middleware('auth.jwt')->group(function () {
     Route::get('/profile', [BenhNhanController::class, 'profile']);
     Route::patch('/profile', [BenhNhanController::class, 'updateProfile']);
 });
@@ -21,7 +21,7 @@ Route::prefix('patients')->group(function () {
     Route::get('/test/{benhNhanId}', [BenhNhanController::class, 'profileTest'])
         ->where('benhNhanId', '[0-9]+')
         ->name('patients.test');
-    
+
     /**
      * Test endpoint - Update patient profile without authentication
      * 

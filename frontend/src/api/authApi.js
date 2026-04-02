@@ -32,7 +32,12 @@ export const getMe = () => {
 export const updateMe = (data) => {
   return httpClient.patch('/auth/me', data).then((response) => response?.data ?? response);
 };
-
+// Cập nhật avatar tài khoản hiện tại
+export const updateAvatar = (file) => {
+  const formData = new FormData();
+  formData.append('avatar', file);
+  return httpClient.post('/auth/avatar', formData).then((response) => response?.data ?? response);
+};
 // Đổi mật khẩu tài khoản hiện tại
 export const changePassword = (data) => {
   return httpClient.patch('/auth/change-password', data);

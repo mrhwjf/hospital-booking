@@ -6,12 +6,15 @@ use App\Http\Controllers\Controller;
 use App\Models\NguoiDung;
 use App\Models\BenhNhan;
 use App\Models\VaiTro;
+use App\Services\Auth\JwtService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
-
+use App\Services\CloudinaryService;
 class AuthController extends Controller
 {
+    public function __construct(private JwtService $jwtService, private CloudinaryService $cloudinaryService) {}
+
     /**
      * Đăng nhập người dùng
      * 
@@ -42,8 +45,8 @@ class AuthController extends Controller
             ], 401);
         }
 
-        // Tạo token Sanctum
-        $token = $user->createToken('api-token')->plainTextToken;
+        // Tạo JWT token
+        $token = $this->jwtService->createToken($user);
 
         // Lấy thông tin bệnh nhân nếu là bệnh nhân
         $benhNhan = null;
@@ -54,6 +57,8 @@ class AuthController extends Controller
         return response()->json([
             'success' => true,
             'token' => $token,
+            'token_type' => 'Bearer',
+            'expires_in' => ((int) config('jwt.ttl', 1440)) * 60,
             'nguoi_dung' => [
                 'id' => $user->id,
                 'ho_ten' => $user->ho_ten,
@@ -116,11 +121,13 @@ class AuthController extends Controller
                 'trang_thai' => 'hoat_dong',
             ]);
 
-            $token = $user->createToken('api-token')->plainTextToken;
+            $token = $this->jwtService->createToken($user);
 
             return response()->json([
                 'success' => true,
                 'token' => $token,
+                'token_type' => 'Bearer',
+                'expires_in' => ((int) config('jwt.ttl', 1440)) * 60,
                 'nguoi_dung' => [
                     'id' => $user->id,
                     'ho_ten' => $user->ho_ten,
@@ -151,11 +158,9 @@ class AuthController extends Controller
      */
     public function logout(Request $request)
     {
-        $request->user()?->currentAccessToken()?->delete();
-
         return response()->json([
             'success' => true,
-            'message' => 'Đăng xuất thành công'
+            'message' => 'Đăng xuất thành công. Vui lòng xóa token ở phía client.'
         ]);
     }
 
@@ -174,8 +179,44 @@ class AuthController extends Controller
             'data' => [
                 'id' => $user->id,
                 'ho_ten' => $user->ho_ten,
+                'hinh_anh' => $user->hinh_anh,
+                'hinh_anh_public_id' => $user->hinh_anh_public_id,
                 'email' => $user->email,
                 'vai_tro' => $user->vaiTro?->ma_vai_tro,
+            ]
+        ]);
+    }
+    
+    /**
+     * Cập nhật avatar tài khoản hiện tại
+     */
+    public function updateAvatar(Request $request)
+    {        
+        $file = $request->file('avatar');
+        if (!$file || !$file->isValid()) {
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Không có tệp hình ảnh hợp lệ được tải lên',
+            ], 422);
+        }
+        $userId = $this->jwtService->decodeToken($request->bearerToken())['sub'] ?? null;
+        $result = $this->cloudinaryService->uploadAvatar($file, $userId);
+        $user = NguoiDung::find($userId);
+        if (!$user) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Người dùng không tồn tại',
+            ], 404);
+        }
+        $user->hinh_anh = $result['url'] ?? null;
+        $user->hinh_anh_public_id = $result['public_id'] ?? null;
+        $user->save();
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'url' => $user->hinh_anh,
+                'public_id' => $user->hinh_anh_public_id,
             ]
         ]);
     }
@@ -218,6 +259,8 @@ class AuthController extends Controller
                 'ho_ten' => $user->ho_ten,
                 'email' => $user->email,
                 'vai_tro' => $user->vaiTro?->ma_vai_tro,
+                'hinh_anh' => $user->hinh_anh,
+                'hinh_anh_public_id' => $user->hinh_anh_public_id,
             ]
         ]);
     }

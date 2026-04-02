@@ -17,8 +17,7 @@ class TaiLieuHoSoSeeder extends Seeder
                 'phieu_kham_id' => $phieu['PK0001'] ?? null,
                 'loai_tai_lieu' => 'ket_qua_xet_nghiem',
                 'ten_tai_lieu' => 'Ket qua xet nghiem co ban',
-                'file_url' => 'https://example.local/files/tl0001.pdf',
-                'file_name' => 'tl0001.pdf',
+                'file_public_id' => 'hospital_booking/medical_documents/appointments_1/document_tl0001',
                 'ngay_tao' => '2026-03-16',
                 'ghi_chu' => null,
                 'created_at' => now(),
@@ -28,6 +27,6 @@ class TaiLieuHoSoSeeder extends Seeder
 
         $rows = array_values(array_filter($rows, fn(array $row) => !is_null($row['phieu_kham_id'])));
 
-        DB::table('tai_lieu_ho_so')->upsert($rows, ['ma_tai_lieu'], ['phieu_kham_id', 'loai_tai_lieu', 'ten_tai_lieu', 'file_url', 'file_name', 'ngay_tao', 'ghi_chu', 'updated_at']);
+        DB::table('tai_lieu_ho_so')->upsert($rows, ['ma_tai_lieu'], ['phieu_kham_id', 'loai_tai_lieu', 'ten_tai_lieu', 'file_public_id', 'ngay_tao', 'ghi_chu', 'updated_at']);
     }
 }

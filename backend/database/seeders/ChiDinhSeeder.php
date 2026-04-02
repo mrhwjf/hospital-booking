@@ -14,7 +14,6 @@ class ChiDinhSeeder extends Seeder
         $dichVu = DB::table('dich_vu')->pluck('id', 'ma_dich_vu');
         $goiKham = DB::table('goi_kham')->pluck('id', 'ma_goi_kham');
 
-
         $rows = [
             [
                 'phieu_kham_id' => $phieu['PK0001'] ?? null,
@@ -30,18 +29,15 @@ class ChiDinhSeeder extends Seeder
             ],
         ];
 
-
         $rows = array_values(array_filter($rows, function (array $row) {
             $hasService = $row['dich_vu_id'] !== null;
             $hasPackage = $row['goi_kham_id'] !== null;
-
 
             return
                 $row['phieu_kham_id'] !== null &&
                 $row['bac_si_id'] !== null &&
                 ($hasService xor $hasPackage);
         }));
-
 
         DB::table('chi_dinh')->upsert(
             $rows,

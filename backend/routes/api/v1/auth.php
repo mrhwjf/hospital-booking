@@ -8,11 +8,12 @@ Route::prefix('auth')->group(function () {
     Route::post('/register', [AuthController::class, 'register']);
     Route::post('/login',    [AuthController::class, 'login']);
 
-    // Các route yêu cầu token Sanctum
-    Route::middleware('auth:sanctum')->group(function () {
+    // Các route yêu cầu JWT token
+    Route::middleware('auth.jwt')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout']);
         Route::get('/me',      [AuthController::class, 'me']);
         Route::patch('/me',    [AuthController::class, 'updateMe']);
+        Route::post('/avatar', [AuthController::class, 'updateAvatar']);
         Route::patch('/change-password', [AuthController::class, 'changePassword']);
     });
 });

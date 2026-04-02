@@ -1,6 +1,6 @@
 ﻿import { useEffect, useRef, useState } from "react";
 import { Checkbox, ConfigProvider, Input, Modal } from "antd";
-import { changePassword, getMe, updateMe } from "../../api/authApi";
+import { changePassword, getMe, updateMe, updateAvatar } from "../../api/authApi";
 
 const DEFAULT_AVATAR =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Crect width='128' height='128' rx='64' fill='%23E2E8F0'/%3E%3Ccircle cx='64' cy='48' r='22' fill='%2394A3B8'/%3E%3Cpath d='M24 110c4-21 20-34 40-34s36 13 40 34' fill='%2394A3B8'/%3E%3C/svg%3E";
@@ -110,14 +110,22 @@ function AccountProfile() {
     const [file] = event.target.files || [];
     if (!file) return;
 
-    const objectUrl = URL.createObjectURL(file);
-    setAvatarSrc((current) => {
-      if (current.startsWith("blob:")) {
-        URL.revokeObjectURL(current);
-      }
-      return objectUrl;
-    });
-    setProfileMessage("Anh dai dien da duoc cap nhat.");
+    const response = updateAvatar(file);
+    response
+      .then((data) => {
+        setAvatarSrc(data.url);
+        setProfileMessage("Anh dai dien da duoc cap nhat.");
+      })
+      .catch((error) => {
+        const msg =
+          error?.response?.data?.message ||
+          "Khong the cap nhat anh dai dien. Vui long thu lai.";
+        setProfileMessage(msg);
+      });
+
+    // Reset input value to allow re-uploading the same file if needed
+    event.target.value = "";
+    setProfileMessage("Ảnh đại diện đã được cập nhật.");
   };
 
   const handleAvatarReset = () => {
@@ -127,7 +135,7 @@ function AccountProfile() {
       }
       return DEFAULT_AVATAR;
     });
-    setProfileMessage("Da khoi phuc anh dai dien mac dinh.");
+    setProfileMessage("Đã khôi phục ảnh đại diện mặc định.");
   };
 
   const handleOpenEmailModal = () => {
@@ -276,7 +284,7 @@ function AccountProfile() {
                 <div className="h-32 w-32 overflow-hidden rounded-full border-4 border-white bg-slate-100 shadow-lg">
                   <img
                     src={avatarSrc}
-                    alt="Anh dai dien"
+                    alt="Ảnh đại diện"
                     className="h-full w-full object-cover"
                   />
                 </div>
@@ -285,7 +293,7 @@ function AccountProfile() {
                   onClick={() => fileInputRef.current?.click()}
                   className="absolute bottom-0 right-0 rounded-full p-2 text-white shadow-lg transition hover:scale-105 cursor-pointer"
                   style={{ backgroundColor: COLORS.primary }}
-                  aria-label="Tai len anh dai dien">
+                  aria-label="Tải lên ảnh đại diện">
                   <Icon name="camera" className="h-4 w-4" />
                 </button>
                 <input
@@ -298,22 +306,22 @@ function AccountProfile() {
               </div>
 
               <div className="space-y-1">
-                <h4 className="font-semibold">Anh dai dien</h4>
-                <p className="text-sm text-slate-500">Ho tro dinh dang JPG, PNG. Dung luong toi da 2MB.</p>
+                <h4 className="font-semibold">Ảnh đại diện</h4>
+                <p className="text-sm text-slate-500">Hỗ trợ định dạng JPG, PNG. Dung lượng tối đa 5MB.</p>
                 <div className="mt-2 flex gap-2">
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     className="rounded-lg border px-3 py-1 text-sm font-semibold transition hover:bg-[#effaf8] cursor-pointer"
                     style={{ borderColor: COLORS.primary, color: COLORS.primary }}>
-                    Tai len
+                    Tải lên
                   </button>
                   <button
                     type="button"
                     onClick={handleAvatarReset}
                     className="rounded-lg border px-3 py-1 text-sm font-semibold text-slate-500 transition hover:bg-slate-50 cursor-pointer"
                     style={{ borderColor: COLORS.border }}>
-                    Xoa
+                    Xóa
                   </button>
                 </div>
               </div>
@@ -341,7 +349,7 @@ function AccountProfile() {
                     <span className="text-sm text-slate-600">••••••••••••</span>
                   </div>
                   <span className="text-xs text-slate-400">
-                    Mat khau that khong the hien thi vi he thong luu duoi dang ma hoa.
+                   Mật khẩu không thể hiển thị vì hệ thống lưu dưới dạng mã hóa.
                   </span>
                 </div>
                 <button
