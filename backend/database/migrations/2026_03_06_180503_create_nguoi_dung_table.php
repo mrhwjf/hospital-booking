@@ -10,6 +10,7 @@ return new class extends Migration {
 		Schema::create('nguoi_dung', function (Blueprint $table) {
 			$table->id();
 			$table->string('email')->unique();
+			$table->string('ho_ten')->nullable();
 			$table->string('mat_khau');
 			$table->foreignId('vai_tro_id')->constrained('vai_tro')->restrictOnDelete();
 			$table->string('hinh_anh')->nullable();
