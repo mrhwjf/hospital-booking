@@ -1,14 +1,56 @@
-import { useState } from "react";
-import { Dropdown, Button, Avatar } from "antd";
+import { useEffect, useState } from "react";
+import { Dropdown, Avatar } from "antd";
 import { UserOutlined, LogoutOutlined } from "@ant-design/icons";
 import { Link, useLocation, Outlet } from "react-router-dom";
+import { getMe } from "../../api/authApi";
+import {
+  clearStoredAuthState,
+  getStoredAuthToken,
+  getStoredUserAvatar,
+  getStoredUserName,
+  setStoredUserProfile,
+  subscribeUserProfileUpdates,
+} from "../../utils/userProfileSync";
 
 export default function PatientLayout() {
   const location = useLocation();
-  const [user] = useState({
-    name: "Nguyễn Văn A",
-    email: "user@example.com",
-  });
+  const [avatarUrl, setAvatarUrl] = useState(getStoredUserAvatar);
+  const [userName, setUserName] = useState(getStoredUserName);
+
+  useEffect(() => {
+    const syncProfile = () => {
+      setAvatarUrl(getStoredUserAvatar());
+      setUserName(getStoredUserName());
+    };
+
+    syncProfile();
+    const unsubscribe = subscribeUserProfileUpdates(syncProfile);
+
+    const token = getStoredAuthToken();
+    if (token && (!getStoredUserAvatar() || !getStoredUserName())) {
+      getMe()
+        .then((me) => {
+          setStoredUserProfile({
+            userName: me?.ho_ten,
+            avatarUrl: me?.hinh_anh,
+          });
+        })
+        .catch(() => {
+          // Keep layout responsive even if profile bootstrap fails.
+        });
+    }
+
+    return unsubscribe;
+  }, []);
+
+  const getAvatarFallback = () => {
+    const trimmedName = userName?.trim();
+    if (!trimmedName) {
+      return <UserOutlined />;
+    }
+
+    return trimmedName.charAt(0).toUpperCase();
+  };
 
   // Menu items cho Profile dropdown
   const profileMenuItems = [
@@ -31,12 +73,7 @@ export default function PatientLayout() {
       icon: <LogoutOutlined />,
       danger: true,
       onClick: () => {
-        // Handle logout
-        localStorage.removeItem("auth_token");
-        localStorage.removeItem("vai_tro");
-        localStorage.removeItem("user_id");
-        localStorage.removeItem("user_name");
-        localStorage.removeItem("payload");
+        clearStoredAuthState();
         window.location.href = "/login";
       },
     },
@@ -148,9 +185,10 @@ export default function PatientLayout() {
                 placement="bottomRight">
                 <Avatar
                   size={40}
-                  icon={<UserOutlined />}
-                  className="bg-teal-600 cursor-pointer hover:opacity-80 transition-opacity"
-                />
+                  src={avatarUrl || undefined}
+                  className="bg-teal-600 cursor-pointer hover:opacity-80 transition-opacity">
+                  {!avatarUrl ? getAvatarFallback() : null}
+                </Avatar>
               </Dropdown>
 
               {/* Mobile Menu Button */}

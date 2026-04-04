@@ -1,3 +1,6 @@
+import { useEffect, useState } from "react";
+import { Avatar, Dropdown } from "antd";
+import { LogoutOutlined, UserOutlined } from "@ant-design/icons";
 import HeartIcon from "./icon/HeartIcon";
 import BabyIcon from "./icon/BabyIcon";
 import PillsIcon from "./icon/PillsIcon";
@@ -8,6 +11,37 @@ import PregnantWomanIcon from "./icon/PregnantWomanIcon.png";
 import SkinIcon from "./icon/SkinIcon.png";
 import EarIcon from "./icon/EarIcon.png";
 import StomachIcon from "./icon/StomachIcon.png";
+import { getMe } from "../../api/authApi";
+import {
+  clearStoredAuthState,
+  getStoredAuthToken,
+  getStoredUserAvatar,
+  getStoredUserName,
+  setStoredUserProfile,
+  subscribeUserProfileUpdates,
+} from "../../utils/userProfileSync";
+
+const getAuthSnapshot = () => {
+  const token = getStoredAuthToken();
+  const userName = getStoredUserName() || "Người dùng";
+  const avatarUrl = getStoredUserAvatar();
+
+  return {
+    isAuthenticated: Boolean(token),
+    userName,
+    avatarUrl,
+  };
+};
+
+const getAvatarContent = (userName) => {
+  const trimmedName = userName?.trim();
+  if (!trimmedName) {
+    return <UserOutlined />;
+  }
+
+  return trimmedName.charAt(0).toUpperCase();
+};
+
 const specialties = [
   {
     id: "01",
@@ -118,6 +152,60 @@ const stats = [
 ];
 function LandingPage() {
   const navigate = useNavigate();
+  const [authState, setAuthState] = useState(getAuthSnapshot);
+
+  useEffect(() => {
+    const syncAuthState = () => {
+      setAuthState(getAuthSnapshot());
+    };
+
+    syncAuthState();
+    const unsubscribe = subscribeUserProfileUpdates(syncAuthState);
+
+    const token = getStoredAuthToken();
+    if (token && (!getStoredUserAvatar() || !getStoredUserName())) {
+      getMe()
+        .then((me) => {
+          setStoredUserProfile({
+            userName: me?.ho_ten,
+            avatarUrl: me?.hinh_anh,
+          });
+        })
+        .catch(() => {
+          // Do not block landing rendering if profile prefetch fails.
+        });
+    }
+
+    return unsubscribe;
+  }, []);
+
+  const handleLogout = () => {
+    clearStoredAuthState();
+    navigate("/login");
+  };
+
+  const profileMenuItems = [
+    {
+      key: "dashboard",
+      label: "Trang tổng quan",
+      onClick: () => navigate("/patient/dashboard"),
+    },
+    {
+      key: "profile",
+      label: "Hồ sơ cá nhân",
+      onClick: () => navigate("/patient/profile"),
+    },
+    {
+      type: "divider",
+    },
+    {
+      key: "logout",
+      label: "Đăng xuất",
+      icon: <LogoutOutlined />,
+      danger: true,
+      onClick: handleLogout,
+    },
+  ];
 
   return (
     <div className="min-h-screen bg-[#f3f5f5] text-slate-900">
@@ -155,11 +243,32 @@ function LandingPage() {
           </nav>
 
           <div className="flex items-center gap-2">
-            <button
-              onClick={() => navigate("/login")}
-              className="rounded-md bg-emerald-700 px-5 py-2.5 text-xs font-bold text-white hover:bg-emerald-800 cursor-pointer">
-              Đăng nhập
-            </button>
+            {authState.isAuthenticated ? (
+              <Dropdown
+                menu={{ items: profileMenuItems }}
+                trigger={["click"]}
+                placement="bottomRight">
+                <button
+                  type="button"
+                  className="rounded-full border border-emerald-200 p-0.5 hover:border-emerald-300 cursor-pointer"
+                  aria-label="Mở menu tài khoản">
+                  <Avatar
+                    size={34}
+                    src={authState.avatarUrl || undefined}
+                    className="bg-emerald-700">
+                    {!authState.avatarUrl
+                      ? getAvatarContent(authState.userName)
+                      : null}
+                  </Avatar>
+                </button>
+              </Dropdown>
+            ) : (
+              <button
+                onClick={() => navigate("/login")}
+                className="rounded-md bg-emerald-700 px-5 py-2.5 text-xs font-bold text-white hover:bg-emerald-800 cursor-pointer">
+                Đăng nhập
+              </button>
+            )}
             <button className="rounded-md border border-red-200 bg-red-50 px-5 py-2.5 text-xs font-bold text-red-700 cursor-pointer">
               1900 1234
             </button>
@@ -187,7 +296,9 @@ function LandingPage() {
               </p>
               <div className="mt-6 flex flex-wrap gap-3">
                 <button
-                  onClick={() => navigate("/login")}
+                  onClick={() =>
+                    navigate(authState.isAuthenticated ? "/booking" : "/login")
+                  }
                   className="rounded-md bg-white px-4 py-2 text-xs font-bold text-emerald-800 md:text-sm cursor-pointer">
                   Đặt lịch ngay
                 </button>

@@ -1,9 +1,22 @@
 ﻿import { useEffect, useRef, useState } from "react";
 import { Checkbox, ConfigProvider, Input, Modal } from "antd";
-import { changePassword, getMe, updateMe, updateAvatar } from "../../api/authApi";
+import {
+  changePassword,
+  getMe,
+  updateMe,
+  updateAvatar,
+} from "../../api/authApi";
+import {
+  getStoredUserAvatar,
+  setStoredUserProfile,
+  subscribeUserProfileUpdates,
+} from "../../utils/userProfileSync";
 
 const DEFAULT_AVATAR =
   "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 128 128'%3E%3Crect width='128' height='128' rx='64' fill='%23E2E8F0'/%3E%3Ccircle cx='64' cy='48' r='22' fill='%2394A3B8'/%3E%3Cpath d='M24 110c4-21 20-34 40-34s36 13 40 34' fill='%2394A3B8'/%3E%3C/svg%3E";
+
+const normalizeAvatar = (avatarUrl) =>
+  typeof avatarUrl === "string" ? avatarUrl.trim() : "";
 
 const INITIAL_PROFILE = {
   fullName: "",
@@ -59,7 +72,10 @@ function Icon({ name, className = "h-5 w-5" }) {
 function AccountProfile() {
   const [profile, setProfile] = useState(INITIAL_PROFILE);
   const [passwords, setPasswords] = useState(INITIAL_PASSWORDS);
-  const [avatarSrc, setAvatarSrc] = useState(DEFAULT_AVATAR);
+  const [avatarSrc, setAvatarSrc] = useState(() => {
+    const storedAvatar = normalizeAvatar(getStoredUserAvatar());
+    return storedAvatar || DEFAULT_AVATAR;
+  });
 
   const [loadingAccount, setLoadingAccount] = useState(true);
   const [savingEmail, setSavingEmail] = useState(false);
@@ -78,13 +94,29 @@ function AccountProfile() {
   const fileInputRef = useRef(null);
 
   useEffect(() => {
+    const syncAvatarFromStorage = () => {
+      const latestAvatar = normalizeAvatar(getStoredUserAvatar());
+      setAvatarSrc(latestAvatar || DEFAULT_AVATAR);
+    };
+
+    const unsubscribe = subscribeUserProfileUpdates(syncAvatarFromStorage);
+    return unsubscribe;
+  }, []);
+
+  useEffect(() => {
     const loadAccount = async () => {
       try {
         setLoadingAccount(true);
         const me = await getMe();
+        const latestAvatar = normalizeAvatar(me?.hinh_anh);
         setProfile({
           fullName: me?.ho_ten || "",
           email: me?.email || "",
+        });
+        setAvatarSrc(latestAvatar || DEFAULT_AVATAR);
+        setStoredUserProfile({
+          userName: me?.ho_ten,
+          avatarUrl: latestAvatar,
         });
       } catch (error) {
         const msg =
@@ -113,8 +145,10 @@ function AccountProfile() {
     const response = updateAvatar(file);
     response
       .then((data) => {
-        setAvatarSrc(data.url);
-        setProfileMessage("Anh dai dien da duoc cap nhat.");
+        const latestAvatar = normalizeAvatar(data?.url);
+        setAvatarSrc(latestAvatar || DEFAULT_AVATAR);
+        setStoredUserProfile({ avatarUrl: latestAvatar });
+        setProfileMessage("Ảnh đại diện đã được cập nhật.");
       })
       .catch((error) => {
         const msg =
@@ -125,7 +159,6 @@ function AccountProfile() {
 
     // Reset input value to allow re-uploading the same file if needed
     event.target.value = "";
-    setProfileMessage("Ảnh đại diện đã được cập nhật.");
   };
 
   const handleAvatarReset = () => {
@@ -135,6 +168,7 @@ function AccountProfile() {
       }
       return DEFAULT_AVATAR;
     });
+    setStoredUserProfile({ avatarUrl: "" });
     setProfileMessage("Đã khôi phục ảnh đại diện mặc định.");
   };
 
@@ -247,7 +281,9 @@ function AccountProfile() {
   if (loadingAccount) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <div className="text-sm text-slate-600">Dang tai thong tin tai khoan...</div>
+        <div className="text-sm text-slate-600">
+          Dang tai thong tin tai khoan...
+        </div>
       </div>
     );
   }
@@ -307,13 +343,18 @@ function AccountProfile() {
 
               <div className="space-y-1">
                 <h4 className="font-semibold">Ảnh đại diện</h4>
-                <p className="text-sm text-slate-500">Hỗ trợ định dạng JPG, PNG. Dung lượng tối đa 5MB.</p>
+                <p className="text-sm text-slate-500">
+                  Hỗ trợ định dạng JPG, PNG. Dung lượng tối đa 5MB.
+                </p>
                 <div className="mt-2 flex gap-2">
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
                     className="rounded-lg border px-3 py-1 text-sm font-semibold transition hover:bg-[#effaf8] cursor-pointer"
-                    style={{ borderColor: COLORS.primary, color: COLORS.primary }}>
+                    style={{
+                      borderColor: COLORS.primary,
+                      color: COLORS.primary,
+                    }}>
                     Tải lên
                   </button>
                   <button
@@ -330,8 +371,12 @@ function AccountProfile() {
             <div className="grid grid-cols-1 gap-6 md:grid-cols-1">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <span className="text-sm font-semibold text-slate-700">Email:</span>
-                  <span className="text-sm text-slate-600">{profile.email || "Chua co email"}</span>
+                  <span className="text-sm font-semibold text-slate-700">
+                    Email:
+                  </span>
+                  <span className="text-sm text-slate-600">
+                    {profile.email || "Chua co email"}
+                  </span>
                 </div>
                 <button
                   type="button"
@@ -345,11 +390,14 @@ function AccountProfile() {
               <div className="flex items-center justify-between">
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center gap-3">
-                    <span className="text-sm font-semibold text-slate-700">Mat khau:</span>
+                    <span className="text-sm font-semibold text-slate-700">
+                      Mat khau:
+                    </span>
                     <span className="text-sm text-slate-600">••••••••••••</span>
                   </div>
                   <span className="text-xs text-slate-400">
-                   Mật khẩu không thể hiển thị vì hệ thống lưu dưới dạng mã hóa.
+                    Mật khẩu không thể hiển thị vì hệ thống lưu dưới dạng mã
+                    hóa.
                   </span>
                 </div>
                 <button
@@ -387,7 +435,9 @@ function AccountProfile() {
           cancelText="Huy">
           <div className="space-y-4 pt-2">
             <div className="space-y-1">
-              <label className="text-sm font-semibold text-slate-700">Nhap email moi</label>
+              <label className="text-sm font-semibold text-slate-700">
+                Nhap email moi
+              </label>
               <Input
                 value={newEmail}
                 onChange={(event) => {
@@ -431,7 +481,9 @@ function AccountProfile() {
           cancelText="Huy">
           <div className="space-y-4 pt-2">
             <div className="space-y-1">
-              <label className="text-sm font-semibold text-slate-700">Mat khau hien tai</label>
+              <label className="text-sm font-semibold text-slate-700">
+                Mat khau hien tai
+              </label>
               <Input.Password
                 name="currentPassword"
                 value={passwords.currentPassword}
@@ -441,7 +493,9 @@ function AccountProfile() {
             </div>
 
             <div className="space-y-1">
-              <label className="text-sm font-semibold text-slate-700">Nhap mat khau moi</label>
+              <label className="text-sm font-semibold text-slate-700">
+                Nhap mat khau moi
+              </label>
               <Input.Password
                 name="newPassword"
                 value={passwords.newPassword}
@@ -451,7 +505,9 @@ function AccountProfile() {
             </div>
 
             <div className="space-y-1">
-              <label className="text-sm font-semibold text-slate-700">Xac nhan mat khau moi</label>
+              <label className="text-sm font-semibold text-slate-700">
+                Xac nhan mat khau moi
+              </label>
               <Input.Password
                 name="confirmPassword"
                 value={passwords.confirmPassword}

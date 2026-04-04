@@ -5,7 +5,8 @@ import MailIcon from "./icon/MailIcon";
 import LockIcon from "./icon/LockIcon";
 import EyeIcon from "./icon/EyeIcon";
 import EyeOffIcon from "./icon/EyeOffIcon";
-import { login } from "../../api/authApi";
+import { getMe, login } from "../../api/authApi";
+import { setStoredUserProfile } from "../../utils/userProfileSync";
 
 function LoginPage() {
   const navigate = useNavigate();
@@ -31,6 +32,21 @@ function LoginPage() {
       localStorage.setItem("user_id", data.nguoi_dung.id);
       localStorage.setItem("user_name", data.nguoi_dung.ho_ten);
       localStorage.setItem("payload", JSON.stringify(data.payload));
+
+      setStoredUserProfile({
+        userName: data?.nguoi_dung?.ho_ten,
+        avatarUrl: data?.nguoi_dung?.hinh_anh,
+      });
+
+      try {
+        const me = await getMe();
+        setStoredUserProfile({
+          userName: me?.ho_ten,
+          avatarUrl: me?.hinh_anh,
+        });
+      } catch {
+        // Keep login flow non-blocking if profile sync fails.
+      }
 
       const vaiTro = data.nguoi_dung.vai_tro;
       if (vaiTro === "ADMIN") {
