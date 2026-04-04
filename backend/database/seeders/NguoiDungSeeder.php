@@ -11,100 +11,56 @@ class NguoiDungSeeder extends Seeder
     public function run(): void
     {
         $roles = DB::table('vai_tro')->pluck('id', 'ma_vai_tro');
+        $defaultPassword = Hash::make('12345678');
 
-        $rows = [
-            [
-                'email' => 'admin@hospital.local',
-                'ho_ten' => 'Admin Hospital',
-                'mat_khau' => Hash::make('12345678'),
-                'vai_tro_id' => $roles['ADMIN'] ?? null,
-                'hinh_anh' => null,
-                'hinh_anh_public_id' => null,
-                'trang_thai' => 'hoat_dong',
-                'lan_dang_nhap_cuoi' => null,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'email' => 'doctor1@hospital.local',
-                'ho_ten' => 'Bác Sĩ Nguyễn Văn A',
-                'mat_khau' => Hash::make('12345678'),
-                'vai_tro_id' => $roles['BACSI'] ?? null,
-                'hinh_anh' => null,
-                'hinh_anh_public_id' => null,
-                'trang_thai' => 'hoat_dong',
-                'lan_dang_nhap_cuoi' => null,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'email' => 'doctor2@hospital.local',
-                'ho_ten' => 'Bác Sĩ Trần Thị B',
-                'mat_khau' => Hash::make('12345678'),
-                'vai_tro_id' => $roles['BACSI'] ?? null,
-                'hinh_anh' => null,
-                'hinh_anh_public_id' => null,
-                'trang_thai' => 'hoat_dong',
-                'lan_dang_nhap_cuoi' => null,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'email' => 'staff1@hospital.local',
-                'ho_ten' => 'Nhân Viên Lê Văn C',
-                'mat_khau' => Hash::make('12345678'),
-                'vai_tro_id' => $roles['NHANVIEN'] ?? null,
-                'hinh_anh' => null,
-                'hinh_anh_public_id' => null,
-                'trang_thai' => 'hoat_dong',
-                'lan_dang_nhap_cuoi' => null,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'email' => 'staff2@hospital.local',
-                'ho_ten' => 'Nhân Viên Đỗ Thị D',
-                'mat_khau' => Hash::make('12345678'),
-                'vai_tro_id' => $roles['NHANVIEN'] ?? null,
-                'hinh_anh' => null,
-                'hinh_anh_public_id' => null,
-                'trang_thai' => 'hoat_dong',
-                'lan_dang_nhap_cuoi' => null,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'email' => 'patient1@hospital.local',
-                'ho_ten' => 'Nguyễn Văn Bệnh Nhân',
-                'mat_khau' => Hash::make('12345678'),
-                'vai_tro_id' => $roles['BENHNHAN'] ?? null,
-                'hinh_anh' => null,
-                'hinh_anh_public_id' => null,
-                'trang_thai' => 'hoat_dong',
-                'lan_dang_nhap_cuoi' => null,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-            [
-                'email' => 'patient2@hospital.local',
-                'ho_ten' => 'Trần Thị Mệnh Bệnh',
-                'mat_khau' => Hash::make('12345678'),
-                'vai_tro_id' => $roles['BENHNHAN'] ?? null,
-                'hinh_anh' => null,
-                'hinh_anh_public_id' => null,
-                'trang_thai' => 'hoat_dong',
-                'lan_dang_nhap_cuoi' => null,
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
+        $sharedAvatarPublicId = 'hospital_booking/user_avatars/user_10';
+        $sharedAvatarUrl = 'https://res.cloudinary.com/dq18a5avc/image/upload/q_auto/f_auto/v1774849803/hospital_booking/user_avatars/user_10.png';
+
+        $buildUserRow = static fn(string $email, ?int $roleId, bool $useSharedAvatar = false) => [
+            'email' => $email,
+            'mat_khau' => $defaultPassword,
+            'vai_tro_id' => $roleId,
+            'hinh_anh' => $useSharedAvatar ? $sharedAvatarUrl : null,
+            'hinh_anh_public_id' => $useSharedAvatar ? $sharedAvatarPublicId : null,
+            'trang_thai' => 'hoat_dong',
+            'lan_dang_nhap_cuoi' => null,
+            'created_at' => now(),
+            'updated_at' => now(),
         ];
 
+        $rows = [
+            $buildUserRow('admin@hospital.local', $roles['ADMIN'] ?? null, true),
+            $buildUserRow('doctor1@hospital.local', $roles['BACSI'] ?? null, true),
+            $buildUserRow('doctor2@hospital.local', $roles['BACSI'] ?? null, true),
+
+            $buildUserRow('staff1@hospital.local', $roles['NHANVIEN'] ?? null, true),
+            $buildUserRow('staff2@hospital.local', $roles['NHANVIEN'] ?? null, true),
+
+            $buildUserRow('patient1@hospital.local', $roles['BENHNHAN'] ?? null),
+            $buildUserRow('patient2@hospital.local', $roles['BENHNHAN'] ?? null),
+        ];
+
+        foreach (range(3, 50) as $index) {
+            $rows[] = $buildUserRow("doctor{$index}@hospital.local", $roles['BACSI'] ?? null, true);
+            $rows[] = $buildUserRow("staff{$index}@hospital.local", $roles['NHANVIEN'] ?? null, true);
+            $rows[] = $buildUserRow("patient{$index}@hospital.local", $roles['BENHNHAN'] ?? null);
+        }
+
+        // Remove rows where role doesn't exist
         $rows = array_filter($rows, fn(array $row) => !is_null($row['vai_tro_id']));
 
         DB::table('nguoi_dung')->upsert(
             $rows,
             ['email'],
-            ['ho_ten', 'mat_khau', 'vai_tro_id', 'hinh_anh', 'hinh_anh_public_id', 'trang_thai', 'lan_dang_nhap_cuoi', 'updated_at']
+            [
+                'mat_khau',
+                'vai_tro_id',
+                'hinh_anh',
+                'hinh_anh_public_id',
+                'trang_thai',
+                'lan_dang_nhap_cuoi',
+                'updated_at'
+            ]
         );
     }
 }

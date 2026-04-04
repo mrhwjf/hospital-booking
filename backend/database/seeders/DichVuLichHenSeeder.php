@@ -15,17 +15,17 @@ class DichVuLichHenSeeder extends Seeder
 
         $rows = [
             [
-                'lich_hen_id' => $lichHen['LH0001'] ?? null,
+                'lich_hen_id' => $lichHen['LH-20260316-07250012'] ?? null,
                 'dich_vu_id' => null,
-                'goi_kham_id' => $goiKham['GK001'] ?? null,
+                'goi_kham_id' => $goiKham['GK-001'] ?? null,
                 'so_luong' => 1,
                 'ghi_chu' => 'Su dung goi kham co ban.',
                 'created_at' => now(),
                 'updated_at' => now(),
             ],
             [
-                'lich_hen_id' => $lichHen['LH0002'] ?? null,
-                'dich_vu_id' => $dichVu['DV004'] ?? null,
+                'lich_hen_id' => $lichHen['LH-20260316-09300045'] ?? null,
+                'dich_vu_id' => $dichVu['DV-019'] ?? null,
                 'goi_kham_id' => null,
                 'so_luong' => 1,
                 'ghi_chu' => null,

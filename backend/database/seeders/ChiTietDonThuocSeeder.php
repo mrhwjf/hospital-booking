@@ -14,8 +14,8 @@ class ChiTietDonThuocSeeder extends Seeder
 
         $rows = [
             [
-                'don_thuoc_id' => $donThuoc['DT0001'] ?? null,
-                'thuoc_id' => $thuoc['TH001'] ?? null,
+                'don_thuoc_id' => $donThuoc['DT-20260316-09050065'] ?? null,
+                'thuoc_id' => $thuoc['THUOC-001'] ?? null,
                 'so_luong' => 10,
                 'lieu_dung' => '1 vien/lan, 2 lan/ngay',
                 'thoi_diem' => 'sau_an',
@@ -24,8 +24,8 @@ class ChiTietDonThuocSeeder extends Seeder
                 'created_at' => now(),
             ],
             [
-                'don_thuoc_id' => $donThuoc['DT0001'] ?? null,
-                'thuoc_id' => $thuoc['TH003'] ?? null,
+                'don_thuoc_id' => $donThuoc['DT-20260316-09050065'] ?? null,
+                'thuoc_id' => $thuoc['THUOC-003'] ?? null,
                 'so_luong' => 5,
                 'lieu_dung' => '1 vien/lan, 1 lan/ngay',
                 'thoi_diem' => 'truoc_an',

@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use Carbon\Carbon;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
@@ -9,52 +10,153 @@ class LichHenSeeder extends Seeder
 {
     public function run(): void
     {
-        $benhNhan = DB::table('benh_nhan')->pluck('id', 'ma_benh_nhan');
-        $bacSi = DB::table('bac_si')->pluck('id', 'ma_bac_si');
-        $chuyenKhoa = DB::table('chuyen_khoa')->pluck('id', 'ma_chuyen_khoa');
-        $lyDoHuy = DB::table('ly_do_huy')->pluck('id', 'ma_ly_do');
-        $users = DB::table('nguoi_dung')->pluck('id', 'email');
-        $khungGio = DB::table('khung_gio_kham')->orderBy('id')->pluck('id')->values();
+        $benhNhanIds = DB::table('benh_nhan')->orderBy('id')->pluck('id')->values()->all();
+        $staffUserIds = DB::table('nguoi_dung as nd')
+            ->join('vai_tro as vt', 'vt.id', '=', 'nd.vai_tro_id')
+            ->where('vt.ma_vai_tro', 'NHANVIEN')
+            ->orderBy('nd.id')
+            ->pluck('nd.id')
+            ->values()
+            ->all();
 
-        DB::table('lich_hen')->upsert([
-            [
-                'ma_lich_hen' => 'LH0001',
-                'benh_nhan_id' => $benhNhan['BN0001'] ?? null,
-                'bac_si_id' => $bacSi['BS0001'] ?? null,
-                'chuyen_khoa_id' => $chuyenKhoa['NOI'] ?? null,
-                'khung_gio_id' => $khungGio[0] ?? null,
-                'ngay_hen' => '2026-03-16',
-                'ly_do_kham' => 'Dau dau, met moi keo dai.',
-                'trang_thai' => 'da_hoan_tat',
-                'nguoi_tao_id' => $users['staff1@hospital.local'] ?? null,
-                'gio_den_thuc_te' => '07:25:00',
-                'nguoi_tiep_nhan_id' => $users['staff1@hospital.local'] ?? null,
-                'ly_do_huy_id' => null,
-                'ly_do_huy_khac' => null,
-                'ghi_chu' => null,
-                'ghi_chu_noi_bo' => null,
-                'created_at' => now(),
+        $defaultChuyenKhoaId = DB::table('chuyen_khoa')->orderBy('id')->value('id');
+        $chuyenKhoaByBacSi = DB::table('bac_si_chuyen_khoa')
+            ->select('bac_si_id', 'chuyen_khoa_id')
+            ->orderBy('id')
+            ->get()
+            ->groupBy('bac_si_id')
+            ->map(fn($items) => $items->pluck('chuyen_khoa_id')->values()->all());
+
+        $lyDoHuyMap = DB::table('ly_do_huy')->pluck('id', 'ma_ly_do');
+        $lyDoHuyIds = array_values(array_filter([
+            $lyDoHuyMap['BN_DOI_LICH_KHAM'] ?? null,
+            $lyDoHuyMap['BN_BAN_DOT_XUAT'] ?? null,
+            $lyDoHuyMap['HT_SU_CO_KET_NOI'] ?? null,
+            $lyDoHuyMap['NV_TRUNG_LICH_TN'] ?? null,
+        ]));
+
+        $slots = DB::table('khung_gio_kham as kgk')
+            ->join('lich_lam_viec_bac_si as llvbs', 'llvbs.id', '=', 'kgk.lich_lam_viec_bac_si_id')
+            ->select([
+                'kgk.id as khung_gio_id',
+                'kgk.gio_bat_dau',
+                'llvbs.ngay_lam_viec as ngay_hen',
+                'llvbs.bac_si_id',
+            ])
+            ->orderBy('llvbs.ngay_lam_viec')
+            ->orderBy('kgk.gio_bat_dau')
+            ->orderBy('kgk.id')
+            ->get();
+
+        if (empty($benhNhanIds) || empty($staffUserIds) || $slots->isEmpty() || is_null($defaultChuyenKhoaId)) {
+            return;
+        }
+
+        $reasons = [
+            'Đau đầu, mệt mỏi kéo dài.',
+            'Khám sức khỏe định kỳ.',
+            'Đau họng, ho khan nhiều ngày.',
+            'Tái khám theo chỉ định của bác sĩ.',
+            'Đau bụng âm ỉ sau ăn.',
+            'Khó thở nhẹ khi vận động.',
+            'Theo dõi huyết áp và đường huyết.',
+            'Nổi mẩn ngứa, dị ứng da.',
+            'Đau lưng và mỏi cổ vai gáy.',
+            'Mất ngủ kéo dài, cần tư vấn chuyên khoa.',
+        ];
+
+        $statusPattern = ['da_hoan_tat', 'da_xac_nhan', 'dang_cho', 'da_huy', 'khong_den'];
+        $targetCount = 50;
+
+        $rows = [];
+
+        for ($index = 0; $index < $targetCount; $index++) {
+            $slot = $slots[$index % $slots->count()];
+            $benhNhanId = $benhNhanIds[$index % count($benhNhanIds)];
+            $nguoiTaoId = $staffUserIds[$index % count($staffUserIds)];
+            $nguoiTiepNhanId = $staffUserIds[($index + 1) % count($staffUserIds)];
+
+            $chuyenKhoaCandidates = $chuyenKhoaByBacSi[$slot->bac_si_id] ?? [];
+            $chuyenKhoaId = !empty($chuyenKhoaCandidates)
+                ? $chuyenKhoaCandidates[$index % count($chuyenKhoaCandidates)]
+                : $defaultChuyenKhoaId;
+
+            $status = $statusPattern[$index % count($statusPattern)];
+
+            $maLichHen = sprintf(
+                'LH-%s-%s%03d',
+                str_replace('-', '', $slot->ngay_hen),
+                str_replace(':', '', $slot->gio_bat_dau),
+                $index + 1
+            );
+
+            if ($index === 0) {
+                $maLichHen = 'LH-20260316-07250012';
+                $status = 'da_hoan_tat';
+            }
+
+            if ($index === 1) {
+                $maLichHen = 'LH-20260316-09300045';
+                $status = 'da_huy';
+            }
+
+            $gioDenThucTe = null;
+            if ($status === 'da_hoan_tat') {
+                $gioDenThucTe = Carbon::createFromFormat('H:i:s', $slot->gio_bat_dau)
+                    ->subMinutes(($index % 10) + 5)
+                    ->format('H:i:s');
+            }
+
+            $lyDoHuyId = $status === 'da_huy' && !empty($lyDoHuyIds)
+                ? $lyDoHuyIds[$index % count($lyDoHuyIds)]
+                : null;
+
+            $createdAt = Carbon::parse($slot->ngay_hen)
+                ->subDays(7 + ($index % 15))
+                ->setTime(8, 0)
+                ->format('Y-m-d H:i:s');
+
+            $rows[] = [
+                'ma_lich_hen' => $maLichHen,
+                'benh_nhan_id' => $benhNhanId,
+                'bac_si_id' => $slot->bac_si_id,
+                'chuyen_khoa_id' => $chuyenKhoaId,
+                'khung_gio_id' => $slot->khung_gio_id,
+                'ngay_hen' => $index < 2 ? '2026-03-16' : $slot->ngay_hen,
+                'ly_do_kham' => $reasons[$index % count($reasons)],
+                'trang_thai' => $status,
+                'nguoi_tao_id' => $nguoiTaoId,
+                'gio_den_thuc_te' => $gioDenThucTe,
+                'nguoi_tiep_nhan_id' => in_array($status, ['da_hoan_tat', 'khong_den'], true) ? $nguoiTiepNhanId : null,
+                'ly_do_huy_id' => $lyDoHuyId,
+                'ly_do_huy_khac' => $status === 'da_huy' ? 'Điều chỉnh lịch khám theo tình huống thực tế.' : null,
+                'ghi_chu' => $index % 9 === 0 ? 'Bệnh nhân cần hỗ trợ ưu tiên khi tiếp nhận.' : null,
+                'ghi_chu_noi_bo' => $status === 'da_huy'
+                    ? 'Đã liên hệ bệnh nhân và xác nhận phương án hủy lịch.'
+                    : ($status === 'khong_den' ? 'Bệnh nhân không đến theo lịch hẹn.' : null),
+                'created_at' => $createdAt,
                 'updated_at' => now(),
-            ],
-            [
-                'ma_lich_hen' => 'LH0002',
-                'benh_nhan_id' => $benhNhan['BN0002'] ?? null,
-                'bac_si_id' => $bacSi['BS0002'] ?? null,
-                'chuyen_khoa_id' => $chuyenKhoa['NHI'] ?? null,
-                'khung_gio_id' => $khungGio[1] ?? null,
-                'ngay_hen' => '2026-03-16',
-                'ly_do_kham' => 'Kiem tra dinh ky.',
-                'trang_thai' => 'da_huy',
-                'nguoi_tao_id' => $users['staff2@hospital.local'] ?? null,
-                'gio_den_thuc_te' => null,
-                'nguoi_tiep_nhan_id' => null,
-                'ly_do_huy_id' => $lyDoHuy['BN_DOI_LICH'] ?? null,
-                'ly_do_huy_khac' => null,
-                'ghi_chu' => null,
-                'ghi_chu_noi_bo' => 'Da lien he benh nhan.',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ],
-        ], ['ma_lich_hen'], ['benh_nhan_id', 'bac_si_id', 'chuyen_khoa_id', 'khung_gio_id', 'ngay_hen', 'ly_do_kham', 'trang_thai', 'nguoi_tao_id', 'gio_den_thuc_te', 'nguoi_tiep_nhan_id', 'ly_do_huy_id', 'ly_do_huy_khac', 'ghi_chu', 'ghi_chu_noi_bo', 'updated_at']);
+            ];
+        }
+
+        $rows = array_values(array_filter(
+            $rows,
+            fn(array $row) =>
+            !is_null($row['benh_nhan_id']) &&
+            !is_null($row['bac_si_id']) &&
+            !is_null($row['chuyen_khoa_id']) &&
+            !is_null($row['khung_gio_id']) &&
+            !is_null($row['nguoi_tao_id'])
+        ));
+
+        if (empty($rows)) {
+            return;
+        }
+
+        DB::table('lich_hen')->upsert(
+            $rows,
+            ['ma_lich_hen'],
+            ['benh_nhan_id', 'bac_si_id', 'chuyen_khoa_id', 'khung_gio_id', 'ngay_hen', 'ly_do_kham', 'trang_thai', 'nguoi_tao_id', 'gio_den_thuc_te', 'nguoi_tiep_nhan_id', 'ly_do_huy_id', 'ly_do_huy_khac', 'ghi_chu', 'ghi_chu_noi_bo', 'updated_at']
+        );
     }
 }
