@@ -28,8 +28,9 @@ import {
   taoNguoiDung,
   capNhatNguoiDung,
   toggleKhoaTaiKhoan,
-} from '../../../services/admin/accountManagementService';
-import { taiAnhDaiDienCloudinary } from '../../../services/admin/cloudinaryService';
+} from '../../../Services/admin/accountManagementService';
+import { taiAnhDaiDienCloudinary } from '../../../Services/admin/cloudinaryService';
+import useDebounce from '../../../hooks/useDebounce';
 
 // ── Constants ──────────────────────────────────────────────
 const ROLE_OPTIONS = [
@@ -73,7 +74,7 @@ const isValidImageFile = (file) => {
 
 // ── Helpers ────────────────────────────────────────────────
 const roleLabel = (vai_tro) => {
-  const map = { BACSI: 'Bác sĩ', NHANVIEN: 'Nhân viên', ADMIN: 'Quản trị viên', BENHNHAN: 'Bệnh nhân' };
+  const map = { BACSI: 'Bác sĩ', NHANVIEN: 'Lễ tân', ADMIN: 'Quản trị viên', BENHNHAN: 'Bệnh nhân' };
   return map[vai_tro] || vai_tro;
 };
 
@@ -100,12 +101,15 @@ export default function UserManagementPage() {
   const [selectedAvatarFile, setSelectedAvatarFile] = useState(null);
   const [form] = Form.useForm();
 
+  // Ultility
+  const debounceEmail = useDebounce(filterEmail);
+
   // ── Fetch data from API ──
   const fetchData = useCallback(async (page = 1) => {
     setLoading(true);
     try {
       const params = { page, per_page: pagination.perPage };
-      if (filterEmail) params.q = filterEmail;
+      if (debounceEmail) params.q = debounceEmail;
       if (filterRole) params.vai_tro = filterRole;
       if (filterStatus) params.trang_thai = filterStatus;
 
@@ -122,7 +126,7 @@ export default function UserManagementPage() {
     } finally {
       setLoading(false);
     }
-  }, [filterEmail, filterRole, filterStatus, pagination.perPage]);
+  }, [debounceEmail, filterRole, filterStatus, pagination.perPage]);
 
   useEffect(() => {
     fetchData(1);

@@ -24,7 +24,7 @@ import {
 	getApiErrorMessage,
 	submitCancelAppointment,
 	submitRescheduleAppointment,
-} from '../../../../services/schedulingService'
+} from '../../../../Services/schedulingService'
 import { MODAL_STYLES, TABLE_STYLES } from '../../styles/const-styles'
 
 const { useBreakpoint } = Grid

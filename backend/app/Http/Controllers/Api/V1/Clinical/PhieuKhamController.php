@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Clinical;
 
 use App\Http\Controllers\Controller;
 use App\Requests\Clinical\UpdatePhieuKhamRequest;
+use App\Resources\ApiResponse;
 use App\Resources\Clinical\PhieuKhamResource;
 use App\Services\ClinicalService;
 use App\Models\PhieuKham;
@@ -11,16 +12,15 @@ use Illuminate\Http\Request;
 
 class PhieuKhamController extends Controller
 {
-    public function __construct(private ClinicalService $clinicalService) {}
+    public function __construct(private ClinicalService $clinicalService)
+    {
+    }
 
     public function show(int $id)
     {
         $phieuKham = $this->clinicalService->getPhieuKham($id);
 
-        return response()->json([
-            'success' => true,
-            'data'    => new PhieuKhamResource($phieuKham),
-        ]);
+        return ApiResponse::success(new PhieuKhamResource($phieuKham));
     }
 
     public function update(UpdatePhieuKhamRequest $request, int $id)
@@ -28,11 +28,7 @@ class PhieuKhamController extends Controller
         $phieuKham = $this->clinicalService->getPhieuKham($id);
         $phieuKham = $this->clinicalService->updatePhieuKham($phieuKham, $request->validated());
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Cập nhật phiếu khám thành công',
-            'data'    => new PhieuKhamResource($phieuKham),
-        ]);
+        return ApiResponse::success(new PhieuKhamResource($phieuKham), 'Cập nhật phiếu khám thành công');
     }
 
     public function indexByDoctor(Request $request)
@@ -42,11 +38,7 @@ class PhieuKhamController extends Controller
         $doctor_id = $request->get('bac_si_id') ?? auth()->user()?->bacSi?->id;
 
         if (!$doctor_id) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Không xác định được bác sĩ hiện tại.',
-                'error' => ['code' => 'UNAUTHORIZED'],
-            ], 401);
+            return ApiResponse::error('Không xác định được bác sĩ hiện tại.', ['code' => 'UNAUTHORIZED'], 401);
         }
 
         $query = PhieuKham::query()
@@ -75,7 +67,7 @@ class PhieuKhamController extends Controller
                     $subq->where('ho_ten', 'like', $search)
                         ->orWhere('ma_benh_nhan', 'like', $search);
                 })
-                ->orWhere('ma_phieu_kham', 'like', $search);
+                    ->orWhere('ma_phieu_kham', 'like', $search);
             });
         }
 
@@ -84,11 +76,7 @@ class PhieuKhamController extends Controller
             ->orderBy('thoi_gian_tiep_nhan', 'asc')
             ->get();
 
-        return response()->json([
-            'success' => true,
-            'data' => PhieuKhamResource::collection($phieuKhams),
-            'message' => 'Danh sách phiếu khám',
-        ]);
+        return ApiResponse::success(PhieuKhamResource::collection($phieuKhams), 'Danh sách phiếu khám');
     }
 }
 

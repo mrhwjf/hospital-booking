@@ -32,19 +32,6 @@ import {
 const PRIMARY = "#1c7a71";
 const DEFAULT_PHIEU_KHAM_ID = null;
 
-// dữ liệu tĩnh giả lập, sẽ được thay bằng dữ liệu thật từ API sau này
-const patient = {
-  name: "Nguyễn Văn A",
-  gender: "Nam",
-  age: 45,
-  patientId: "123456",
-  insurance: "GD4792...",
-  insurancePct: 80,
-  status: "Đang khám",
-  avatar:
-    "https://lh3.googleusercontent.com/aida-public/AB6AXuDTizCqWY1GACXV791MB1nxo0yyoTdkRSg9OgE72jQaXDPtLSwAG0RtzUA5CFp-lSHKPDJmV3w-UzrikPHjkdK27k8ch9Or5JoB0sZD26Jt8A4idmWRgK96yXuj_RITow0HroqiV5UIff8qrYxvDiscGFXAHbFpRQWuQUqOr8Cg-Dqe80NsYNN6i0eZcHGdZyR-0YTXp_1p3rNldaAxR_5-ozRSWxbfuxDKRyo5ljwrA_Z4P6WztUXRKEf04akSwutNzwl4fYBXM-Y",
-};
-
 const TIME_OPTIONS = [
   { label: "Trước ăn", value: "truoc_an" },
   { label: "Sau ăn", value: "sau_an" },
@@ -130,7 +117,7 @@ export default function DonThuocPage({ phieuKhamId = DEFAULT_PHIEU_KHAM_ID, isLo
           setPrescriptions(rows);
           nextId.current = rows.length + 1;
         }
-      } catch (error) {
+      } catch {
         message.error("Không tải được dữ liệu đơn thuốc");
       } finally {
         setIsLoadingMedicines(false);
@@ -156,15 +143,15 @@ export default function DonThuocPage({ phieuKhamId = DEFAULT_PHIEU_KHAM_ID, isLo
         prev.map((row) =>
           row.id === editingId
             ? {
-                ...row,
-                thuocId: draftPrescription.medicineId,
-                medicine: draftPrescription.medicine.trim(),
-                quantity: draftPrescription.quantity,
-                instruction: draftPrescription.instruction.trim(),
-                time: draftPrescription.time,
-                days: draftPrescription.days,
-                note: draftPrescription.note.trim(),
-              }
+              ...row,
+              thuocId: draftPrescription.medicineId,
+              medicine: draftPrescription.medicine.trim(),
+              quantity: draftPrescription.quantity,
+              instruction: draftPrescription.instruction.trim(),
+              time: draftPrescription.time,
+              days: draftPrescription.days,
+              note: draftPrescription.note.trim(),
+            }
             : row,
         ),
       );
@@ -360,7 +347,7 @@ export default function DonThuocPage({ phieuKhamId = DEFAULT_PHIEU_KHAM_ID, isLo
         {/* ── Scrollable content ── */}
         <main className="flex-1 overflow-y-auto p-4 md:p-6 pb-24">
           <div className="max-w-350 mx-auto flex flex-col gap-6">
-            
+
             {/* Patient profile card */}
             {/* <div
               className="rounded-xl p-5 shadow-sm"
@@ -423,8 +410,8 @@ export default function DonThuocPage({ phieuKhamId = DEFAULT_PHIEU_KHAM_ID, isLo
                 className="rounded-xl shadow-sm flex flex-col flex-1"
                 style={{ background: "#fff", border: "1px solid #e8f3f2" }}
               >
-                
-                
+
+
                 {/* Header */}
                 <div
                   className="px-5 py-4 flex justify-between items-center"
@@ -437,7 +424,7 @@ export default function DonThuocPage({ phieuKhamId = DEFAULT_PHIEU_KHAM_ID, isLo
                     <MedicineBoxOutlined style={{ color: PRIMARY }} />
                     Kê đơn thuốc
                   </h3>
-                  
+
                 </div>
 
                 {/* Prescription rows */}
@@ -673,7 +660,7 @@ export default function DonThuocPage({ phieuKhamId = DEFAULT_PHIEU_KHAM_ID, isLo
                         In đơn thuốc
                       </Button> */}
 
-                      
+
                       <Button
                         size="large"
                         type="primary"

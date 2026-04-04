@@ -12,6 +12,7 @@ use App\Requests\Admin\TaoQuyenRequest;
 use App\Requests\Admin\TaoVaiTroRequest;
 use App\Requests\Admin\XoaQuyenRequest;
 use App\Requests\Admin\XoaVaiTroRequest;
+use App\Resources\ApiResponse;
 use App\Resources\Admin\QuyenResource;
 use App\Resources\Admin\VaiTroResource;
 use App\Services\Admin\VaiTroQuyenService;
@@ -28,19 +29,7 @@ class VaiTroQuyenController extends Controller
     {
         $paginator = $this->vaiTroQuyenService->layDanhSachVaiTro($request->validated());
 
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'items' => VaiTroResource::collection($paginator->items()),
-                'pagination' => [
-                    'currentPage' => $paginator->currentPage(),
-                    'pageSize' => $paginator->perPage(),
-                    'totalItems' => $paginator->total(),
-                    'totalPages' => $paginator->lastPage(),
-                ],
-            ],
-            'message' => 'Lấy danh sách vai trò thành công.',
-        ]);
+        return ApiResponse::paginated($paginator, VaiTroResource::class, 'Lấy danh sách vai trò thành công.');
     }
 
     public function chiTietVaiTro(ChiTietVaiTroRequest $request, int $id): JsonResponse
@@ -48,17 +37,9 @@ class VaiTroQuyenController extends Controller
         try {
             $vaiTro = $this->vaiTroQuyenService->layChiTietVaiTro($id);
 
-            return response()->json([
-                'success' => true,
-                'data' => new VaiTroResource($vaiTro),
-                'message' => 'Lấy chi tiết vai trò thành công.',
-            ]);
+            return ApiResponse::success(new VaiTroResource($vaiTro), 'Lấy chi tiết vai trò thành công.');
         } catch (ModelNotFoundException) {
-            return response()->json([
-                'success' => false,
-                'data' => null,
-                'message' => 'Không tìm thấy vai trò.',
-            ], 404);
+            return ApiResponse::error('Không tìm thấy vai trò.', null, 404);
         }
     }
 
@@ -66,11 +47,7 @@ class VaiTroQuyenController extends Controller
     {
         $vaiTro = $this->vaiTroQuyenService->taoVaiTro($request->validated());
 
-        return response()->json([
-            'success' => true,
-            'data' => new VaiTroResource($vaiTro),
-            'message' => 'Tạo vai trò thành công.',
-        ], 201);
+        return ApiResponse::success(new VaiTroResource($vaiTro), 'Tạo vai trò thành công.', 201);
     }
 
     public function capNhatVaiTro(CapNhatVaiTroRequest $request, int $id): JsonResponse
@@ -78,17 +55,9 @@ class VaiTroQuyenController extends Controller
         try {
             $vaiTro = $this->vaiTroQuyenService->capNhatVaiTro($id, $request->validated());
 
-            return response()->json([
-                'success' => true,
-                'data' => new VaiTroResource($vaiTro),
-                'message' => 'Cập nhật vai trò thành công.',
-            ]);
+            return ApiResponse::success(new VaiTroResource($vaiTro), 'Cập nhật vai trò thành công.');
         } catch (ModelNotFoundException) {
-            return response()->json([
-                'success' => false,
-                'data' => null,
-                'message' => 'Không tìm thấy vai trò.',
-            ], 404);
+            return ApiResponse::error('Không tìm thấy vai trò.', null, 404);
         }
     }
 
@@ -97,23 +66,11 @@ class VaiTroQuyenController extends Controller
         try {
             $this->vaiTroQuyenService->xoaVaiTro($id);
 
-            return response()->json([
-                'success' => true,
-                'data' => ['id' => $id],
-                'message' => 'Xóa vai trò thành công.',
-            ]);
+            return ApiResponse::success(['id' => $id], 'Xóa vai trò thành công.');
         } catch (\DomainException $exception) {
-            return response()->json([
-                'success' => false,
-                'data' => null,
-                'message' => $exception->getMessage(),
-            ], 409);
+            return ApiResponse::error($exception->getMessage(), null, 409);
         } catch (ModelNotFoundException) {
-            return response()->json([
-                'success' => false,
-                'data' => null,
-                'message' => 'Không tìm thấy vai trò.',
-            ], 404);
+            return ApiResponse::error('Không tìm thấy vai trò.', null, 404);
         }
     }
 
@@ -121,30 +78,14 @@ class VaiTroQuyenController extends Controller
     {
         $paginator = $this->vaiTroQuyenService->layDanhSachQuyen($request->validated());
 
-        return response()->json([
-            'success' => true,
-            'data' => [
-                'items' => QuyenResource::collection($paginator->items()),
-                'pagination' => [
-                    'currentPage' => $paginator->currentPage(),
-                    'pageSize' => $paginator->perPage(),
-                    'totalItems' => $paginator->total(),
-                    'totalPages' => $paginator->lastPage(),
-                ],
-            ],
-            'message' => 'Lấy danh sách quyền thành công.',
-        ]);
+        return ApiResponse::paginated($paginator, QuyenResource::class, 'Lấy danh sách quyền thành công.');
     }
 
     public function taoQuyen(TaoQuyenRequest $request): JsonResponse
     {
         $quyen = $this->vaiTroQuyenService->taoQuyen($request->validated());
 
-        return response()->json([
-            'success' => true,
-            'data' => new QuyenResource($quyen),
-            'message' => 'Tạo quyền thành công.',
-        ], 201);
+        return ApiResponse::success(new QuyenResource($quyen), 'Tạo quyền thành công.', 201);
     }
 
     public function capNhatQuyen(CapNhatQuyenRequest $request, int $id): JsonResponse
@@ -152,17 +93,9 @@ class VaiTroQuyenController extends Controller
         try {
             $quyen = $this->vaiTroQuyenService->capNhatQuyen($id, $request->validated());
 
-            return response()->json([
-                'success' => true,
-                'data' => new QuyenResource($quyen),
-                'message' => 'Cập nhật quyền thành công.',
-            ]);
+            return ApiResponse::success(new QuyenResource($quyen), 'Cập nhật quyền thành công.');
         } catch (ModelNotFoundException) {
-            return response()->json([
-                'success' => false,
-                'data' => null,
-                'message' => 'Không tìm thấy quyền.',
-            ], 404);
+            return ApiResponse::error('Không tìm thấy quyền.', null, 404);
         }
     }
 
@@ -171,17 +104,9 @@ class VaiTroQuyenController extends Controller
         try {
             $this->vaiTroQuyenService->xoaQuyen($id);
 
-            return response()->json([
-                'success' => true,
-                'data' => ['id' => $id],
-                'message' => 'Xóa quyền thành công.',
-            ]);
+            return ApiResponse::success(['id' => $id], 'Xóa quyền thành công.');
         } catch (ModelNotFoundException) {
-            return response()->json([
-                'success' => false,
-                'data' => null,
-                'message' => 'Không tìm thấy quyền.',
-            ], 404);
+            return ApiResponse::error('Không tìm thấy quyền.', null, 404);
         }
     }
 }

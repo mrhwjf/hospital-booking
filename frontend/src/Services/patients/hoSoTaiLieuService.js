@@ -9,7 +9,7 @@ import { PATIENT_ENDPOINTS } from '../../api/patientApi';
  */
 export async function getHoSoTaiLieuByBenhNhan(benhNhanId, params = {}) {
   const result = await httpClient.get(PATIENT_ENDPOINTS.taiLieuHoSo(benhNhanId), { params });
-  return result.data ?? [];
+  return result?.data?.items ?? result?.data ?? [];
 }
 
 export async function createHoSoTaiLieu(benhNhanId, payload) {

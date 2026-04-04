@@ -25,7 +25,7 @@ import {
 	fetchVisitHistory,
 	fetchVisitTaiLieuSignedUrl,
 	getApiErrorMessage,
-} from '../../../../services/patientVisitHistoryService'
+} from '../../../../Services/patientVisitHistoryService'
 import VisitDetailModal from '../../components/VisitDetailModal'
 import DocumentPreviewModal from '../../components/DocumentPreviewModal'
 import { TABLE_STYLES } from '../../styles/const-styles'
@@ -265,7 +265,7 @@ export default function LichSuKhamPage() {
 		<div className="min-h-screen bg-[#F8FAFC] p-4 md:p-8">
 			<div className="mx-auto w-full max-w-7xl">
 				<Card className="rounded-2xl border-[#E2E8F0]">
-					<Space direction="vertical" size={14} className="w-full">
+					<Space orientation="vertical" size={14} className="w-full">
 						<div className="flex flex-wrap items-start justify-between gap-3">
 							<div>
 								<Title level={3} className="mb-1">
@@ -288,7 +288,7 @@ export default function LichSuKhamPage() {
 
 						<Card className="border-[#E2E8F0] bg-[#fafdff]">
 							{patientProfile ? (
-								<Space direction="vertical" size={4}>
+								<Space orientation="vertical" size={4}>
 									<Text strong>{patientProfile.ho_ten}</Text>
 									<Text type="secondary">Mã bệnh nhân: {patientProfile.ma_benh_nhan}</Text>
 									<Text type="secondary">
@@ -342,6 +342,7 @@ export default function LichSuKhamPage() {
 									pageSize,
 									total: totalItems,
 									showSizeChanger: true,
+									hideOnSinglePage: true,
 									onChange: (page, nextPageSize) => {
 										setCurrentPage(page)
 										setPageSize(nextPageSize)
@@ -349,11 +350,11 @@ export default function LichSuKhamPage() {
 								}}
 							/>
 						) : (
-							<Space direction="vertical" size={10} className="w-full">
+							<Space orientation="vertical" size={10} className="w-full">
 								{visits.length === 0 && <Empty description="Chưa có lịch sử khám phù hợp." />}
 								{visits.map((record) => (
 									<Card key={record.id} className="border-[#E2E8F0]">
-										<Space direction="vertical" size={8} className="w-full">
+										<Space orientation="vertical" size={8} className="w-full">
 											<div className="flex items-center justify-between gap-2">
 												<Text strong>{record.ma_phieu_kham}</Text>
 												{renderStatusTag(record.trang_thai)}
@@ -377,6 +378,7 @@ export default function LichSuKhamPage() {
 										setPageSize(nextPageSize)
 									}}
 									showSizeChanger
+									hideOnSinglePage
 								/>
 							</Space>
 						)}

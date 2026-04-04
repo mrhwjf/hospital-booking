@@ -8,7 +8,7 @@ import {
 	fetchServicesAndPackages,
 	fetchSpecialties,
 	getApiErrorMessage,
-} from '../../../services/schedulingService'
+} from '../../../Services/schedulingService'
 
 const { Text } = Typography
 

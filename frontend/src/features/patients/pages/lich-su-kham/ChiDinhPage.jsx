@@ -168,7 +168,7 @@ export default function ChiDinhPage({ items = [], loading = false }) {
 							}
 							: false
 					}
-					scroll={{ x: 'max-content' }}
+					// scroll={{ x: 'max-content' }}
 					summary={() => (
 						<Table.Summary>
 							<Table.Summary.Row>

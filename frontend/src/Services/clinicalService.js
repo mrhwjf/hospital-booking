@@ -94,12 +94,12 @@ export async function getThongTinBacSiWeekly(params = {}, config = {}) {
 
 export async function getLichSuPhieuKham(benhNhanId, params = {}) {
   const result = await httpClient.get(PATIENT_ENDPOINTS.lichSuPhieuKham(benhNhanId), { params });
-  return result?.data ?? [];
+  return result?.data?.items ?? result?.data ?? [];
 }
 
 export async function getHoSoTaiLieuByBenhNhan(benhNhanId, params = {}) {
   const result = await httpClient.get(PATIENT_ENDPOINTS.taiLieuHoSo(benhNhanId), { params });
-  return result?.data ?? [];
+  return result?.data?.items ?? result?.data ?? [];
 }
 
 export async function createHoSoTaiLieu(benhNhanId, payload) {

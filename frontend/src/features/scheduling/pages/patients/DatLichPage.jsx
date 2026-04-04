@@ -31,7 +31,7 @@ import {
 	fetchSpecialties,
 	getApiErrorMessage,
 	submitAppointmentBooking,
-} from '../../../../services/schedulingService'
+} from '../../../../Services/schedulingService'
 import useDebounce from '../../../../hooks/useDebounce'
 import { SEGMENTED_STYLES, TABLE_STYLES } from '../../styles/const-styles'
 
@@ -827,3 +827,4 @@ export default function DatLichPage() {
 		</ConfigProvider>
 	)
 }
+

@@ -21,6 +21,7 @@ import {
 	updateHoliday,
 	updateWorkTemplate,
 } from '../api/adminScheduleApi'
+import { getApiErrorMessage } from '../utils/apiError'
 
 const DEFAULT_PAGE_SIZE = 10
 
@@ -206,10 +207,4 @@ export const fetchAdminSystemConfigs = async (params = {}) => {
 	}
 }
 
-export const getApiErrorMessage = (error, fallbackMessage) => {
-	const firstError =
-		error?.response?.data?.data?.errors &&
-		Object.values(error.response.data.data.errors)[0]?.[0]
-
-	return firstError || error?.response?.data?.message || fallbackMessage
-}
+export { getApiErrorMessage }

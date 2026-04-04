@@ -9,7 +9,7 @@ export default function AdminDoctorScheduleModulePage() {
 	const [activeTab, setActiveTab] = useState('doctor-work')
 
 	return (
-		<Space direction="vertical" size={16} className="w-full">
+		<Space orientation="vertical" size={16} className="w-full">
 			<Card className="border-[#E2E8F0]">
 				<Segmented
 					value={activeTab}

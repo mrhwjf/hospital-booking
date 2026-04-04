@@ -27,11 +27,11 @@ import {
 	capNhatBacSi,
 	layDanhMucChuyenKhoa,
 	layDanhSachBacSi,
-	layDanhSachTaiKhoanBacSi,
+	layDanhSachTaiKhoanBacSiChuaLienKet,
 	taoBacSi,
 	xoaBacSi,
-} from '../../../services/admin/doctorServices';
-import { taiAnhDaiDienCloudinary } from '../../../services/admin/cloudinaryService';
+} from '../../../Services/admin/doctorServices';
+import { taiAnhDaiDienCloudinary } from '../../../Services/admin/cloudinaryService';
 
 const DOCTOR_STATUS_OPTIONS = [
 	{ value: 'hoat_dong', label: 'Hoạt động' },
@@ -102,6 +102,11 @@ export default function ProfileDoctorPage() {
 	const [selectedChuyenKhoa, setSelectedChuyenKhoa] = useState();
 	const [selectedHocVi, setSelectedHocVi] = useState();
 	const [selectedTrangThai, setSelectedTrangThai] = useState();
+	const watchedFormSpecialtyIds = Form.useWatch('chuyen_khoa', form);
+	const selectedFormSpecialtyIds = useMemo(
+		() => (Array.isArray(watchedFormSpecialtyIds) ? watchedFormSpecialtyIds : []),
+		[watchedFormSpecialtyIds]
+	);
 
 	const specialtySelectOptions = useMemo(
 		() =>
@@ -112,12 +117,17 @@ export default function ProfileDoctorPage() {
 		[chuyenKhoaOptions]
 	);
 
+	const mainSpecialtyOptions = useMemo(() => {
+		const selectedIds = new Set((selectedFormSpecialtyIds || []).map(Number));
+		return specialtySelectOptions.filter((item) => selectedIds.has(Number(item.value)));
+	}, [selectedFormSpecialtyIds, specialtySelectOptions]);
+
 	const doctorAccountSelectOptions = useMemo(
 		() =>
 			doctorAccountList.map((account) => ({
 				value: account.id,
-				label: `${account.email}${account.co_ho_so_bac_si ? ' • đã có hồ sơ' : ''}`,
-				disabled: account.co_ho_so_bac_si,
+				label: account.email,
+				disabled: false,
 			})),
 		[doctorAccountList]
 	);
@@ -192,15 +202,23 @@ export default function ProfileDoctorPage() {
 	const fetchDoctorAccounts = useCallback(async () => {
 		setIsLoadingDoctorAccounts(true);
 		try {
-			const items = await layDanhSachTaiKhoanBacSi();
+			const res = await layDanhSachTaiKhoanBacSiChuaLienKet({
+				vai_tro: 'BACSI',
+			});
+
+			const items = res.data || [];
+
+			if (!items.length) {
+				message.info('Không còn tài khoản nào chưa liên kết.');
+			}
+
 			setDoctorAccountList(items);
 		} catch {
-			message.error('Không thể tải danh sách tài khoản bác sĩ.');
+			message.error('Không thể tải danh sách tài khoản chưa liên kết.');
 		} finally {
 			setIsLoadingDoctorAccounts(false);
 		}
 	}, []);
-
 	const openCreateDrawer = () => {
 		setEditingDoctor(null);
 		setCreateMode('tai_khoan_co_san');
@@ -210,6 +228,7 @@ export default function ProfileDoctorPage() {
 			hoc_vi: 'bac_si',
 			trang_thai: 'hoat_dong',
 			chuyen_khoa: [],
+			chuyen_khoa_chinh_id: undefined,
 			kinh_nghiem: 0,
 		});
 		fetchDoctorAccounts();
@@ -227,6 +246,7 @@ export default function ProfileDoctorPage() {
 			email: doctor.email,
 			so_dien_thoai: doctor.so_dien_thoai,
 			chuyen_khoa: doctor.chuyen_khoa_ids,
+			chuyen_khoa_chinh_id: doctor.chuyen_khoa_chinh_id,
 			hoc_vi: doctor.hoc_vi,
 			so_chung_chi: doctor.chung_chi_hanh_nghe,
 			kinh_nghiem: doctor.kinh_nghiem ?? 0,
@@ -328,10 +348,24 @@ export default function ProfileDoctorPage() {
 
 			setIsSubmitting(true);
 
+			const selectedSpecialtyIds = Array.isArray(values.chuyen_khoa)
+				? Array.from(new Set(values.chuyen_khoa.map(Number).filter(Boolean)))
+				: [];
+
+			let mainSpecialtyId = Number(values.chuyen_khoa_chinh_id || 0) || null;
+			if (!mainSpecialtyId && selectedSpecialtyIds.length > 0) {
+				mainSpecialtyId = selectedSpecialtyIds[0];
+			}
+
+			if (mainSpecialtyId && !selectedSpecialtyIds.includes(mainSpecialtyId)) {
+				selectedSpecialtyIds.push(mainSpecialtyId);
+			}
+
 			const payload = {
 				ho_ten: values.ho_ten,
 				so_dien_thoai: values.so_dien_thoai,
-				chuyen_khoa_ids: values.chuyen_khoa,
+				chuyen_khoa_ids: selectedSpecialtyIds,
+				chuyen_khoa_chinh_id: mainSpecialtyId,
 				hoc_vi: values.hoc_vi,
 				chung_chi_hanh_nghe: values.so_chung_chi,
 				kinh_nghiem: values.kinh_nghiem,
@@ -405,7 +439,7 @@ export default function ProfileDoctorPage() {
 					await xoaBacSi(doctor.id);
 					message.success('Đã xóa hồ sơ bác sĩ.');
 					await fetchDoctorList(pagination.current, pagination.pageSize);
-						await fetchDoctorAccounts();
+					await fetchDoctorAccounts();
 				} catch (err) {
 					message.error(err?.response?.data?.message || 'Không thể xóa hồ sơ bác sĩ.');
 				}
@@ -474,15 +508,22 @@ export default function ProfileDoctorPage() {
 			dataIndex: 'chuyen_khoa',
 			key: 'chuyen_khoa',
 			width: 150,
-			render: (value) => (
+			render: (value, record) => (
 				<div className="flex flex-wrap gap-1">
 					{(value || []).map((item) => (
-						<Tag
+						<Tooltip
 							key={item.id}
-							className="rounded-full px-2 py-0.5 text-xs border-0 bg-teal-50 text-teal-700"
+							title={item.la_chuyen_khoa_chinh || Number(item.id) === Number(record.chuyen_khoa_chinh_id) ? 'Chuyên khoa chính' : ''}
 						>
-							{item.ten_chuyen_khoa || item.ma_chuyen_khoa}
-						</Tag>
+							<Tag
+								className={`rounded-full px-2 py-0.5 text-xs border-0 ${item.la_chuyen_khoa_chinh || Number(item.id) === Number(record.chuyen_khoa_chinh_id)
+										? 'bg-amber-100 text-amber-800'
+										: 'bg-teal-50 text-teal-700'
+									}`}
+							>
+								{item.ten_chuyen_khoa || item.ma_chuyen_khoa}
+							</Tag>
+						</Tooltip>
 					))}
 				</div>
 			),
@@ -548,7 +589,7 @@ export default function ProfileDoctorPage() {
 
 	return (
 		<div className="min-h-screen bg-slate-100 p-4 md:p-6">
-			<div className="mx-auto w-full max-w-[1400px] rounded-2xl border border-slate-200 bg-white p-4 md:p-6 shadow-sm">
+			<div className="mx-auto w-full max-w-350 rounded-2xl border border-slate-200 bg-white p-4 md:p-6 shadow-sm">
 				<div className="flex flex-wrap items-start justify-between gap-3">
 					<div>
 						<h1 className="mb-1 text-[30px] leading-9 font-bold text-slate-800">Quản lý Bác sĩ</h1>
@@ -561,7 +602,7 @@ export default function ProfileDoctorPage() {
 						type="primary"
 						icon={<PlusOutlined />}
 						onClick={openCreateDrawer}
-						className="h-10 w-full rounded-full border-0 bg-teal-700 px-5 font-semibold hover:!bg-teal-800 sm:w-auto"
+						className="h-10 w-full rounded-full border-0 bg-teal-700 px-5 font-semibold hover:bg-teal-800! sm:w-auto"
 					>
 						Thêm bác sĩ mới
 					</Button>
@@ -599,7 +640,7 @@ export default function ProfileDoctorPage() {
 							options={DOCTOR_STATUS_OPTIONS}
 							value={selectedTrangThai}
 							onChange={setSelectedTrangThai}
-							className="w-full sm:w-[180px]"
+							className="w-full sm:w-45"
 						/>
 
 						<Tooltip title="Làm mới bộ lọc">
@@ -702,6 +743,7 @@ export default function ProfileDoctorPage() {
 											hoc_vi: 'bac_si',
 											trang_thai: 'hoat_dong',
 											chuyen_khoa: [],
+											chuyen_khoa_chinh_id: undefined,
 											kinh_nghiem: 0,
 										});
 									}}
@@ -733,9 +775,7 @@ export default function ProfileDoctorPage() {
 												return (
 													<div
 														key={account.id}
-														className={`flex items-center justify-between rounded-lg border px-2 py-1 text-xs ${
-															account.co_ho_so_bac_si ? 'border-slate-200 bg-slate-100 opacity-50' : 'border-emerald-200 bg-emerald-50'
-														}`}
+														className={`flex items-center justify-between rounded-lg border px-2 py-1 text-xs cursor-pointer`}
 													>
 														<div className="flex items-center gap-2">
 															<Avatar size={24} src={account.hinh_anh} icon={!account.hinh_anh && <UserOutlined />} className="bg-slate-200 text-slate-500" />
@@ -744,9 +784,6 @@ export default function ProfileDoctorPage() {
 														<div className="flex items-center gap-1">
 															<Tag color={accountStatus.color} className="m-0 text-[10px]">
 																{accountStatus.label}
-															</Tag>
-															<Tag color={account.co_ho_so_bac_si ? 'default' : 'processing'} className="m-0 text-[10px]">
-																{account.co_ho_so_bac_si ? 'Đã có hồ sơ' : 'Chưa có hồ sơ'}
 															</Tag>
 														</div>
 													</div>
@@ -806,71 +843,106 @@ export default function ProfileDoctorPage() {
 
 					{shouldShowProfileForm && (
 						<>
-					<Form.Item
-						label="Họ và tên"
-						name="ho_ten"
-						rules={[{ required: true, message: 'Vui lòng nhập họ và tên bác sĩ.' }]}
-					>
-						<Input placeholder="Ví dụ: Nguyễn Văn A" />
-					</Form.Item>
+							<Form.Item
+								label="Họ và tên"
+								name="ho_ten"
+								rules={[{ required: true, message: 'Vui lòng nhập họ và tên bác sĩ.' }]}
+							>
+								<Input placeholder="Ví dụ: Nguyễn Văn A" />
+							</Form.Item>
 
-					<Form.Item
-						label="Số điện thoại"
-						name="so_dien_thoai"
-						rules={[
-							{ required: true, message: 'Vui lòng nhập số điện thoại.' },
-							{
-								pattern: /^0\d{9}$/,
-								message: 'Số điện thoại phải gồm 10 chữ số và bắt đầu bằng số 0.',
-							},
-						]}
-					>
-						<Input placeholder="09xx xxx xxx" />
-					</Form.Item>
+							<Form.Item
+								label="Số điện thoại"
+								name="so_dien_thoai"
+								rules={[
+									{ required: true, message: 'Vui lòng nhập số điện thoại.' },
+									{
+										pattern: /^0\d{9}$/,
+										message: 'Số điện thoại phải gồm 10 chữ số và bắt đầu bằng số 0.',
+									},
+								]}
+							>
+								<Input placeholder="09xx xxx xxx" />
+							</Form.Item>
 
-					<Form.Item
-						label="Chuyên khoa"
-						name="chuyen_khoa"
-						rules={[{ required: true, message: 'Vui lòng chọn ít nhất 1 chuyên khoa.' }]}
-					>
-						<Select
-							mode="multiple"
-							options={specialtySelectOptions}
-							placeholder="Chọn chuyên khoa phụ trách"
-							optionFilterProp="label"
-						/>
-					</Form.Item>
+							<Form.Item
+								label="Chuyên khoa"
+								name="chuyen_khoa"
+								rules={[{ required: true, message: 'Vui lòng chọn ít nhất 1 chuyên khoa.' }]}
+							>
+								<Select
+									mode="multiple"
+									options={specialtySelectOptions}
+									placeholder="Chọn chuyên khoa phụ trách"
+									optionFilterProp="label"
+									onChange={(selectedIds) => {
+										const currentMain = form.getFieldValue('chuyen_khoa_chinh_id');
+										if (!Array.isArray(selectedIds) || selectedIds.length === 0) {
+											form.setFieldValue('chuyen_khoa_chinh_id', undefined);
+											return;
+										}
 
-					<div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-						<Form.Item
-							label="Học vị"
-							name="hoc_vi"
-							rules={[{ required: true, message: 'Vui lòng chọn học vị.' }]}
-						>
-							<Select options={HOC_VI_OPTIONS} placeholder="BS" />
-						</Form.Item>
+										if (!currentMain || !selectedIds.includes(currentMain)) {
+											form.setFieldValue('chuyen_khoa_chinh_id', selectedIds[0]);
+										}
+									}}
+								/>
+							</Form.Item>
 
-						<Form.Item label="Số CCNN" name="so_chung_chi">
-							<Input placeholder="Mã số chứng chỉ" />
-						</Form.Item>
-					</div>
+							<Form.Item
+								label="Chuyên khoa chính"
+								name="chuyen_khoa_chinh_id"
+								rules={[
+									{ required: true, message: 'Vui lòng chọn chuyên khoa chính.' },
+									({ getFieldValue }) => ({
+										validator(_, value) {
+											const selectedIds = getFieldValue('chuyen_khoa') || [];
+											if (!value || selectedIds.includes(value)) {
+												return Promise.resolve();
+											}
+											return Promise.reject(new Error('Chuyên khoa chính phải nằm trong danh sách chuyên khoa đã chọn.'));
+										},
+									}),
+								]}
+							>
+								<Select
+									placeholder="Chọn chuyên khoa chính"
+									options={mainSpecialtyOptions}
+									disabled={mainSpecialtyOptions.length === 0}
+									optionFilterProp="label"
+								/>
+							</Form.Item>
 
-					<Form.Item label="Kinh nghiệm (năm)" name="kinh_nghiem">
-						<InputNumber min={0} max={60} className="w-full" />
-					</Form.Item>
+							<div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+								<Form.Item
+									label="Học vị"
+									name="hoc_vi"
+									rules={[{ required: true, message: 'Vui lòng chọn học vị.' }]}
+								>
+									<Select options={HOC_VI_OPTIONS} placeholder="BS" />
+								</Form.Item>
 
-					<Form.Item label="Giới thiệu bản thân" name="gioi_thieu">
-						<Input.TextArea
-							rows={4}
-							placeholder="Tóm tắt quá trình công tác và chuyên môn..."
-							maxLength={500}
-							showCount
-						/>
-					</Form.Item>
+								<Form.Item label="Số CCNN" name="so_chung_chi">
+									<Input placeholder="Mã số chứng chỉ" />
+								</Form.Item>
+							</div>
 
-					<Form.Item label="Trạng thái" name="trang_thai">
-						<Select options={DOCTOR_STATUS_OPTIONS} />
-					</Form.Item>
+							<Form.Item label="Kinh nghiệm (năm)" name="kinh_nghiem">
+								<InputNumber min={0} max={60} className="w-full" />
+							</Form.Item>
+
+							<Form.Item label="Giới thiệu bản thân" name="gioi_thieu">
+								<Input.TextArea
+									rows={4}
+									placeholder="Tóm tắt quá trình công tác và chuyên môn..."
+									maxLength={500}
+									showCount
+								/>
+							</Form.Item>
+
+							<Form.Item label="Trạng thái" name="trang_thai">
+								<Select options={DOCTOR_STATUS_OPTIONS} />
+							</Form.Item>
 						</>
 					)}
 				</Form>
@@ -881,7 +953,7 @@ export default function ProfileDoctorPage() {
 						type="primary"
 						loading={isSubmitting}
 						onClick={handleSaveDoctor}
-						className="w-full border-0 bg-teal-700 hover:!bg-teal-800 sm:w-auto"
+						className="w-full border-0 bg-teal-700 hover:bg-teal-800! sm:w-auto"
 					>
 						{editingDoctor ? 'Cập nhật bác sĩ' : 'Lưu bác sĩ'}
 					</Button>

@@ -27,7 +27,7 @@ import {
 	submitCreateDoctorLeave,
 	submitDeleteDoctorLeave,
 	submitUpdateDoctorLeave,
-} from '../../../../services/adminScheduleService'
+} from '../../../../Services/adminScheduleService'
 import { ADMIN_MODAL_STYLES, ADMIN_TABLE_STYLES } from '../../styles/const-styles'
 
 const { Title } = Typography

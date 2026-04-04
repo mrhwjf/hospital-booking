@@ -2,8 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
 	Button,
 	Checkbox,
-	Divider,
-	Drawer,
 	Empty,
 	Form,
 	Input,
@@ -34,7 +32,8 @@ import {
 	taoVaiTro,
 	xoaQuyen,
 	xoaVaiTro,
-} from '../../../services/admin/rolePermissionService';
+} from '../../../Services/admin/rolePermissionService';
+import useDebounce from '../../../hooks/useDebounce';
 
 const { Text } = Typography;
 
@@ -68,8 +67,8 @@ const normalizeGroupLabel = (group) => {
 const toRolePermissionIds = (role) =>
 	Array.isArray(role?.quyens)
 		? role.quyens
-				.map((permission) => permission.id)
-				.filter(Boolean)
+			.map((permission) => Number(permission.id))
+			.filter((id) => Number.isInteger(id) && id > 0)
 		: [];
 
 const sortByCode = (a, b, key) => String(a?.[key] ?? '').localeCompare(String(b?.[key] ?? ''));
@@ -89,10 +88,15 @@ export default function RolePermissionPage() {
 	const [permissionKeyword, setPermissionKeyword] = useState('');
 	const [permissionGroup, setPermissionGroup] = useState(undefined);
 
-	const [roleDrawerOpen, setRoleDrawerOpen] = useState(false);
+	const [roleModalOpen, setRoleModalOpen] = useState(false);
 	const [roleSaving, setRoleSaving] = useState(false);
 	const [editingRole, setEditingRole] = useState(null);
-	const [permissionSearchInDrawer, setPermissionSearchInDrawer] = useState('');
+	const [rolePermissionLoading, setRolePermissionLoading] = useState(false);
+	const [rolePermissionSource, setRolePermissionSource] = useState([]);
+	const [rolePermissionKeyword, setRolePermissionKeyword] = useState('');
+	const [rolePermissionGroup, setRolePermissionGroup] = useState(undefined);
+	const [rolePermissionPage, setRolePermissionPage] = useState(1);
+	const [rolePermissionPageSize, setRolePermissionPageSize] = useState(10);
 
 	const [permissionModalOpen, setPermissionModalOpen] = useState(false);
 	const [permissionSaving, setPermissionSaving] = useState(false);
@@ -100,41 +104,67 @@ export default function RolePermissionPage() {
 
 	const [roleForm] = Form.useForm();
 	const [permissionForm] = Form.useForm();
+	const debouncedRoleKeyword = useDebounce(roleKeyword, 350);
+	const debouncedPermissionKeyword = useDebounce(permissionKeyword, 350);
+	const debouncedRolePermissionKeyword = useDebounce(rolePermissionKeyword, 250);
+	const watchedRolePermissionIds = Form.useWatch('quyen_ids', roleForm);
+	const selectedRolePermissionIds = useMemo(
+		() => (Array.isArray(watchedRolePermissionIds) ? watchedRolePermissionIds : []),
+		[watchedRolePermissionIds]
+	);
 
 	const permissionGroupOptions = useMemo(() => {
-		const groups = new Set(permissionData.map((item) => item.nhom_quyen).filter(Boolean));
+		const groups = new Set(
+			[...permissionData, ...rolePermissionSource]
+				.map((item) => item.nhom_quyen)
+				.filter(Boolean)
+		);
 		return [...groups]
 			.sort((a, b) => String(a).localeCompare(String(b)))
 			.map((group) => ({ value: group, label: normalizeGroupLabel(group) }));
-	}, [permissionData]);
+	}, [permissionData, rolePermissionSource]);
 
-	const groupedPermissionsForDrawer = useMemo(() => {
-		const keyword = permissionSearchInDrawer.trim().toLowerCase();
-		const filtered = permissionData.filter((item) => {
+	const rolePermissionFilteredData = useMemo(() => {
+		const keyword = debouncedRolePermissionKeyword.trim().toLowerCase();
+		return rolePermissionSource.filter((item) => {
+			if (rolePermissionGroup && item.nhom_quyen !== rolePermissionGroup) {
+				return false;
+			}
+
 			if (!keyword) return true;
 			return (
-				item.ma_quyen.toLowerCase().includes(keyword) ||
-				item.ten_quyen.toLowerCase().includes(keyword) ||
+				String(item.ma_quyen || '').toLowerCase().includes(keyword) ||
+				String(item.ten_quyen || '').toLowerCase().includes(keyword) ||
 				normalizeGroupLabel(item.nhom_quyen).toLowerCase().includes(keyword)
 			);
 		});
+	}, [debouncedRolePermissionKeyword, rolePermissionGroup, rolePermissionSource]);
 
-		const grouped = filtered.reduce((acc, item) => {
+	const rolePermissionGroupRows = useMemo(() => {
+		const grouped = rolePermissionSource.reduce((acc, item) => {
 			const group = normalizeGroupLabel(item.nhom_quyen);
-			if (!acc[group]) acc[group] = [];
-			acc[group].push(item);
+			if (!acc[group]) {
+				acc[group] = {
+					group,
+					groupKey: item.nhom_quyen || 'khac',
+					ids: [],
+				};
+			}
+			acc[group].ids.push(item.id);
 			return acc;
 		}, {});
 
 		return Object.entries(grouped)
 			.sort(([a], [b]) => a.localeCompare(b))
-			.map(([group, items]) => ({
-				group,
-				items: [...items].sort((a, b) => sortByCode(a, b, 'ma_quyen')),
-			}));
-	}, [permissionData, permissionSearchInDrawer]);
+			.map(([, value]) => value);
+	}, [rolePermissionSource]);
 
-	const fetchPermissions = useCallback(async (page = 1, appendOptions = {}) => {
+	const rolePermissionPagedData = useMemo(() => {
+		const start = (rolePermissionPage - 1) * rolePermissionPageSize;
+		return rolePermissionFilteredData.slice(start, start + rolePermissionPageSize);
+	}, [rolePermissionFilteredData, rolePermissionPage, rolePermissionPageSize]);
+
+	const fetchPermissions = useCallback(async (page = 1, appendOptions = {}, searchKeyword = debouncedPermissionKeyword) => {
 		setPermissionLoading(true);
 		try {
 			const params = {
@@ -143,7 +173,7 @@ export default function RolePermissionPage() {
 				...appendOptions,
 			};
 
-			if (permissionKeyword.trim()) params.q = permissionKeyword.trim();
+			if (searchKeyword.trim()) params.q = searchKeyword.trim();
 			if (permissionGroup) params.nhom_quyen = permissionGroup;
 
 			const response = await layDanhSachQuyen(params);
@@ -158,9 +188,45 @@ export default function RolePermissionPage() {
 		} finally {
 			setPermissionLoading(false);
 		}
-	}, [permissionGroup, permissionKeyword, permissionPagination.perPage]);
+	}, [debouncedPermissionKeyword, permissionGroup, permissionPagination.perPage]);
 
-	const fetchRoles = useCallback(async (page = 1) => {
+	const fetchPermissionsForRoleModal = useCallback(async () => {
+		setRolePermissionLoading(true);
+		try {
+			const allPermissions = [];
+			let page = 1;
+			const perPage = 100;
+			let hasMore = true;
+
+			while (hasMore) {
+				const response = await layDanhSachQuyen({ page, per_page: perPage });
+				allPermissions.push(...response.data);
+
+				const total = Number(response?.meta?.total || 0);
+				const loaded = allPermissions.length;
+				hasMore = response.data.length > 0 && loaded < total;
+				page += 1;
+			}
+
+			const uniquePermissions = Array.from(
+				new Map(allPermissions.map((item) => [item.id, item])).values()
+			)
+				.map((item) => ({
+					...item,
+					id: Number(item.id),
+				}))
+				.filter((item) => Number.isInteger(item.id) && item.id > 0)
+				.sort((a, b) => sortByCode(a, b, 'ma_quyen'));
+
+			setRolePermissionSource(uniquePermissions);
+		} catch (error) {
+			message.error(error?.response?.data?.message ?? 'Không tải được danh sách quyền cho biểu mẫu vai trò.');
+		} finally {
+			setRolePermissionLoading(false);
+		}
+	}, []);
+
+	const fetchRoles = useCallback(async (page = 1, searchKeyword = debouncedRoleKeyword) => {
 		setRoleLoading(true);
 		try {
 			const params = {
@@ -168,7 +234,7 @@ export default function RolePermissionPage() {
 				per_page: rolePagination.perPage,
 			};
 
-			if (roleKeyword.trim()) params.q = roleKeyword.trim();
+			if (searchKeyword.trim()) params.q = searchKeyword.trim();
 			if (roleStatus) params.trang_thai = roleStatus;
 
 			const response = await layDanhSachVaiTro(params);
@@ -183,7 +249,7 @@ export default function RolePermissionPage() {
 		} finally {
 			setRoleLoading(false);
 		}
-	}, [roleKeyword, rolePagination.perPage, roleStatus]);
+	}, [debouncedRoleKeyword, rolePagination.perPage, roleStatus]);
 
 	useEffect(() => {
 		fetchRoles(1);
@@ -193,20 +259,39 @@ export default function RolePermissionPage() {
 		fetchPermissions(1);
 	}, [fetchPermissions]);
 
+	useEffect(() => {
+		setRolePermissionPage(1);
+	}, [debouncedRolePermissionKeyword, rolePermissionGroup, rolePermissionPageSize]);
+
+	const handleRoleSearch = () => {
+		fetchRoles(1, roleKeyword);
+	};
+
+	const handlePermissionSearch = () => {
+		fetchPermissions(1, {}, permissionKeyword);
+	};
+
 	const openCreateRole = () => {
 		setEditingRole(null);
-		setPermissionSearchInDrawer('');
+		setRolePermissionKeyword('');
+		setRolePermissionGroup(undefined);
+		setRolePermissionPage(1);
+		setRolePermissionPageSize(10);
 		roleForm.resetFields();
 		roleForm.setFieldsValue({
 			trang_thai: 'hoat_dong',
 			quyen_ids: [],
 		});
-		setRoleDrawerOpen(true);
+		setRoleModalOpen(true);
+		fetchPermissionsForRoleModal();
 	};
 
 	const openEditRole = (record) => {
 		setEditingRole(record);
-		setPermissionSearchInDrawer('');
+		setRolePermissionKeyword('');
+		setRolePermissionGroup(undefined);
+		setRolePermissionPage(1);
+		setRolePermissionPageSize(10);
 		roleForm.resetFields();
 		roleForm.setFieldsValue({
 			ma_vai_tro: record.ma_vai_tro,
@@ -215,13 +300,17 @@ export default function RolePermissionPage() {
 			trang_thai: record.trang_thai,
 			quyen_ids: toRolePermissionIds(record),
 		});
-		setRoleDrawerOpen(true);
+		setRoleModalOpen(true);
+		fetchPermissionsForRoleModal();
 	};
 
-	const closeRoleDrawer = () => {
-		setRoleDrawerOpen(false);
+	const closeRoleModal = () => {
+		setRoleModalOpen(false);
 		setEditingRole(null);
-		setPermissionSearchInDrawer('');
+		setRolePermissionKeyword('');
+		setRolePermissionGroup(undefined);
+		setRolePermissionPage(1);
+		setRolePermissionPageSize(10);
 		roleForm.resetFields();
 	};
 
@@ -246,7 +335,7 @@ export default function RolePermissionPage() {
 				message.success('Tạo vai trò mới thành công.');
 			}
 
-			closeRoleDrawer();
+			closeRoleModal();
 			fetchRoles(editingRole ? rolePagination.page : 1);
 		} catch (error) {
 			if (error?.errorFields) return;
@@ -504,347 +593,456 @@ export default function RolePermissionPage() {
 		},
 	];
 
+	const normalizedSelectedRolePermissionIds = useMemo(
+		() =>
+		(Array.isArray(selectedRolePermissionIds)
+			? selectedRolePermissionIds
+				.map(Number)
+				.filter((id) => Number.isInteger(id) && id > 0)
+			: []),
+		[selectedRolePermissionIds]
+	);
+
+	const allRolePermissionIds = useMemo(
+		() => rolePermissionSource.map((item) => Number(item.id)).filter((id) => Number.isInteger(id) && id > 0),
+		[rolePermissionSource]
+	);
+
+	const selectedRolePermissionSet = useMemo(
+		() => new Set(normalizedSelectedRolePermissionIds),
+		[normalizedSelectedRolePermissionIds]
+	);
+
+	const selectedAllRolePermissionsCount = useMemo(
+		() => allRolePermissionIds.filter((id) => selectedRolePermissionSet.has(id)).length,
+		[allRolePermissionIds, selectedRolePermissionSet]
+	);
+
+	const allRolePermissionsChecked =
+		allRolePermissionIds.length > 0 && selectedAllRolePermissionsCount === allRolePermissionIds.length;
+
+	const allRolePermissionsIndeterminate =
+		selectedAllRolePermissionsCount > 0 && selectedAllRolePermissionsCount < allRolePermissionIds.length;
+
+	const updateSelectedRolePermissions = useCallback(
+		(nextIds) => {
+			const normalized = Array.from(
+				new Set(
+					(nextIds || [])
+						.map(Number)
+						.filter((id) => Number.isInteger(id) && id > 0)
+				)
+			);
+			roleForm.setFieldValue('quyen_ids', normalized);
+		},
+		[roleForm]
+	);
+
+	const getCurrentSelectedRolePermissionIds = useCallback(() => {
+		const current = roleForm.getFieldValue('quyen_ids');
+		return Array.isArray(current)
+			? current.map(Number).filter((id) => Number.isInteger(id) && id > 0)
+			: [];
+	}, [roleForm]);
+
+	const toggleAllRolePermissions = useCallback(
+		(checked) => {
+			updateSelectedRolePermissions(checked ? allRolePermissionIds : []);
+		},
+		[allRolePermissionIds, updateSelectedRolePermissions]
+	);
+
+	const toggleRolePermissionGroup = useCallback(
+		(groupIds, checked) => {
+			const next = new Set(getCurrentSelectedRolePermissionIds());
+			if (checked) {
+				groupIds.forEach((id) => next.add(id));
+			} else {
+				groupIds.forEach((id) => next.delete(id));
+			}
+			updateSelectedRolePermissions(Array.from(next));
+		},
+		[getCurrentSelectedRolePermissionIds, updateSelectedRolePermissions]
+	);
+
+	const rolePermissionSelectionColumns = [
+		{
+			title: 'Mã quyền',
+			dataIndex: 'ma_quyen',
+			key: 'ma_quyen',
+			width: 210,
+			render: (value) => <Text strong style={{ color: '#0F766E' }}>{value}</Text>,
+		},
+		{
+			title: 'Tên quyền',
+			dataIndex: 'ten_quyen',
+			key: 'ten_quyen',
+			width: 300,
+		},
+		{
+			title: 'Nhóm quyền',
+			dataIndex: 'nhom_quyen',
+			key: 'nhom_quyen',
+			width: 180,
+			render: (value) => <Tag color="cyan">{normalizeGroupLabel(value)}</Tag>,
+		},
+		{
+			title: 'Mô tả',
+			dataIndex: 'mo_ta',
+			key: 'mo_ta',
+			ellipsis: true,
+			render: (value) => value || <Text type="secondary">Chưa có mô tả</Text>,
+		},
+	];
+
 	return (
 		<div className="min-h-screen bg-slate-50 p-4 md:p-6">
-				<div className="mx-auto w-full max-w-[1320px] rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:p-6">
-					<div className="mb-4 flex flex-col gap-1 md:mb-6">
-						<h1 className="text-2xl font-bold text-slate-900">Quản lý Vai trò và Phân quyền</h1>
-						<p className="text-sm text-slate-500">
-							Tạo, cập nhật, tìm kiếm vai trò và quyền theo đúng mô hình RBAC. Vai trò chỉ được xóa khi chưa gán cho bất kỳ tài khoản nào.
-						</p>
-					</div>
-
-					<Tabs
-						activeKey={activeTab}
-						onChange={setActiveTab}
-						items={[
-							{
-								key: 'roles',
-								label: 'Vai trò',
-								children: (
-									<>
-										<div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center">
-											<Input
-												allowClear
-												placeholder="Tìm theo mã hoặc tên vai trò"
-												prefix={<SearchOutlined className="text-slate-400" />}
-												value={roleKeyword}
-												onChange={(event) => setRoleKeyword(event.target.value)}
-												onPressEnter={() => fetchRoles(1)}
-												className="w-full lg:max-w-[320px]"
-											/>
-											<Select
-												allowClear
-												placeholder="Lọc trạng thái"
-												value={roleStatus}
-												options={STATUS_OPTIONS}
-												onChange={setRoleStatus}
-												className="w-full lg:max-w-[180px]"
-											/>
-											<div className="flex flex-wrap gap-2 lg:ml-auto">
-												<Button onClick={() => fetchRoles(1)}>Tìm kiếm</Button>
-												<Button
-													type="primary"
-													icon={<PlusOutlined />}
-													onClick={openCreateRole}
-												>
-													Thêm vai trò mới
-												</Button>
-											</div>
-										</div>
-
-										<Table
-											rowKey="id"
-											columns={roleColumns}
-											dataSource={roleData}
-											loading={roleLoading}
-											locale={{
-												emptyText: <Empty description="Chưa có vai trò phù hợp điều kiện tìm kiếm." />,
-											}}
-											scroll={{ x: 1000 }}
-											pagination={{
-												current: rolePagination.page,
-												pageSize: rolePagination.perPage,
-												total: rolePagination.total,
-												showSizeChanger: false,
-												showTotal: (total, range) => `${range[0]}-${range[1]} trên ${total} vai trò`,
-												onChange: (page) => fetchRoles(page),
-											}}
-										/>
-									</>
-								),
-							},
-							{
-								key: 'permissions',
-								label: 'Quyền',
-								children: (
-									<>
-										<div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center">
-											<Input
-												allowClear
-												placeholder="Tìm theo mã hoặc tên quyền"
-												prefix={<SearchOutlined className="text-slate-400" />}
-												value={permissionKeyword}
-												onChange={(event) => setPermissionKeyword(event.target.value)}
-												onPressEnter={() => fetchPermissions(1)}
-												className="w-full lg:max-w-[320px]"
-											/>
-											<Select
-												allowClear
-												placeholder="Lọc nhóm quyền"
-												value={permissionGroup}
-												options={permissionGroupOptions}
-												onChange={setPermissionGroup}
-												className="w-full lg:max-w-[220px]"
-											/>
-											<div className="flex flex-wrap gap-2 lg:ml-auto">
-												<Button onClick={() => fetchPermissions(1)}>Tìm kiếm</Button>
-												<Button
-													type="primary"
-													icon={<PlusOutlined />}
-													onClick={openCreatePermission}
-												>
-													Thêm quyền mới
-												</Button>
-											</div>
-										</div>
-
-										<Table
-											rowKey="id"
-											columns={permissionColumns}
-											dataSource={permissionData}
-											loading={permissionLoading}
-											locale={{
-												emptyText: <Empty description="Chưa có quyền phù hợp điều kiện tìm kiếm." />,
-											}}
-											scroll={{ x: 1000 }}
-											pagination={{
-												current: permissionPagination.page,
-												pageSize: permissionPagination.perPage,
-												total: permissionPagination.total,
-												showSizeChanger: false,
-												showTotal: (total, range) => `${range[0]}-${range[1]} trên ${total} quyền`,
-												onChange: (page) => fetchPermissions(page),
-											}}
-										/>
-									</>
-								),
-							},
-						]}
-					/>
+			<div className="mx-auto w-full max-w-330 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm md:p-6">
+				<div className="mb-4 flex flex-col gap-1 md:mb-6">
+					<h1 className="text-2xl font-bold text-slate-900">Quản lý Vai trò và Phân quyền</h1>
+					<p className="text-sm text-slate-500">
+						Tạo, cập nhật, tìm kiếm vai trò và quyền theo đúng mô hình RBAC. Vai trò chỉ được xóa khi chưa gán cho bất kỳ tài khoản nào.
+					</p>
 				</div>
 
-				<Drawer
-					title={editingRole ? 'Cập nhật vai trò' : 'Thêm vai trò mới'}
-					open={roleDrawerOpen}
-					style={{ width: 560, maxWidth: '100vw' }}
-					onClose={closeRoleDrawer}
-					destroyOnHidden
-					forceRender
-					extra={(
-						<Space>
-							<Button onClick={closeRoleDrawer}>Hủy</Button>
-							<Button
-								type="primary"
-								loading={roleSaving}
-								onClick={handleSaveRole}
-							>
-								{editingRole ? 'Lưu thay đổi' : 'Tạo vai trò'}
-							</Button>
-						</Space>
-					)}
-				>
-					<Form form={roleForm} layout="vertical" requiredMark="optional">
-						<Form.Item
-							label="Mã vai trò"
-							name="ma_vai_tro"
-							rules={[
-								{ required: true, message: 'Vui lòng nhập mã vai trò.' },
-								{ max: 20, message: 'Mã vai trò tối đa 20 ký tự.' },
-								{ pattern: /^[A-Z0-9_]+$/, message: 'Chỉ dùng chữ in hoa, số và dấu gạch dưới.' },
-							]}
-							normalize={(value) => String(value || '').toUpperCase().replace(/\s+/g, '')}
-							// Bổ sung helper text rõ ràng và Khóa ô input nếu đang ở chế độ Edit
-							extra={editingRole ? "Mã vai trò không được phép thay đổi sau khi tạo." : "Sử dụng chữ in hoa, không dấu và gạch dưới (VD: QUAN_LY_KHOA)"}
-						>
-							<Input placeholder="VD: DIEUDUONG" disabled={!!editingRole} />
-						</Form.Item>
+				<Tabs
+					activeKey={activeTab}
+					onChange={setActiveTab}
+					items={[
+						{
+							key: 'roles',
+							label: 'Vai trò',
+							children: (
+								<>
+									<div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center">
+										<Input
+											allowClear
+											placeholder="Tìm theo mã hoặc tên vai trò"
+											prefix={<SearchOutlined className="text-slate-400" />}
+											value={roleKeyword}
+											onChange={(event) => setRoleKeyword(event.target.value)}
+											onPressEnter={handleRoleSearch}
+											className="w-full lg:max-w-[320px]"
+										/>
+										<Select
+											allowClear
+											placeholder="Lọc trạng thái"
+											value={roleStatus}
+											options={STATUS_OPTIONS}
+											onChange={setRoleStatus}
+											className="w-full lg:max-w-45"
+										/>
+										<div className="flex flex-wrap gap-2 lg:ml-auto">
+											<Button onClick={handleRoleSearch}>Tìm kiếm</Button>
+											<Button
+												type="primary"
+												icon={<PlusOutlined />}
+												onClick={openCreateRole}
+											>
+												Thêm vai trò mới
+											</Button>
+										</div>
+									</div>
 
-						<Form.Item
-							label="Tên vai trò"
-							name="ten_vai_tro"
-							rules={[
-								{ required: true, message: 'Vui lòng nhập tên vai trò.' },
-								{ max: 100, message: 'Tên vai trò tối đa 100 ký tự.' },
-							]}
-							extra="Tên hiển thị thân thiện với người dùng (VD: Điều dưỡng)."
-						>
-							<Input placeholder="VD: Điều dưỡng" />
-						</Form.Item>
+									<Table
+										rowKey="id"
+										columns={roleColumns}
+										dataSource={roleData}
+										loading={roleLoading}
+										locale={{
+											emptyText: <Empty description="Chưa có vai trò phù hợp điều kiện tìm kiếm." />,
+										}}
+										scroll={{ x: 1000 }}
+										pagination={{
+											current: rolePagination.page,
+											pageSize: rolePagination.perPage,
+											total: rolePagination.total,
+											showSizeChanger: false,
+											showTotal: (total, range) => `${range[0]}-${range[1]} trên ${total} vai trò`,
+											onChange: (page) => fetchRoles(page),
+										}}
+									/>
+								</>
+							),
+						},
+						{
+							key: 'permissions',
+							label: 'Quyền',
+							children: (
+								<>
+									<div className="mb-4 flex flex-col gap-3 lg:flex-row lg:items-center">
+										<Input
+											allowClear
+											placeholder="Tìm theo mã hoặc tên quyền"
+											prefix={<SearchOutlined className="text-slate-400" />}
+											value={permissionKeyword}
+											onChange={(event) => setPermissionKeyword(event.target.value)}
+											onPressEnter={handlePermissionSearch}
+											className="w-full lg:max-w-[320px]"
+										/>
+										<Select
+											allowClear
+											placeholder="Lọc nhóm quyền"
+											value={permissionGroup}
+											options={permissionGroupOptions}
+											onChange={setPermissionGroup}
+											className="w-full lg:max-w-55"
+										/>
+										<div className="flex flex-wrap gap-2 lg:ml-auto">
+											<Button onClick={handlePermissionSearch}>Tìm kiếm</Button>
+											<Button
+												type="primary"
+												icon={<PlusOutlined />}
+												onClick={openCreatePermission}
+											>
+												Thêm quyền mới
+											</Button>
+										</div>
+									</div>
 
-						<Form.Item
-							label="Mô tả"
-							name="mo_ta"
-							rules={[{ max: 500, message: 'Mô tả tối đa 500 ký tự.' }]}
-						>
-							<Input.TextArea rows={3} placeholder="Nhập mô tả ngắn về phạm vi quyền của vai trò." />
-						</Form.Item>
+									<Table
+										rowKey="id"
+										columns={permissionColumns}
+										dataSource={permissionData}
+										loading={permissionLoading}
+										locale={{
+											emptyText: <Empty description="Chưa có quyền phù hợp điều kiện tìm kiếm." />,
+										}}
+										scroll={{ x: 1000 }}
+										pagination={{
+											current: permissionPagination.page,
+											pageSize: permissionPagination.perPage,
+											total: permissionPagination.total,
+											showSizeChanger: false,
+											showTotal: (total, range) => `${range[0]}-${range[1]} trên ${total} quyền`,
+											onChange: (page) => fetchPermissions(page),
+										}}
+									/>
+								</>
+							),
+						},
+					]}
+				/>
+			</div>
 
-						<Form.Item
-							label="Trạng thái"
-							name="trang_thai"
-							rules={[{ required: true, message: 'Vui lòng chọn trạng thái.' }]}
-						>
-							<Select options={STATUS_OPTIONS} />
-						</Form.Item>
+			<Modal
+				title={editingRole ? 'Cập nhật vai trò' : 'Thêm vai trò mới'}
+				open={roleModalOpen}
+				onCancel={closeRoleModal}
+				onOk={handleSaveRole}
+				okText={editingRole ? 'Lưu thay đổi' : 'Tạo vai trò'}
+				cancelText="Hủy"
+				confirmLoading={roleSaving}
+				width={980}
+				destroyOnHidden
+				forceRender
+				centered
+				styles={{ body: { maxHeight: '72vh', overflowY: 'auto' } }}
+			>
+				<Form form={roleForm} layout="vertical" requiredMark="optional">
+					<Form.Item
+						label="Mã vai trò"
+						name="ma_vai_tro"
+						rules={[
+							{ required: true, message: 'Vui lòng nhập mã vai trò.' },
+							{ max: 20, message: 'Mã vai trò tối đa 20 ký tự.' },
+							{ pattern: /^[A-Z0-9_]+$/, message: 'Chỉ dùng chữ in hoa, số và dấu gạch dưới.' },
+						]}
+						normalize={(value) => String(value || '').toUpperCase().replace(/\s+/g, '')}
+						extra={
+							editingRole
+								? 'Mã vai trò không được phép thay đổi sau khi tạo.'
+								: 'Sử dụng chữ in hoa, không dấu và gạch dưới (VD: QUAN_LY_KHOA).'
+						}
+					>
+						<Input placeholder="VD: DIEU_DUONG" disabled={!!editingRole} />
+					</Form.Item>
 
-						<Divider className="!my-4" />
+					<Form.Item
+						label="Tên vai trò"
+						name="ten_vai_tro"
+						rules={[
+							{ required: true, message: 'Vui lòng nhập tên vai trò.' },
+							{ max: 100, message: 'Tên vai trò tối đa 100 ký tự.' },
+						]}
+						extra="Tên hiển thị thân thiện với người dùng (VD: Điều dưỡng)."
+					>
+						<Input placeholder="VD: Điều dưỡng" />
+					</Form.Item>
 
-						<Form.Item
-							label="Phân quyền"
-							name="quyen_ids"
-							tooltip="Có thể chọn nhiều quyền cho một vai trò."
-						>
-							<div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+					<Form.Item
+						label="Mô tả"
+						name="mo_ta"
+						rules={[{ max: 500, message: 'Mô tả tối đa 500 ký tự.' }]}
+					>
+						<Input.TextArea rows={3} placeholder="Nhập mô tả ngắn về phạm vi quyền của vai trò." />
+					</Form.Item>
+
+					<Form.Item
+						label="Trạng thái"
+						name="trang_thai"
+						rules={[{ required: true, message: 'Vui lòng chọn trạng thái.' }]}
+					>
+						<Select options={STATUS_OPTIONS} />
+					</Form.Item>
+
+					<Form.Item name="quyen_ids" noStyle>
+						<Checkbox.Group options={[]} style={{ display: 'none' }} />
+					</Form.Item>
+
+					<Form.Item
+						label="Phân quyền"
+						tooltip="Có thể chọn nhiều quyền cho một vai trò."
+					>
+						<div className="rounded-xl border border-slate-200 bg-slate-50 p-3">
+							<div className="mb-3 grid grid-cols-1 gap-2 lg:grid-cols-[minmax(0,1fr)_220px]">
 								<Input
 									allowClear
-									value={permissionSearchInDrawer}
-									onChange={(event) => setPermissionSearchInDrawer(event.target.value)}
-									placeholder="Tìm nhanh quyền trong danh sách"
+									value={rolePermissionKeyword}
+									onChange={(event) => setRolePermissionKeyword(event.target.value)}
+									placeholder="Tìm theo mã quyền, tên quyền hoặc nhóm quyền"
 									prefix={<SearchOutlined className="text-slate-400" />}
-									className="mb-3"
 								/>
-
-								{groupedPermissionsForDrawer.length === 0 ? (
-									<Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Không có quyền phù hợp." />
-								) : (
-									<div className="max-h-[360px] overflow-y-auto pr-1">
-										{groupedPermissionsForDrawer.map((groupItem) => (
-											<div key={groupItem.group} className="mb-4 last:mb-0">
-												<p className="mb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
-													{groupItem.group}
-												</p>
-												<Form.Item noStyle shouldUpdate>
-													{({ getFieldValue, setFieldValue }) => {
-														const selected = getFieldValue('quyen_ids') ?? [];
-														const groupIds = groupItem.items.map((permission) => permission.id);
-														const checkedCount = groupIds.filter((id) => selected.includes(id)).length;
-														const allChecked = checkedCount > 0 && checkedCount === groupIds.length;
-														const indeterminate = checkedCount > 0 && checkedCount < groupIds.length;
-
-														return (
-															<>
-																<div className="mb-2">
-																	<Checkbox
-																		checked={allChecked}
-																		indeterminate={indeterminate}
-																		onChange={(event) => {
-																			const checked = event.target.checked;
-																			const next = checked
-																				? Array.from(new Set([...selected, ...groupIds]))
-																				: selected.filter((id) => !groupIds.includes(id));
-																			setFieldValue('quyen_ids', next);
-																		}}
-																	>
-																		Chọn toàn bộ nhóm {groupItem.group}
-																	</Checkbox>
-																</div>
-																<div className="grid grid-cols-1 gap-2">
-																	{groupItem.items.map((permission) => (
-																		<Checkbox
-																			key={permission.id}
-																			checked={selected.includes(permission.id)}
-																			onChange={(event) => {
-																				const next = event.target.checked
-																					? Array.from(new Set([...selected, permission.id]))
-																					: selected.filter((id) => id !== permission.id);
-																				setFieldValue('quyen_ids', next);
-																			}}
-																		>
-																			<span className="font-medium text-slate-800">
-																				{permission.ten_quyen}
-																			</span>
-																			<span className="ml-2 text-xs text-slate-500">
-																				({permission.ma_quyen})
-																			</span>
-																		</Checkbox>
-																	))}
-																</div>
-															</>
-														);
-													}}
-												</Form.Item>
-											</div>
-										))}
-									</div>
-								)}
+								<Select
+									allowClear
+									placeholder="Lọc nhóm quyền"
+									value={rolePermissionGroup}
+									options={permissionGroupOptions}
+									onChange={setRolePermissionGroup}
+								/>
 							</div>
-						</Form.Item>
-					</Form>
-				</Drawer>
 
-				<Modal
-					title={editingPermission ? 'Cập nhật quyền' : 'Thêm quyền mới'}
-					open={permissionModalOpen}
-					onCancel={closePermissionModal}
-					onOk={handleSavePermission}
-					okText={editingPermission ? 'Lưu thay đổi' : 'Tạo quyền'}
-					cancelText="Hủy"
-					okButtonProps={{ loading: permissionSaving }}
-					destroyOnHidden
-					forceRender
-				>
-					<Form form={permissionForm} layout="vertical" requiredMark="optional">
-						<Form.Item
-							label="Mã quyền"
-							name="ma_quyen"
-							rules={[
-								{ required: true, message: 'Vui lòng nhập mã quyền.' },
-								{ max: 50, message: 'Mã quyền tối đa 50 ký tự.' },
-								{ pattern: /^[A-Z0-9_]+$/, message: 'Chỉ dùng chữ in hoa, số và dấu gạch dưới.' },
-							]}
-							normalize={(value) => String(value || '').toUpperCase().replace(/\s+/g, '')}
-							extra={editingPermission ? "Mã quyền không được phép thay đổi sau khi tạo." : "Sử dụng chữ in hoa (VD: QUAN_LY_BAO_CAO)"}
-						>
-							<Input placeholder="VD: QUAN_LY_BAO_CAO" disabled={!!editingPermission} />
-						</Form.Item>
+							<div className="mb-3 rounded-lg border border-slate-200 bg-white px-3 py-2">
+								<Checkbox
+									checked={allRolePermissionsChecked}
+									indeterminate={allRolePermissionsIndeterminate}
+									onChange={(event) => toggleAllRolePermissions(event.target.checked)}
+								>
+									Chọn tất cả quyền
+								</Checkbox>
+							</div>
 
-						<Form.Item
-							label="Tên quyền"
-							name="ten_quyen"
-							rules={[
-								{ required: true, message: 'Vui lòng nhập tên quyền.' },
-								{ max: 100, message: 'Tên quyền tối đa 100 ký tự.' },
-							]}
-						>
-							<Input placeholder="VD: Quản lý báo cáo" />
-						</Form.Item>
+							<div className="mb-3 flex flex-wrap gap-2">
+								{rolePermissionGroupRows.map((groupRow) => {
+									const selectedCount = groupRow.ids.filter((id) => selectedRolePermissionSet.has(id)).length;
+									const groupChecked = groupRow.ids.length > 0 && selectedCount === groupRow.ids.length;
+									const groupIndeterminate = selectedCount > 0 && selectedCount < groupRow.ids.length;
 
-						<Form.Item
-							label="Nhóm quyền"
-							name="nhom_quyen"
-							rules={[{ required: true, message: 'Vui lòng chọn nhóm quyền.' }]}
-						>
-							<Select
-								options={[
-									{ value: 'quan_ly', label: 'Quản lý' },
-									{ value: 'nghiep_vu', label: 'Nghiệp vụ' },
-									{ value: 'bao_cao', label: 'Báo cáo' },
-									{ value: 'he_thong', label: 'Hệ thống' },
-									{ value: 'khac', label: 'Khác' },
-								]}
+									return (
+										<Checkbox
+											key={groupRow.groupKey}
+											checked={groupChecked}
+											indeterminate={groupIndeterminate}
+											onChange={(event) => toggleRolePermissionGroup(groupRow.ids, event.target.checked)}
+										>
+											Chọn nhóm {groupRow.group}
+										</Checkbox>
+									);
+								})}
+							</div>
+
+							<Table
+								rowKey={(record) => Number(record.id)}
+								columns={rolePermissionSelectionColumns}
+								dataSource={rolePermissionPagedData}
+								loading={rolePermissionLoading}
+								size="small"
+								scroll={{ x: 900 }}
+								locale={{
+									emptyText: <Empty description="Không có quyền phù hợp điều kiện tìm kiếm." />,
+								}}
+								rowSelection={{
+									selectedRowKeys: normalizedSelectedRolePermissionIds,
+									onSelect: (record, selected) =>
+										toggleRolePermissionGroup([Number(record.id)], selected),
+									onSelectAll: (selected, _, changeRows) =>
+										toggleRolePermissionGroup(
+											changeRows.map((row) => Number(row.id)),
+											selected
+										),
+									preserveSelectedRowKeys: true,
+								}}
+								pagination={{
+									current: rolePermissionPage,
+									pageSize: rolePermissionPageSize,
+									total: rolePermissionFilteredData.length,
+									showSizeChanger: true,
+									pageSizeOptions: [10, 20, 50],
+									showTotal: (total, range) => `${range[0]}-${range[1]} trên ${total} quyền`,
+									onChange: (page, pageSize) => {
+										setRolePermissionPage(page);
+										setRolePermissionPageSize(pageSize);
+									},
+								}}
 							/>
-						</Form.Item>
+						</div>
+					</Form.Item>
+				</Form>
+			</Modal>
 
-						<Form.Item
-							label="Mô tả"
-							name="mo_ta"
-							rules={[{ max: 500, message: 'Mô tả tối đa 500 ký tự.' }]}
-						>
-							<Input.TextArea rows={3} placeholder="Nhập mô tả quyền" />
-						</Form.Item>
-					</Form>
-				</Modal>
-			</div>
+			<Modal
+				title={editingPermission ? 'Cập nhật quyền' : 'Thêm quyền mới'}
+				open={permissionModalOpen}
+				onCancel={closePermissionModal}
+				onOk={handleSavePermission}
+				okText={editingPermission ? 'Lưu thay đổi' : 'Tạo quyền'}
+				cancelText="Hủy"
+				okButtonProps={{ loading: permissionSaving }}
+				destroyOnHidden
+				forceRender
+				centered
+			>
+				<Form form={permissionForm} layout="vertical" requiredMark="optional">
+					<Form.Item
+						label="Mã quyền"
+						name="ma_quyen"
+						rules={[
+							{ required: true, message: 'Vui lòng nhập mã quyền.' },
+							{ max: 50, message: 'Mã quyền tối đa 50 ký tự.' },
+							{ pattern: /^[A-Z0-9_]+$/, message: 'Chỉ dùng chữ in hoa, số và dấu gạch dưới.' },
+						]}
+						normalize={(value) => String(value || '').toUpperCase().replace(/\s+/g, '')}
+						extra={editingPermission ? "Mã quyền không được phép thay đổi sau khi tạo." : "Sử dụng chữ in hoa (VD: QUAN_LY_BAO_CAO)"}
+					>
+						<Input placeholder="VD: QUAN_LY_BAO_CAO" disabled={!!editingPermission} />
+					</Form.Item>
+
+					<Form.Item
+						label="Tên quyền"
+						name="ten_quyen"
+						rules={[
+							{ required: true, message: 'Vui lòng nhập tên quyền.' },
+							{ max: 100, message: 'Tên quyền tối đa 100 ký tự.' },
+						]}
+					>
+						<Input placeholder="VD: Quản lý báo cáo" />
+					</Form.Item>
+
+					<Form.Item
+						label="Nhóm quyền"
+						name="nhom_quyen"
+						rules={[{ required: true, message: 'Vui lòng chọn nhóm quyền.' }]}
+					>
+						<Select
+							options={[
+								{ value: 'quan_ly', label: 'Quản lý' },
+								{ value: 'nghiep_vu', label: 'Nghiệp vụ' },
+								{ value: 'bao_cao', label: 'Báo cáo' },
+								{ value: 'he_thong', label: 'Hệ thống' },
+								{ value: 'khac', label: 'Khác' },
+							]}
+						/>
+					</Form.Item>
+
+					<Form.Item
+						label="Mô tả"
+						name="mo_ta"
+						rules={[{ max: 500, message: 'Mô tả tối đa 500 ký tự.' }]}
+					>
+						<Input.TextArea rows={3} placeholder="Nhập mô tả quyền" />
+					</Form.Item>
+				</Form>
+			</Modal>
+		</div>
 	);
 }

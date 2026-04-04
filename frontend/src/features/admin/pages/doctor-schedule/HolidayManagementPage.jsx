@@ -24,7 +24,7 @@ import {
 	submitCreateHoliday,
 	submitDeleteHoliday,
 	submitUpdateHoliday,
-} from '../../../../services/adminScheduleService'
+} from '../../../../Services/adminScheduleService'
 import useDebounce from '../../../../hooks/useDebounce'
 import { ADMIN_MODAL_STYLES, ADMIN_TABLE_STYLES } from '../../styles/const-styles'
 

@@ -1,10 +1,10 @@
 import httpClient from './httpClient'
 
-export const getAdminDoctors = (params = {}) => httpClient.get('/bac-si', { params })
+export const getAdminDoctors = (params = {}) => httpClient.get('/quan-ly-lich-lam-viec/bac-si', { params })
 
-export const getAdminRooms = (params = {}) => httpClient.get('/phong-kham', { params })
+export const getAdminRooms = (params = {}) => httpClient.get('/quan-ly-lich-lam-viec/phong-kham', { params })
 
-export const getAdminWorkTemplates = (params = {}) => httpClient.get('/lich-lam-viec', { params })
+export const getAdminWorkTemplates = (params = {}) => httpClient.get('/quan-ly-lich-lam-viec/mau-ca', { params })
 
 export const getDoctorScheduleOverview = (doctorId, params = {}) =>
 	httpClient.get(`/quan-ly-lich-lam-viec/bac-si/${doctorId}`, { params })

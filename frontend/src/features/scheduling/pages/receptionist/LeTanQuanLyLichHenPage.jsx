@@ -33,18 +33,17 @@ import {
 	fetchServicesAndPackages,
 	fetchSpecialties,
 	getApiErrorMessage,
+	resolveCurrentReceptionistUserId,
 	submitAppointmentBooking,
 	submitCancelAppointment,
 	submitCheckInAppointment,
 	submitCreatePatient,
 	submitRescheduleAppointment,
-} from '../../../../services/schedulingService'
+} from '../../../../Services/schedulingService'
 import { MODAL_STYLES, SEGMENTED_STYLES, TABLE_STYLES } from '../../styles/const-styles'
 
 const { Paragraph, Text, Title } = Typography
 const DEFAULT_PAGE_SIZE = 10
-const MOCK_NGUOI_TAO_ID = 1
-const MOCK_NGUOI_TIEP_NHAN_ID = 1
 const BLOOD_GROUP_OPTIONS = ['A+', 'A-', 'B+', 'B-', 'AB+', 'AB-', 'O+', 'O-']
 
 const appointmentStatusMeta = {
@@ -66,6 +65,7 @@ const formatCurrency = (value) =>
 	})
 
 export default function LeTanQuanLyLichHenPage() {
+	const receptionistUserId = useMemo(() => resolveCurrentReceptionistUserId(), [])
 	const [loading, setLoading] = useState(false)
 	const [appointments, setAppointments] = useState([])
 	const [pagination, setPagination] = useState({ currentPage: 1, pageSize: DEFAULT_PAGE_SIZE, totalItems: 0 })
@@ -313,7 +313,7 @@ export default function LeTanQuanLyLichHenPage() {
 			benh_nhan_id: createForm.benh_nhan_id,
 			chuyen_khoa_id: createForm.chuyen_khoa_id,
 			bac_si_id: createForm.bac_si_id,
-			nguoi_tao_id: MOCK_NGUOI_TAO_ID,
+			nguoi_tao_id: receptionistUserId,
 			ngay_hen: createForm.ngay_hen,
 			ly_do_kham: createForm.ly_do_kham,
 			ghi_chu: createForm.ghi_chu,
@@ -500,7 +500,7 @@ export default function LeTanQuanLyLichHenPage() {
 		try {
 			await submitCheckInAppointment({
 				lichHenId: checkingInAppointment.id,
-				nguoiTiepNhanId: MOCK_NGUOI_TIEP_NHAN_ID,
+				nguoiTiepNhanId: receptionistUserId,
 			})
 			message.success('Check-in bệnh nhân thành công.')
 			setCheckingInAppointment(null)

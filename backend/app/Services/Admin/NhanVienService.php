@@ -70,14 +70,14 @@ class NhanVienService
             }
 
             $nhanVien = NhanVien::query()->create([
-                'ma_nhan_vien'  => $this->taoMaNhanVien(),
+                'ma_nhan_vien' => $this->taoMaNhanVien(),
                 'nguoi_dung_id' => $nguoiDung->id,
-                'ho_ten'        => $payload['ho_ten'],
+                'ho_ten' => $payload['ho_ten'],
                 'so_dien_thoai' => $payload['so_dien_thoai'],
-                'chuc_vu'       => $payload['chuc_vu'],
-                'ngay_vao_lam'  => $payload['ngay_vao_lam'],
-                'trang_thai'    => $payload['trang_thai'] ?? 'hoat_dong',
-                'ghi_chu'       => $payload['ghi_chu'] ?? null,
+                'chuc_vu' => $payload['chuc_vu'],
+                'ngay_vao_lam' => $payload['ngay_vao_lam'],
+                'trang_thai' => $payload['trang_thai'] ?? 'hoat_dong',
+                'ghi_chu' => $payload['ghi_chu'] ?? null,
             ]);
 
             if (array_key_exists('hinh_anh', $payload)) {

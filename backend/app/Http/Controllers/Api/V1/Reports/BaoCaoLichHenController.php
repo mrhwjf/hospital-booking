@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Reports;
 use App\Http\Controllers\Controller;
 use App\Requests\Reports\BaoCaoLichHenRequest;
 use App\Requests\Reports\DashboardAdminRequest;
+use App\Resources\ApiResponse;
 use App\Resources\Reports\BaoCaoLichHenResource;
 use App\Resources\Reports\DashboardAdminResource;
 use App\Services\ReportService;
@@ -20,21 +21,13 @@ class BaoCaoLichHenController extends Controller
     {
         $data = $this->reportService->layDashboardAdmin($request->validated('moc_phan_tich'));
 
-        return response()->json([
-            'success' => true,
-            'data' => new DashboardAdminResource($data),
-            'message' => 'Lấy dashboard quản trị thành công.',
-        ]);
+        return ApiResponse::success(new DashboardAdminResource($data), 'Lấy dashboard quản trị thành công.');
     }
 
     public function index(BaoCaoLichHenRequest $request): JsonResponse
     {
         $data = $this->reportService->layBaoCaoLichHen($request->validated());
 
-        return response()->json([
-            'success' => true,
-            'data' => new BaoCaoLichHenResource($data),
-            'message' => 'Lấy báo cáo lịch hẹn thành công.',
-        ]);
+        return ApiResponse::success(new BaoCaoLichHenResource($data), 'Lấy báo cáo lịch hẹn thành công.');
     }
 }

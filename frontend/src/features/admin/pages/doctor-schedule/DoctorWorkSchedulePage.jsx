@@ -48,8 +48,8 @@ import {
 	submitPreviewAssignment,
 	submitUpdateAssignedSchedule,
 	submitUpdateWorkTemplate,
-} from '../../../../services/adminScheduleService'
-import { fetchSpecialties } from '../../../../services/schedulingService'
+} from '../../../../Services/adminScheduleService'
+import { fetchSpecialties } from '../../../../Services/schedulingService'
 import WeeklyScheduleGrid from '../../components/WeeklyScheduleGrid'
 import {
 	ADMIN_MODAL_STYLES,
@@ -814,7 +814,7 @@ export default function DoctorWorkSchedulePage() {
 								/>
 							</Col>
 							<Col xs={24} md={6}>
-								<Space className="w-full" direction="horizontal">
+								<Space className="w-full" orientation="horizontal">
 									<Button icon={<SearchOutlined />} type="primary" onClick={handleApplyDoctorFilters}>
 										Áp dụng
 									</Button>
@@ -851,9 +851,9 @@ export default function DoctorWorkSchedulePage() {
 
 						<Col xs={24} lg={15}>
 							<Card className="border-[#E2E8F0]" loading={loadingOverview || loadingAssignments}>
-								<Space direction="vertical" size={12} className="w-full">
+								<Space orientation="vertical" size={12} className="w-full">
 									<Space align="center" wrap className="w-full justify-between">
-										<Space direction="vertical" size={0}>
+										<Space orientation="vertical" size={0}>
 											<Text type="secondary">Bác sĩ đang xem</Text>
 											<Text strong>{selectedDoctor?.ho_ten || 'Chưa chọn bác sĩ'}</Text>
 										</Space>

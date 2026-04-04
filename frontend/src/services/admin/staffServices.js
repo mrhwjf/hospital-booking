@@ -5,6 +5,7 @@ import {
 	layDanhSachTaiKhoanNhanVien as layDanhSachTaiKhoanNhanVienApi,
 	taoNhanVien as taoNhanVienApi,
 	xoaNhanVien as xoaNhanVienApi,
+	layDanhSachTaiKhoanChuaLienKet as layDanhSachTaiKhoanChuaLienKetApi,
 } from '../../api/adminApi';
 
 const DEFAULT_META = {
@@ -64,6 +65,15 @@ export const layDanhSachNhanVien = async (params = {}) => {
 		message: response?.message ?? '',
 	};
 };
+
+export const layDanhSachTaiKhoanNhanVienChuaLienKet = async (params = {}) => {
+	const response = await layDanhSachTaiKhoanChuaLienKetApi(params);
+	const items = response?.data?.items ?? response?.data;
+	return {
+		data: Array.isArray(items) ? items.map(toStaffAccountItem) : [],
+		message: response?.message ?? '',
+	};
+}
 
 export const layChiTietNhanVien = async (id) => {
 	const response = await layChiTietNhanVienApi(id);

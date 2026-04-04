@@ -84,7 +84,7 @@ export default function TaiLieuHoSoPage({
 	]
 
 	return (
-		<Space direction="vertical" size={12} className="w-full">
+		<Space orientation="vertical" size={12} className="w-full">
 			<Card className="border-[#E2E8F0] bg-[#fafdff]">
 				<Text type="secondary">
 					Tài liệu được mở bằng URL có chữ ký thời hạn ngắn. Nếu tài liệu hết hạn, hãy nhấn lại nút Xem/Tải.
@@ -97,7 +97,11 @@ export default function TaiLieuHoSoPage({
 				loading={loading}
 				columns={columns}
 				dataSource={items}
-				pagination={false}
+				pagination={{
+					hideOnSinglePage: true,
+					showSizeChanger: true,
+					defaultPageSize: 5,
+				}}
 				scroll={{ x: 'max-content' }}
 			/>
 		</Space>

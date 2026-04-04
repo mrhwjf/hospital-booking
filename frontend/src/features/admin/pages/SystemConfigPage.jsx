@@ -19,7 +19,7 @@ import { MailOutlined, PhoneOutlined, SaveOutlined, SettingOutlined } from '@ant
 import {
 	capNhatCauHinhHeThong,
 	layDanhSachCauHinhHeThong,
-} from '../../../services/admin/systemConfigService';
+} from '../../../Services/admin/systemConfigService';
 
 const { Title, Text } = Typography;
 
@@ -208,10 +208,10 @@ export default function SystemConfigPage() {
 		}
 	};
 
-	const extraConfigItems = useMemo(() => {
-		const knownKeys = new Set(CONFIG_DEFINITIONS.map((definition) => definition.khoa));
-		return configItems.filter((item) => !knownKeys.has(item.khoa));
-	}, [configItems]);
+	// const extraConfigItems = useMemo(() => {
+	// 	const knownKeys = new Set(CONFIG_DEFINITIONS.map((definition) => definition.khoa));
+	// 	return configItems.filter((item) => !knownKeys.has(item.khoa));
+	// }, [configItems]);
 
 	return (
 		<div
@@ -221,101 +221,101 @@ export default function SystemConfigPage() {
 				background: 'linear-gradient(160deg, #E6F4F1 0%, #F8FAFC 35%, #F8FAFC 100%)',
 			}}
 		>
-			<div className="mx-auto w-full max-w-[1280px]">
-			<Card
-				bordered={false}
-				style={{
-					borderRadius: 14,
-					marginBottom: 16,
-					background: 'linear-gradient(120deg, #0F766E 0%, #2563EB 100%)',
-				}}
-			>
-				<Space orientation="vertical" size={4}>
-					<Title level={3} style={{ margin: 0, color: '#ffffff' }}>
-						Cấu hình hệ thống đặt lịch
-					</Title>
-					<Text style={{ color: 'rgba(255,255,255,0.9)' }}>
-						Thiết lập ngưỡng nghiệp vụ và trạng thái vận hành cho toàn bộ hệ thống.
-					</Text>
-				</Space>
-			</Card>
+			<div className="mx-auto w-full max-w-7xl">
+				<Card
+					bordered={false}
+					style={{
+						borderRadius: 14,
+						marginBottom: 16,
+						background: 'linear-gradient(120deg, #0F766E 0%, #2563EB 100%)',
+					}}
+				>
+					<Space orientation="vertical" size={4}>
+						<Title level={3} style={{ margin: 0, color: '#ffffff' }}>
+							Cấu hình hệ thống đặt lịch
+						</Title>
+						<Text style={{ color: 'rgba(255,255,255,0.9)' }}>
+							Thiết lập ngưỡng nghiệp vụ và trạng thái vận hành cho toàn bộ hệ thống.
+						</Text>
+					</Space>
+				</Card>
 
-			<Card title="Thông số cấu hình" style={{ borderRadius: 12 }}>
-				<Spin spinning={isLoading}>
-					<Form form={form} layout="vertical">
-						{groupedDefinitions.map((group, groupIndex) => (
-							<div key={group.groupKey}>
-								<Space align="center" style={{ marginBottom: 12 }}>
-									<Text strong>{group.title}</Text>
-									<Tag color="blue">{group.groupKey}</Tag>
-								</Space>
+				<Card title="Thông số cấu hình" style={{ borderRadius: 12 }}>
+					<Spin spinning={isLoading}>
+						<Form form={form} layout="vertical">
+							{groupedDefinitions.map((group, groupIndex) => (
+								<div key={group.groupKey}>
+									<Space align="center" style={{ marginBottom: 12 }}>
+										<Text strong>{group.title}</Text>
+										<Tag color="blue">{group.groupKey}</Tag>
+									</Space>
 
-								<Row gutter={[16, 8]}>
-									{group.items.map((item) => {
-										const rules = [{ required: true, message: item.requiredMessage }];
-										if (item.type === 'email') {
-											rules.push({ type: 'email', message: 'Email không đúng định dạng.' });
-										}
+									<Row gutter={[16, 8]}>
+										{group.items.map((item) => {
+											const rules = [{ required: true, message: item.requiredMessage }];
+											if (item.type === 'email') {
+												rules.push({ type: 'email', message: 'Email không đúng định dạng.' });
+											}
 
-										if (item.type === 'phone') {
-											rules.push({
-												pattern: /^[0-9+\-\s()]{8,20}$/,
-												message: 'Số điện thoại không hợp lệ.',
-											});
-										}
+											if (item.type === 'phone') {
+												rules.push({
+													pattern: /^[0-9+\-\s()]{8,20}$/,
+													message: 'Số điện thoại không hợp lệ.',
+												});
+											}
 
-										return (
-											<Col key={item.khoa} xs={24} md={12} xl={item.type === 'textarea' ? 24 : 12}>
-												<Form.Item label={item.label} name={item.khoa} rules={rules}>
-													{item.type === 'number' ? (
-														<InputNumber min={item.min} max={item.max} style={{ width: '100%' }} />
-													) : item.type === 'textarea' ? (
-														<Input.TextArea rows={3} />
-													) : (
-														<Input
-															prefix={item.type === 'email' ? <MailOutlined /> : item.type === 'phone' ? <PhoneOutlined /> : null}
-														/>
-													)}
-												</Form.Item>
-											</Col>
-										);
-									})}
-								</Row>
+											return (
+												<Col key={item.khoa} xs={24} md={12} xl={item.type === 'textarea' ? 24 : 12}>
+													<Form.Item label={item.label} name={item.khoa} rules={rules}>
+														{item.type === 'number' ? (
+															<InputNumber min={item.min} max={item.max} style={{ width: '100%' }} />
+														) : item.type === 'textarea' ? (
+															<Input.TextArea rows={3} />
+														) : (
+															<Input
+																prefix={item.type === 'email' ? <MailOutlined /> : item.type === 'phone' ? <PhoneOutlined /> : null}
+															/>
+														)}
+													</Form.Item>
+												</Col>
+											);
+										})}
+									</Row>
 
-								{groupIndex < groupedDefinitions.length - 1 && <Divider style={{ marginTop: 8 }} />}
-							</div>
-						))}
+									{groupIndex < groupedDefinitions.length - 1 && <Divider style={{ marginTop: 8 }} />}
+								</div>
+							))}
 
-						{extraConfigItems.length > 0 && (
-							<Alert
-								type="warning"
-								showIcon
-								message="Có cấu hình chưa được đưa vào form"
-								description={`Phát hiện ${extraConfigItems.length} khóa cấu hình khác trong cơ sở dữ liệu. Bạn có thể mở rộng UI để quản lý thêm nếu cần.`}
-								style={{ marginBottom: 16 }}
-							/>
-						)}
+							{/* {extraConfigItems.length > 0 && (
+								<Alert
+									type="warning"
+									showIcon
+									message="Có cấu hình chưa được đưa vào form"
+									description={`Phát hiện ${extraConfigItems.length} khóa cấu hình khác trong cơ sở dữ liệu. Bạn có thể mở rộng UI để quản lý thêm nếu cần.`}
+									style={{ marginBottom: 16 }}
+								/>
+							)} */}
 
-						<Button type="primary" icon={<SaveOutlined />} loading={isSaving} onClick={handleSubmit} className="w-full sm:w-auto">
-							Lưu cấu hình
-						</Button>
-					</Form>
-				</Spin>
-			</Card>
+							<Button type="primary" icon={<SaveOutlined />} loading={isSaving} onClick={handleSubmit} className="w-full sm:w-auto">
+								Lưu cấu hình
+							</Button>
+						</Form>
+					</Spin>
+				</Card>
 
-			<Card title="Hướng dẫn vận hành" style={{ borderRadius: 12, marginTop: 16 }}>
-				<Space orientation="vertical" size={6}>
-					<Text>
-						<SettingOutlined /> Mỗi cấu hình được quản lý theo khoa trong bảng cau_hinh_he_thong để dễ tra cứu và kiểm toán.
-					</Text>
-					<Text>
-						<SettingOutlined /> Với nhóm lich_hen, nên giữ các ngưỡng giờ/ngày hợp lý để hạn chế đổi hoặc hủy sát giờ khám.
-					</Text>
-					<Text>
-						<SettingOutlined /> Sau khi cập nhật cấu hình, nên kiểm tra lại các luồng đặt lịch để đảm bảo nghiệp vụ hoạt động đúng.
-					</Text>
-				</Space>
-			</Card>
+				<Card title="Hướng dẫn vận hành" style={{ borderRadius: 12, marginTop: 16 }}>
+					<Space orientation="vertical" size={6}>
+						<Text>
+							<SettingOutlined /> Mỗi cấu hình được quản lý theo khoa trong bảng cau_hinh_he_thong để dễ tra cứu và kiểm toán.
+						</Text>
+						<Text>
+							<SettingOutlined /> Với nhóm lich_hen, nên giữ các ngưỡng giờ/ngày hợp lý để hạn chế đổi hoặc hủy sát giờ khám.
+						</Text>
+						<Text>
+							<SettingOutlined /> Sau khi cập nhật cấu hình, nên kiểm tra lại các luồng đặt lịch để đảm bảo nghiệp vụ hoạt động đúng.
+						</Text>
+					</Space>
+				</Card>
 			</div>
 		</div>
 	);

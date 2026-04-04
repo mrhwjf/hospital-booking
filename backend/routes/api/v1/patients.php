@@ -17,7 +17,18 @@ Route::prefix('benh-nhan')->group(function () {
 	Route::get('/lich-su-kham/{id}/tai-lieu/{taiLieuId}/signed-url', [LichSuKhamController::class, 'taiLieuSignedUrl']);
 });
 
+// Canonical family for patient-scoped resources.
+Route::prefix('benh-nhan/{benhNhanId}')->group(function () {
+	Route::get('/lich-su-phieu-kham', [LichSuPhieuKhamController::class, 'index']);
+	Route::get('/tai-lieu-ho-so', [TaiLieuHoSoController::class, 'index']);
+	Route::post('/tai-lieu-ho-so', [TaiLieuHoSoController::class, 'store']);
+	Route::put('/tai-lieu-ho-so/{taiLieuId}', [TaiLieuHoSoController::class, 'update']);
+	Route::post('/tai-lieu-ho-so/{taiLieuId}/upload', [TaiLieuHoSoController::class, 'upload']);
+	Route::get('/tai-lieu-ho-so/{taiLieuId}/signed-url', [TaiLieuHoSoController::class, 'signedUrl']);
+	Route::delete('/tai-lieu-ho-so/{taiLieuId}', [TaiLieuHoSoController::class, 'destroy']);
+});
 
+// Backward compatibility aliases (to be removed after frontend migration completes).
 Route::get('/patients/{benhNhanId}/lich-su-phieu-kham', [LichSuPhieuKhamController::class, 'index']);
 Route::get('/patients/{benhNhanId}/tai-lieu-ho-so', [TaiLieuHoSoController::class, 'index']);
 Route::post('/patients/{benhNhanId}/tai-lieu-ho-so', [TaiLieuHoSoController::class, 'store']);

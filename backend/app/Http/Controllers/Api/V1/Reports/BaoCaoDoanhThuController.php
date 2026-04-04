@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Reports;
 
 use App\Http\Controllers\Controller;
 use App\Requests\Reports\BaoCaoDoanhThuRequest;
+use App\Resources\ApiResponse;
 use App\Resources\Reports\BaoCaoDoanhThuResource;
 use App\Services\ReportService;
 use Illuminate\Http\JsonResponse;
@@ -18,10 +19,6 @@ class BaoCaoDoanhThuController extends Controller
     {
         $data = $this->reportService->layBaoCaoDoanhThu($request->validated());
 
-        return response()->json([
-            'success' => true,
-            'data' => new BaoCaoDoanhThuResource($data),
-            'message' => 'Lấy báo cáo doanh thu thành công.',
-        ]);
+        return ApiResponse::success(new BaoCaoDoanhThuResource($data), 'Lấy báo cáo doanh thu thành công.');
     }
 }

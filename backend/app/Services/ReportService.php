@@ -52,7 +52,7 @@ class ReportService
 			->orderBy('ck.ten_chuyen_khoa')
 			->selectRaw('ck.id as id, ck.ten_chuyen_khoa as ten_khoa, COUNT(DISTINCT bs.id) as bac_si')
 			->get()
-			->map(fn ($item) => [
+			->map(fn($item) => [
 				'key' => 'ck-' . $item->id,
 				'tenKhoa' => $item->ten_khoa,
 				'bacSi' => (int) $item->bac_si,
@@ -80,19 +80,19 @@ class ReportService
 
 		return [
 			'moc_phan_tich' => $analysisDate->toDateString(),
-			'adminKpi' => [
-				'tongTaiKhoan' => $tongTaiKhoan,
-				'benhNhan' => NguoiDung::query()
-					->whereHas('vaiTro', fn ($query) => $query->where('ma_vai_tro', 'BENHNHAN'))
-					->count(),
-				'bacSi' => NguoiDung::query()
-					->whereHas('vaiTro', fn ($query) => $query->where('ma_vai_tro', 'BACSI'))
-					->count(),
-				'nhanVien' => NguoiDung::query()
-					->whereHas('vaiTro', fn ($query) => $query->where('ma_vai_tro', 'NHANVIEN'))
-					->count(),
-				'tangTruongTaiKhoan' => $tangTruongTaiKhoan,
-			],
+			// 'adminKpi' => [
+			// 	'tongTaiKhoan' => $tongTaiKhoan,
+			// 	'benhNhan' => NguoiDung::query()
+			// 		->whereHas('vaiTro', fn($query) => $query->where('ma_vai_tro', 'BENHNHAN'))
+			// 		->count(),
+			// 	'bacSi' => NguoiDung::query()
+			// 		->whereHas('vaiTro', fn($query) => $query->where('ma_vai_tro', 'BACSI'))
+			// 		->count(),
+			// 	'nhanVien' => NguoiDung::query()
+			// 		->whereHas('vaiTro', fn($query) => $query->where('ma_vai_tro', 'NHANVIEN'))
+			// 		->count(),
+			// 	'tangTruongTaiKhoan' => $tangTruongTaiKhoan,
+			// ],
 			'nhanSuTongQuan' => [
 				'tongBacSi' => $tongBacSi,
 				'tongNhanVien' => $tongNhanVien,
@@ -188,7 +188,7 @@ class ReportService
 				->orderBy('ck.ten_chuyen_khoa')
 				->selectRaw('ck.id as id, ck.ten_chuyen_khoa as ten_khoa, COUNT(DISTINCT bs.id) as bac_si')
 				->get()
-				->map(fn ($item) => [
+				->map(fn($item) => [
 					'key' => 'ck-' . $item->id,
 					'tenKhoa' => $item->ten_khoa,
 					'bacSi' => (int) $item->bac_si,
@@ -296,7 +296,7 @@ class ReportService
 			->orderBy('khung_gio')
 			->get();
 
-		return $rows->map(fn ($item) => [
+		return $rows->map(fn($item) => [
 			'khungGio' => $item->khung_gio,
 			'datLich' => (int) $item->dat_lich,
 			'hoanTat' => (int) $item->hoan_tat,
@@ -310,7 +310,7 @@ class ReportService
 			->where('trang_thai', 'hoat_dong')
 			->orderBy('ten_chuyen_khoa')
 			->get(['id', 'ten_chuyen_khoa'])
-			->map(fn ($item) => [
+			->map(fn($item) => [
 				'id' => (int) $item->id,
 				'ten_chuyen_khoa' => $item->ten_chuyen_khoa,
 			])

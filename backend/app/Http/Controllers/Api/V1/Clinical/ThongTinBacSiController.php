@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Clinical;
 
 use App\Http\Controllers\Controller;
+use App\Resources\ApiResponse;
 use App\Resources\Clinical\ThongTinBacSiStaticResource;
 use App\Resources\Clinical\ThongTinBacSiWeeklyResource;
 use App\Services\ThongTinBacSiService;
@@ -28,11 +29,7 @@ class ThongTinBacSiController extends Controller
 
         $profile = $this->thongTinBacSiService->getStaticInfo($doctorId);
 
-        return response()->json([
-            'success' => true,
-            'data' => new ThongTinBacSiStaticResource($profile),
-            'message' => 'Thông tin bác sĩ',
-        ]);
+        return ApiResponse::success(new ThongTinBacSiStaticResource($profile), 'Thông tin bác sĩ');
     }
 
     /**
@@ -49,11 +46,7 @@ class ThongTinBacSiController extends Controller
         $weekOffset = (int) $request->input('week_offset', 0);
         $weeklyData = $this->thongTinBacSiService->getWeeklySchedule($doctorId, $weekOffset);
 
-        return response()->json([
-            'success' => true,
-            'data' => new ThongTinBacSiWeeklyResource($weeklyData),
-            'message' => 'Lịch làm việc bác sĩ',
-        ]);
+        return ApiResponse::success(new ThongTinBacSiWeeklyResource($weeklyData), 'Lịch làm việc bác sĩ');
     }
 
     private function resolveDoctorId(Request $request): ?int
@@ -67,10 +60,6 @@ class ThongTinBacSiController extends Controller
 
     private function unauthorizedResponse(): JsonResponse
     {
-        return response()->json([
-            'success' => false,
-            'message' => 'Không xác định được bác sĩ hiện tại.',
-            'error' => ['code' => 'UNAUTHORIZED'],
-        ], 401);
+        return ApiResponse::error('Không xác định được bác sĩ hiện tại.', ['code' => 'UNAUTHORIZED'], 401);
     }
 }

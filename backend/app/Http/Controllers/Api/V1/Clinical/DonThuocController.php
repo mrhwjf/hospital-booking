@@ -7,6 +7,7 @@ use App\Requests\Clinical\StoreDonThuocRequest;
 use App\Requests\Clinical\StoreDonThuocItemsRequest;
 use App\Requests\Clinical\UpdateDonThuocItemsRequest;
 use App\Requests\Clinical\SearchThuocRequest;
+use App\Resources\ApiResponse;
 use App\Resources\Clinical\DonThuocResource;
 use App\Services\ClinicalService;
 use Illuminate\Validation\ValidationException;
@@ -23,17 +24,9 @@ class DonThuocController extends Controller
             $payload = $request->validated();
             $donThuoc = $this->clinicalService->createPrescription($phieu_kham_id, $payload);
 
-            return response()->json([
-                'success' => true,
-                'data' => new DonThuocResource($donThuoc),
-                'message' => 'Đã tạo đơn thuốc mới cho phiếu khám',
-            ], 201);
+            return ApiResponse::success(new DonThuocResource($donThuoc), 'Đã tạo đơn thuốc mới cho phiếu khám', 201);
         } catch (ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-                'error' => ['code' => 'BUSINESS_RULE_VIOLATION'],
-            ], 409);
+            return ApiResponse::error($e->getMessage(), ['code' => 'BUSINESS_RULE_VIOLATION'], 409);
         }
     }
 
@@ -45,17 +38,9 @@ class DonThuocController extends Controller
             $payload = $request->validated();
             $result = $this->clinicalService->addItemsToPrescription($don_thuoc_id, $payload['items']);
 
-            return response()->json([
-                'success' => true,
-                'data' => $result,
-                'message' => 'Đã thêm thuốc vào đơn',
-            ], 201);
+            return ApiResponse::success($result, 'Đã thêm thuốc vào đơn', 201);
         } catch (ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-                'error' => ['code' => 'NOT_FOUND'],
-            ], 404);
+            return ApiResponse::error($e->getMessage(), ['code' => 'NOT_FOUND'], 404);
         }
     }
 
@@ -66,17 +51,9 @@ class DonThuocController extends Controller
             $payload = $request->validated();
             $result = $this->clinicalService->updatePrescriptionItems($don_thuoc_id, $payload['items']);
 
-            return response()->json([
-                'success' => true,
-                'data' => $result,
-                'message' => 'Đã cập nhật danh sách thuốc trong đơn',
-            ], 200);
+            return ApiResponse::success($result, 'Đã cập nhật danh sách thuốc trong đơn');
         } catch (ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-                'error' => ['code' => 'NOT_FOUND'],
-            ], 404);
+            return ApiResponse::error($e->getMessage(), ['code' => 'NOT_FOUND'], 404);
         }
     }
 
@@ -86,17 +63,9 @@ class DonThuocController extends Controller
         try {
             $deletedData = $this->clinicalService->deletePrescription($id);
 
-            return response()->json([
-                'success' => true,
-                'data' => $deletedData,
-                'message' => 'Đã xóa đơn thuốc',
-            ], 200);
+            return ApiResponse::success($deletedData, 'Đã xóa đơn thuốc');
         } catch (ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-                'error' => ['code' => 'NOT_FOUND'],
-            ], 404);
+            return ApiResponse::error($e->getMessage(), ['code' => 'NOT_FOUND'], 404);
         }
     }
 
@@ -107,24 +76,12 @@ class DonThuocController extends Controller
             $donThuoc = $this->clinicalService->getPrescriptionByPhieuKham($phieu_kham_id);
 
             if (!$donThuoc) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Phiếu khám chưa có đơn thuốc.',
-                    'error' => ['code' => 'NOT_FOUND'],
-                ], 404);
+                return ApiResponse::error('Phiếu khám chưa có đơn thuốc.', ['code' => 'NOT_FOUND'], 404);
             }
 
-            return response()->json([
-                'success' => true,
-                'data' => new DonThuocResource($donThuoc),
-                'message' => 'Chi tiết đơn thuốc',
-            ], 200);
+            return ApiResponse::success(new DonThuocResource($donThuoc), 'Chi tiết đơn thuốc');
         } catch (ValidationException $e) {
-            return response()->json([
-                'success' => false,
-                'message' => $e->getMessage(),
-                'error' => ['code' => 'NOT_FOUND'],
-            ], 404);
+            return ApiResponse::error($e->getMessage(), ['code' => 'NOT_FOUND'], 404);
         }
     }
 
@@ -134,11 +91,6 @@ class DonThuocController extends Controller
         $validated = $request->validated();
         $medicines = $this->clinicalService->searchMedicines($validated);
 
-        return response()->json([
-            'success' => true,
-            'data' => $medicines->items(),
-            
-            'message' => 'Danh sách thuốc',
-        ], 200);
+        return ApiResponse::success($medicines->items(), 'Danh sách thuốc');
     }
 }

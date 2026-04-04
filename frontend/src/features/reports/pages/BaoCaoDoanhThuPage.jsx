@@ -234,7 +234,7 @@ export default function BaoCaoDoanhThuPage() {
 			<Row gutter={[16, 16]} style={{ marginTop: 2 }}>
 				<Col xs={24} xl={15}>
 					<Card title="Doanh thu theo chuyên khoa" style={{ borderRadius: 12, borderColor: palette.border }}>
-						<Table rowKey="key" columns={columns} dataSource={doanhThuTheoChuyenKhoa} pagination={false} scroll={{ x: 680 }} />
+						<Table rowKey="key" columns={columns} dataSource={doanhThuTheoChuyenKhoa} pagination />
 					</Card>
 				</Col>
 				<Col xs={24} xl={9}>

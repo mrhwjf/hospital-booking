@@ -1,18 +1,32 @@
 import { useState } from 'react'
 import { EyeOutlined } from '@ant-design/icons'
 import { Button, Card, List, Modal, Tag, Typography } from 'antd'
-import { formatCurrency, getPackageServiceNames, packages } from '../mockData'
+
+const formatCurrency = (value) =>
+	Number(value || 0).toLocaleString('vi-VN', {
+		style: 'currency',
+		currency: 'VND',
+		maximumFractionDigits: 0,
+	})
+
+const resolveIncludedServices = (pkg) => {
+	const candidates = pkg?.dich_vu_goi_khams || pkg?.dich_vus || pkg?.services || []
+
+	return candidates
+		.map((item) => item?.ten_dich_vu || item?.dich_vu?.ten_dich_vu || item?.name)
+		.filter(Boolean)
+}
 
 const { Paragraph, Text, Title } = Typography
 
-export default function PackageCard({ pkg = packages[0], quantity = 0, onIncrease, onDecrease }) {
+export default function PackageCard({ pkg = null, quantity = 0, onIncrease, onDecrease }) {
 	const [openDetail, setOpenDetail] = useState(false)
 
 	if (!pkg) {
 		return null
 	}
 
-	const includedServices = getPackageServiceNames(pkg.id)
+	const includedServices = resolveIncludedServices(pkg)
 
 	return (
 		<>

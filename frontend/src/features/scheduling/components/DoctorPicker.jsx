@@ -1,17 +1,12 @@
 import { useMemo, useState } from 'react'
 import { Avatar, Card, Input, Radio, Rate, Space, Tag, Typography } from 'antd'
-import {
-	doctorSpecialties as defaultDoctorSpecialties,
-	doctors as defaultDoctors,
-	specialties as defaultSpecialties,
-} from '../mockData'
 
 const { Text, Title } = Typography
 
 export default function DoctorPicker({
-	doctors = defaultDoctors,
-	specialties = defaultSpecialties,
-	doctorSpecialties = defaultDoctorSpecialties,
+	doctors = [],
+	specialties = [],
+	doctorSpecialties = [],
 	value,
 	specialtyId,
 	onChange,
@@ -32,8 +27,8 @@ export default function DoctorPicker({
 			)
 			const matchesKeyword =
 				normalizedKeyword.length === 0 ||
-				doctor.ho_ten.toLowerCase().includes(normalizedKeyword) ||
-				doctor.gioi_thieu.toLowerCase().includes(normalizedKeyword)
+				String(doctor.ho_ten || '').toLowerCase().includes(normalizedKeyword) ||
+				String(doctor.gioi_thieu || '').toLowerCase().includes(normalizedKeyword)
 
 			return sameSpecialty && matchesKeyword
 		})

@@ -46,7 +46,7 @@ function pickLatestByPriority(items = []) {
   return sortedByCreatedAt.find((record) => COMPLETED_STATUSES.has(normalizeStatus(record?.trang_thai))) || null;
 }
 
-export default function LichSuKhamPage({ selectedDoctorId, selectedPatient, onBack, onSelectPhieuKham }) {
+export default function LichSuKhamPage({ selectedPatient, onBack, onSelectPhieuKham }) {
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");

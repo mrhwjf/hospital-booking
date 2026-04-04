@@ -91,7 +91,7 @@ export default function DashboardPage() {
 	const nhanSuTheoKhoa = dashboardData?.nhanSuTheoKhoa ?? []
 	const doanhThuTheoChuyenKhoa = dashboardData?.doanhThuTheoChuyenKhoa ?? []
 	const lichHenTheoThoiGian = dashboardData?.lichHenTheoThoiGian ?? {}
-	const taiBacSi = dashboardData?.taiBacSi ?? []
+	// const taiBacSi = dashboardData?.taiBacSi ?? []
 
 	const lichHenData = lichHenTheoThoiGian[period]
 	const tongNhanSu = nhanSuTongQuan.tongBacSi + nhanSuTongQuan.tongNhanVien
@@ -127,45 +127,45 @@ export default function DashboardPage() {
 		},
 	]
 
-	const taiBacSiColumns = [
-		{
-			title: 'Bác sĩ',
-			dataIndex: 'tenBacSi',
-			key: 'tenBacSi',
-			render: (value, record) => (
-				<Space orientation="vertical" size={0}>
-					<Text strong>{value}</Text>
-					<Text type="secondary">{record.chuyenKhoa}</Text>
-				</Space>
-			),
-		},
-		{
-			title: 'Đã đặt',
-			dataIndex: 'lichDaDat',
-			key: 'lichDaDat',
-			align: 'right',
-		},
-		{
-			title: 'Hoàn tất',
-			dataIndex: 'lichHoanTat',
-			key: 'lichHoanTat',
-			align: 'right',
-		},
-		{
-			title: 'Hủy',
-			dataIndex: 'lichHuy',
-			key: 'lichHuy',
-			align: 'right',
-			render: (value) => <Text style={{ color: palette.danger }}>{value}</Text>,
-		},
-		{
-			title: 'Tỷ lệ hoàn thành',
-			dataIndex: 'tyLeHoanThanh',
-			key: 'tyLeHoanThanh',
-			width: 220,
-			render: (value) => <Progress percent={Number(value.toFixed(1))} strokeColor={palette.success} size="small" />,
-		},
-	]
+	// const taiBacSiColumns = [
+	// 	{
+	// 		title: 'Bác sĩ',
+	// 		dataIndex: 'tenBacSi',
+	// 		key: 'tenBacSi',
+	// 		render: (value, record) => (
+	// 			<Space orientation="vertical" size={0}>
+	// 				<Text strong>{value}</Text>
+	// 				<Text type="secondary">{record.chuyenKhoa}</Text>
+	// 			</Space>
+	// 		),
+	// 	},
+	// 	{
+	// 		title: 'Đã đặt',
+	// 		dataIndex: 'lichDaDat',
+	// 		key: 'lichDaDat',
+	// 		align: 'right',
+	// 	},
+	// 	{
+	// 		title: 'Hoàn tất',
+	// 		dataIndex: 'lichHoanTat',
+	// 		key: 'lichHoanTat',
+	// 		align: 'right',
+	// 	},
+	// 	{
+	// 		title: 'Hủy',
+	// 		dataIndex: 'lichHuy',
+	// 		key: 'lichHuy',
+	// 		align: 'right',
+	// 		render: (value) => <Text style={{ color: palette.danger }}>{value}</Text>,
+	// 	},
+	// 	{
+	// 		title: 'Tỷ lệ hoàn thành',
+	// 		dataIndex: 'tyLeHoanThanh',
+	// 		key: 'tyLeHoanThanh',
+	// 		width: 220,
+	// 		render: (value) => <Progress percent={Number(value.toFixed(1))} strokeColor={palette.success} size="small" />,
+	// 	},
+	// ]
 
 	return (
 		<div
@@ -219,13 +219,13 @@ export default function DashboardPage() {
 				<Alert
 					showIcon
 					type="warning"
-					message="Chưa có dữ liệu dashboard"
+					title="Chưa có dữ liệu dashboard"
 					description="Hệ thống chưa trả về dữ liệu báo cáo. Vui lòng kiểm tra backend và dữ liệu seed."
 					style={{ marginBottom: 16 }}
 				/>
 			) : null}
 
-			<Row gutter={[16, 16]}>
+			{/* <Row gutter={[16, 16]}>
 				<Col xs={24} md={12} xl={6}>
 					<Card style={{ borderColor: palette.border, borderRadius: 12 }}>
 						<Statistic title="Tổng tài khoản" value={adminKpi.tongTaiKhoan} formatter={(v) => numberFormat(v)} prefix={<TeamOutlined />} />
@@ -246,7 +246,7 @@ export default function DashboardPage() {
 						<Statistic title="Nhân viên" value={adminKpi.nhanVien} formatter={(v) => numberFormat(v)} prefix={<TeamOutlined />} />
 					</Card>
 				</Col>
-			</Row>
+			</Row> */}
 
 			<Row gutter={[16, 16]} style={{ marginTop: 4 }}>
 				<Col xs={24} xl={10}>
@@ -289,7 +289,7 @@ export default function DashboardPage() {
 							size="small"
 							dataSource={nhanSuTheoKhoa}
 							columns={nhanSuColumns}
-							pagination={false}
+							pagination
 							scroll={{ x: 560 }}
 						/>
 					</Card>
@@ -300,10 +300,10 @@ export default function DashboardPage() {
 				<Col xs={24} xl={12}>
 					<Card
 						title="Doanh thu theo chuyên khoa"
-						style={{ borderRadius: 12, borderColor: palette.border, height: '100%' }}
+						style={{ borderRadius: 12, borderColor: palette.border }}
 						extra={<Text strong style={{ color: palette.primary }}>{moneyFormat(doanhThuTong)}</Text>}
 					>
-						<Space orientation="vertical" size={14} style={{ width: '100%' }}>
+						<Space orientation="vertical" size={14} style={{ width: '100%', overflowY: 'auto', maxHeight: 450 }}>
 							{doanhThuTheoChuyenKhoa.map((item) => {
 								const width = (item.doanhThu / doanhThuMax) * 100
 								return (
@@ -423,13 +423,13 @@ export default function DashboardPage() {
 				</Col>
 			</Row>
 
-			<Card
+			{/* <Card
 				title="Tải công việc bác sĩ"
 				style={{ borderRadius: 12, borderColor: palette.border, marginTop: 16 }}
 				extra={<Text type="secondary">Mốc phân tích: 7 ngày gần nhất</Text>}
 			>
 				<Table rowKey="key" dataSource={taiBacSi} columns={taiBacSiColumns} pagination={false} scroll={{ x: 720 }} />
-			</Card>
+			</Card> */}
 		</div>
 	)
 }

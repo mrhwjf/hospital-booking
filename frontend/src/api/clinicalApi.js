@@ -19,7 +19,7 @@ export const CLINICAL_ENDPOINTS = {
 	phieuKham: (id) => `/phieu-kham/${id}`,
 
 	// Chỉ định dịch vụ
-	dichVuList: () => "/dich-vu",
+	dichVuList: () => "/clinical/dich-vu",
 	chiDinhList: (phieuKhamId) => `/phieu-kham/${phieuKhamId}/chi-dinh`,
 	chiDinh: (phieuKhamId) => `/phieu-kham/${phieuKhamId}/chi-dinh`,
 

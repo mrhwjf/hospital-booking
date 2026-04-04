@@ -57,11 +57,15 @@ export default function BaoCaoLichHenPage() {
 		fetchBaoCao()
 	}, [khoaLoc, khoangNgay])
 
-	const lichHenTheoThoiGian = baoCaoData?.lichHenTheoThoiGian ?? {
-		ngay: { daDat: 0, daHoanTat: 0, daHuy: 0, khongDen: 0, tongLich: 0 },
-		tuan: { daDat: 0, daHoanTat: 0, daHuy: 0, khongDen: 0, tongLich: 0 },
-		thang: { daDat: 0, daHoanTat: 0, daHuy: 0, khongDen: 0, tongLich: 0 },
-	}
+	const lichHenTheoThoiGian = useMemo(
+		() =>
+			baoCaoData?.lichHenTheoThoiGian ?? {
+				ngay: { daDat: 0, daHoanTat: 0, daHuy: 0, khongDen: 0, tongLich: 0 },
+				tuan: { daDat: 0, daHoanTat: 0, daHuy: 0, khongDen: 0, tongLich: 0 },
+				thang: { daDat: 0, daHoanTat: 0, daHuy: 0, khongDen: 0, tongLich: 0 },
+			},
+		[baoCaoData],
+	)
 
 	const data = useMemo(() => lichHenTheoThoiGian[period] ?? lichHenTheoThoiGian.ngay, [lichHenTheoThoiGian, period])
 	const tyLeHoanTat = data.tongLich > 0 ? Number(((data.daHoanTat / data.tongLich) * 100).toFixed(1)) : 0
@@ -303,7 +307,7 @@ export default function BaoCaoLichHenPage() {
 				style={{ borderRadius: 12, borderColor: palette.border, marginTop: 16 }}
 				extra={<Text type="secondary">Bảng theo dõi đã đặt, hoàn tất, hủy theo bác sĩ</Text>}
 			>
-				<Table rowKey="key" columns={columns} dataSource={tableData} pagination={false} scroll={{ x: 720 }} />
+				<Table rowKey="key" columns={columns} dataSource={tableData} pagination scroll={{ x: 720 }} />
 			</Card>
 		</div>
 	)

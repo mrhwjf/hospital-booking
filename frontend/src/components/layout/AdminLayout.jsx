@@ -25,32 +25,37 @@ import {
   TeamOutlined,
   UserOutlined,
   UserSwitchOutlined,
+  CalendarOutlined,
 } from '@ant-design/icons'
+import { MENU_CONFIG } from '../../app/menuConfig'
 
 const { Header, Sider, Content } = Layout
 const { Title, Text } = Typography
 
-const ADMIN_MENU_ITEMS = [
-  { key: '/admin/dashboard', icon: <DashboardOutlined />, label: 'Tổng quan hệ thống' },
-  { key: '/admin/users', icon: <TeamOutlined />, label: 'Quản lý tài khoản' },
-  { key: '/admin/doctors', icon: <UserSwitchOutlined />, label: 'Hồ sơ bác sĩ' },
-  { key: '/admin/staffs', icon: <UserOutlined />, label: 'Hồ sơ nhân viên' },
-  { key: '/admin/roles-permissions', icon: <SafetyOutlined />, label: 'Vai trò và quyền' },
-  { key: '/admin/system-config', icon: <SettingOutlined />, label: 'Cấu hình hệ thống' },
-  { key: '/admin/reports/appointments', icon: <FileTextOutlined />, label: 'Báo cáo lịch hẹn' },
-  { key: '/admin/reports/revenue', icon: <BarChartOutlined />, label: 'Báo cáo doanh thu' },
-]
-
-const PAGE_TITLES = {
-  '/admin/dashboard': 'Dashboard quản trị',
-  '/admin/users': 'Quản lý tài khoản người dùng',
-  '/admin/doctors': 'Quản lý hồ sơ bác sĩ',
-  '/admin/staffs': 'Quản lý hồ sơ nhân viên',
-  '/admin/roles-permissions': 'Vai trò và phân quyền',
-  '/admin/system-config': 'Cấu hình hệ thống',
-  '/admin/reports/appointments': 'Báo cáo lịch hẹn',
-  '/admin/reports/revenue': 'Báo cáo doanh thu',
+const resolveAdminIcon = (iconName) => {
+  if (iconName === 'dashboard') return <DashboardOutlined />
+  if (iconName === 'team') return <TeamOutlined />
+  if (iconName === 'doctor') return <UserSwitchOutlined />
+  if (iconName === 'staff') return <UserOutlined />
+  if (iconName === 'shield') return <SafetyOutlined />
+  if (iconName === 'setting') return <SettingOutlined />
+  if (iconName === 'file') return <FileTextOutlined />
+  if (iconName === 'chart') return <BarChartOutlined />
+  if (iconName === 'schedule') return <CalendarOutlined />
+  return <FileTextOutlined />
 }
+
+const ADMIN_NAV_CONFIG = MENU_CONFIG.ADMIN
+
+const ADMIN_MENU_ITEMS = ADMIN_NAV_CONFIG.map((item) => ({
+  key: item.route,
+  icon: resolveAdminIcon(item.icon),
+  label: item.label,
+}))
+
+const PAGE_TITLES = Object.fromEntries(
+  ADMIN_NAV_CONFIG.map((item) => [item.route, item.label]),
+)
 
 const getSelectedMenuKey = (pathname) => {
   if (pathname.startsWith('/admin/reports/revenue')) return '/admin/reports/revenue'
@@ -244,15 +249,18 @@ export default function AdminLayout() {
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
+            position: 'sticky',
+            top: 0,
+            zIndex: 100,
           }}
         >
           <Space align="center" size={10}>
-            <Button
+            {/* <Button
               type="text"
               onClick={() => setMobileOpen(true)}
               icon={<MenuUnfoldOutlined style={{ color: '#ffffff' }} />}
               className="mobile-admin-menu-toggle"
-            />
+            /> */}
 
             <Tooltip title={collapsed ? 'Mở rộng thanh điều hướng' : 'Thu gọn thanh điều hướng'}>
               <Button

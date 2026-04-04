@@ -6,6 +6,7 @@ import {
 	layChiTietBacSi as layChiTietBacSiApi,
 	taoBacSi as taoBacSiApi,
 	xoaBacSi as xoaBacSiApi,
+	layDanhSachTaiKhoanChuaLienKet as layDanhSachTaiKhoanChuaLienKetApi,
 } from '../../api/adminApi';
 
 const DEFAULT_META = {
@@ -50,7 +51,7 @@ const toDoctorItem = (item = {}) => {
 		chuyen_khoa: chuyenKhoa,
 		chuyen_khoa_ids: chuyenKhoa.map((entry) => entry.id),
 		chuyen_khoa_chinh_id:
-			chuyenKhoa.find((entry) => entry.la_chuyen_khoa_chinh)?.id ?? null,
+			item.chuyen_khoa_chinh_id ?? chuyenKhoa.find((entry) => entry.la_chuyen_khoa_chinh)?.id ?? null,
 		created_at: item.created_at ?? null,
 		updated_at: item.updated_at ?? null,
 	};
@@ -141,6 +142,15 @@ export const layDanhSachTaiKhoanBacSi = async (params = {}) => {
 	const items = response?.data?.items;
 	return Array.isArray(items) ? items.map(toDoctorAccountItem) : [];
 };
+
+export const layDanhSachTaiKhoanBacSiChuaLienKet = async (params = {}) => {
+	const response = await layDanhSachTaiKhoanChuaLienKetApi(params);
+	const items = response?.data?.items ?? response?.data;
+	return {
+		data: Array.isArray(items) ? items.map(toDoctorAccountItem) : [],
+		message: response?.message ?? '',
+	};
+}
 
 const doctorServices = {
 	layDanhSachBacSi,

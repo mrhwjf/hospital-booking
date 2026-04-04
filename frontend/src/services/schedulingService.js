@@ -1,4 +1,5 @@
 import dayjs from 'dayjs'
+import { getApiErrorMessage } from '../utils/apiError'
 import {
 	checkInLichHen,
 	cancelLichHen,
@@ -19,6 +20,30 @@ import {
 } from '../api/schedulingApi'
 
 const DEFAULT_LIST_PAGE_SIZE = 10
+
+export const resolveCurrentReceptionistUserId = () => {
+	const fromStorage = Number(window.localStorage.getItem('nguoi_dung_id'))
+	if (Number.isInteger(fromStorage) && fromStorage > 0) {
+		return fromStorage
+	}
+
+	try {
+		const user = JSON.parse(window.localStorage.getItem('user') || 'null')
+		const parsedUserId = Number(user?.id || user?.nguoi_dung_id)
+		if (Number.isInteger(parsedUserId) && parsedUserId > 0) {
+			return parsedUserId
+		}
+	} catch {
+		// Ignore malformed localStorage payload.
+	}
+
+	const fromEnv = Number(import.meta.env.VITE_DEFAULT_NGUOI_DUNG_ID)
+	if (Number.isInteger(fromEnv) && fromEnv > 0) {
+		return fromEnv
+	}
+
+	return 1
+}
 
 const mapItems = (response) => response?.data?.items || []
 
@@ -186,10 +211,4 @@ export const submitCheckInAppointment = async ({ lichHenId, nguoiTiepNhanId }) =
 	return response?.data
 }
 
-export const getApiErrorMessage = (error, fallbackMessage) => {
-	const firstError =
-		error?.response?.data?.data?.errors &&
-		Object.values(error.response.data.data.errors)[0]?.[0]
-
-	return firstError || fallbackMessage
-}
+export { getApiErrorMessage }

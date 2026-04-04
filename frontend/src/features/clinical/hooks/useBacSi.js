@@ -5,9 +5,60 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import {
-  fetchBacSiComplete,
-  fetchBacSiLichLamViec,
-} from '../services/bacSiService';
+  getThongTinBacSiStatic,
+  getThongTinBacSiWeekly,
+} from '../../../Services/clinicalService';
+
+const normalizeStaticProfile = (payload) => {
+  const source = payload?.data || payload || null;
+
+  if (!source) {
+    return {
+      bacSiInfo: null,
+      chuyenKhoa: [],
+    };
+  }
+
+  return {
+    bacSiInfo: source?.bac_si || source,
+    chuyenKhoa: source?.chuyen_khoa || source?.chuyenKhoas || [],
+  };
+};
+
+const normalizeWeeklySchedule = (payload) => {
+  const source = payload?.data || payload || {};
+
+  return {
+    lichLamViec: source?.lich_lam_viec || source?.lich_tuan || source?.lichLamViec || [],
+    ngayNghiLe: source?.ngay_nghi_le || source?.nghi_le || source?.ngayNghiLe || [],
+  };
+};
+
+const fetchBacSiComplete = async (bacSiId) => {
+  const [profilePayload, weeklyPayload] = await Promise.all([
+    getThongTinBacSiStatic({ bac_si_id: bacSiId }),
+    getThongTinBacSiWeekly({ bac_si_id: bacSiId }),
+  ]);
+
+  const profile = normalizeStaticProfile(profilePayload);
+  const weekly = normalizeWeeklySchedule(weeklyPayload);
+
+  return {
+    bacSiInfo: profile.bacSiInfo,
+    chuyenKhoa: profile.chuyenKhoa,
+    lichLamViec: weekly.lichLamViec,
+    ngayNghiLe: weekly.ngayNghiLe,
+  };
+};
+
+const fetchBacSiLichLamViec = async (bacSiId, params = {}) => {
+  const weeklyPayload = await getThongTinBacSiWeekly({
+    bac_si_id: bacSiId,
+    week_offset: Number(params.week_offset ?? params.weekOffset ?? 0),
+  });
+
+  return normalizeWeeklySchedule(weeklyPayload).lichLamViec;
+};
 
 /**
  * Hook để lấy thông tin bác sĩ
@@ -32,7 +83,7 @@ export const useBacSiInfo = (bacSiId) => {
       setLoading(true);
       setError(null);
       const data = await fetchBacSiComplete(bacSiId);
-      
+
       setBacSiInfo(data.bacSiInfo);
       setChuyenKhoa(data.chuyenKhoa);
       setLichLamViec(data.lichLamViec);

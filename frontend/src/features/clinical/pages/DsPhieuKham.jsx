@@ -57,7 +57,6 @@ export default function DsPhieuKham() {
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState(null);
   const [filterDate, setFilterDate] = useState(null);
-  const [selectedPatient, setSelectedPatient] = useState(null);
   const [viewportWidth, setViewportWidth] = useState(() =>
     typeof window !== "undefined" ? window.innerWidth : 1440,
   );
@@ -342,9 +341,8 @@ export default function DsPhieuKham() {
                   rowKey="id"
                   scroll={tableScroll}
                   size={isMobile ? "small" : "middle"}
-                  onRow={(record) => ({
-                    onClick: () => setSelectedPatient(record),
-                    style: { cursor: "pointer" },
+                  onRow={() => ({
+                    style: { cursor: "default" },
                     onMouseEnter: (e) =>
                       (e.currentTarget.style.background = "#f0faf9"),
                     onMouseLeave: (e) =>

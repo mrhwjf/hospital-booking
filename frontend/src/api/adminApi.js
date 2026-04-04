@@ -10,6 +10,10 @@ const ADMIN_ROLE_CONFIG = {
 export const layDanhSachNguoiDung = (params = {}) =>
   httpClient.get('/nguoi-dung', { ...ADMIN_ROLE_CONFIG, params });
 
+/** GET /nguoi-dung/tai-khoan-chua-lien-ket */
+export const layDanhSachTaiKhoanChuaLienKet = (params = {}) =>
+  httpClient.get('/nguoi-dung/tai-khoan-chua-lien-ket', { ...ADMIN_ROLE_CONFIG, params });
+
 /** GET /nguoi-dung/:id */
 export const layChiTietNguoiDung = (id) =>
   httpClient.get(`/nguoi-dung/${id}`, ADMIN_ROLE_CONFIG);

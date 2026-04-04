@@ -10,6 +10,7 @@ use App\Requests\Admin\TaoNguoiDungRequest;
 use App\Requests\Admin\CapNhatNguoiDungRequest;
 use App\Requests\Admin\ResetMatKhauRequest;
 use App\Resources\Admin\NguoiDungResource;
+use App\Resources\ApiResponse;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Hash;
 
@@ -46,19 +47,7 @@ class NguoiDungController extends Controller
         $perPage = min($request->input('per_page', 20), 100);
         $paginator = $query->paginate($perPage);
 
-        return response()->json([
-            'success' => true,
-            'data'    => [
-                'items'      => NguoiDungResource::collection($paginator->items()),
-                'pagination' => [
-                    'currentPage' => $paginator->currentPage(),
-                    'pageSize'    => $paginator->perPage(),
-                    'totalItems'  => $paginator->total(),
-                    'totalPages'  => $paginator->lastPage(),
-                ],
-            ],
-            'message' => 'Lấy danh sách người dùng thành công.',
-        ]);
+        return ApiResponse::paginated($paginator, NguoiDungResource::class, 'Lấy danh sách người dùng thành công.');
     }
 
     /**
@@ -70,18 +59,10 @@ class NguoiDungController extends Controller
         $nguoiDung = NguoiDung::with('vaiTro')->find($id);
 
         if (!$nguoiDung) {
-            return response()->json([
-                'success' => false,
-                'data'    => null,
-                'message' => 'Không tìm thấy người dùng.',
-            ], 404);
+            return ApiResponse::error('Không tìm thấy người dùng.', null, 404);
         }
 
-        return response()->json([
-            'success' => true,
-            'data'    => new NguoiDungResource($nguoiDung),
-            'message' => 'Lấy chi tiết người dùng thành công.',
-        ]);
+        return ApiResponse::success(new NguoiDungResource($nguoiDung), 'Lấy chi tiết người dùng thành công.');
     }
 
     /**
@@ -93,20 +74,16 @@ class NguoiDungController extends Controller
         $vaiTro = VaiTro::where('ma_vai_tro', $request->input('vai_tro'))->first();
 
         $nguoiDung = NguoiDung::create([
-            'email'      => $request->input('email'),
-            'mat_khau'   => Hash::make($request->input('mat_khau')),
+            'email' => $request->input('email'),
+            'mat_khau' => Hash::make($request->input('mat_khau')),
             'vai_tro_id' => $vaiTro->id,
-            'hinh_anh'   => $request->input('hinh_anh'),
+            'hinh_anh' => $request->input('hinh_anh'),
             'trang_thai' => $request->input('trang_thai', 'hoat_dong'),
         ]);
 
         $nguoiDung->load('vaiTro');
 
-        return response()->json([
-            'success' => true,
-            'data'    => new NguoiDungResource($nguoiDung),
-            'message' => 'Tạo người dùng thành công.',
-        ], 201);
+        return ApiResponse::success(new NguoiDungResource($nguoiDung), 'Tạo người dùng thành công.', 201);
     }
 
     /**
@@ -118,11 +95,7 @@ class NguoiDungController extends Controller
         $nguoiDung = NguoiDung::find($id);
 
         if (!$nguoiDung) {
-            return response()->json([
-                'success' => false,
-                'data'    => null,
-                'message' => 'Không tìm thấy người dùng.',
-            ], 404);
+            return ApiResponse::error('Không tìm thấy người dùng.', null, 404);
         }
 
         $data = [];
@@ -147,11 +120,7 @@ class NguoiDungController extends Controller
         $nguoiDung->update($data);
         $nguoiDung->load('vaiTro');
 
-        return response()->json([
-            'success' => true,
-            'data'    => new NguoiDungResource($nguoiDung),
-            'message' => 'Đã cập nhật người dùng.',
-        ]);
+        return ApiResponse::success(new NguoiDungResource($nguoiDung), 'Đã cập nhật người dùng.');
     }
 
     /**
@@ -163,24 +132,16 @@ class NguoiDungController extends Controller
         $nguoiDung = NguoiDung::find($id);
 
         if (!$nguoiDung) {
-            return response()->json([
-                'success' => false,
-                'data'    => null,
-                'message' => 'Không tìm thấy người dùng.',
-            ], 404);
+            return ApiResponse::error('Không tìm thấy người dùng.', null, 404);
         }
 
         $nguoiDung->update([
             'mat_khau' => Hash::make($request->input('mat_khau_moi')),
         ]);
 
-        return response()->json([
-            'success' => true,
-            'data'    => [
-                'id' => $nguoiDung->id,
-            ],
-            'message' => 'Đã đặt lại mật khẩu.',
-        ]);
+        return ApiResponse::success([
+            'id' => $nguoiDung->id,
+        ], 'Đã đặt lại mật khẩu.');
     }
 
     /**
@@ -192,11 +153,7 @@ class NguoiDungController extends Controller
         $nguoiDung = NguoiDung::find($id);
 
         if (!$nguoiDung) {
-            return response()->json([
-                'success' => false,
-                'data'    => null,
-                'message' => 'Không tìm thấy người dùng.',
-            ], 404);
+            return ApiResponse::error('Không tìm thấy người dùng.', null, 404);
         }
 
         $nextStatus = $nguoiDung->trang_thai === 'khoa' ? 'hoat_dong' : 'khoa';
@@ -204,13 +161,38 @@ class NguoiDungController extends Controller
 
         $actionLabel = $nextStatus === 'khoa' ? 'khóa' : 'mở khóa';
 
+        return ApiResponse::success([
+            'id' => $nguoiDung->id,
+            'trang_thai' => $nextStatus,
+        ], "Đã {$actionLabel} tài khoản thành công.");
+    }
+
+    /**
+     * GET /api/v1/nguoi-dung/tai-khoan-chua-lien-ket
+     * Lấy danh sách tài khoản người dùng chưa liên kết với hồ sơ nhân viên/bác sĩ (lọc theo vai_tro)
+     */
+    public function taiKhoanChuaLienKet(DanhSachNguoiDungRequest $request): JsonResponse
+    {
+        $vaiTro = $request->input('vai_tro');
+
+        $query = NguoiDung::query()
+            ->with('vaiTro')
+            ->where('trang_thai', 'hoat_dong')
+            ->whereDoesntHave('nhanVien')
+            ->whereDoesntHave('bacSi');
+
+        if ($vaiTro) {
+            $query->whereHas('vaiTro', function ($q) use ($vaiTro) {
+                $q->where('ma_vai_tro', $vaiTro);
+            });
+        }
+
+        $users = $query
+            ->orderBy('vai_tro_id')
+            ->get();
+
         return response()->json([
-            'success' => true,
-            'data'    => [
-                'id'         => $nguoiDung->id,
-                'trang_thai' => $nextStatus,
-            ],
-            'message' => "Đã {$actionLabel} tài khoản thành công.",
+            'data' => $users
         ]);
     }
 }

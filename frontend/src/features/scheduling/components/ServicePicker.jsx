@@ -1,14 +1,20 @@
 import { useMemo, useState } from 'react'
 import { Button, Card, Input, Segmented, Space, Tag, Typography } from 'antd'
-import { formatCurrency, packages as defaultPackages, services as defaultServices } from '../mockData'
+
+const formatCurrency = (value) =>
+	Number(value || 0).toLocaleString('vi-VN', {
+		style: 'currency',
+		currency: 'VND',
+		maximumFractionDigits: 0,
+	})
 
 const { Paragraph, Text, Title } = Typography
 
 export default function ServicePicker({
 	selectedItems,
 	onChange,
-	services = defaultServices,
-	packages = defaultPackages,
+	services = [],
+	packages = [],
 }) {
 	const [mode, setMode] = useState('dich_vu')
 	const [keyword, setKeyword] = useState('')
@@ -20,7 +26,7 @@ export default function ServicePicker({
 		const keyName = mode === 'dich_vu' ? 'ten_dich_vu' : 'ten_goi_kham'
 		const normalizedKeyword = keyword.trim().toLowerCase()
 
-		return source.filter((item) => item[keyName].toLowerCase().includes(normalizedKeyword))
+		return source.filter((item) => String(item[keyName] || '').toLowerCase().includes(normalizedKeyword))
 	}, [keyword, mode, packages, services])
 
 	const updateItem = (type, id, delta) => {
