@@ -283,7 +283,7 @@ export default function LichSuKhamPage() {
 						<Alert
 							type="info"
 							showIcon
-							message="Dữ liệu được giới hạn theo hồ sơ bệnh nhân hiện tại (benh_nhan_id mô phỏng khi chưa có đăng nhập)."
+							message="Dữ liệu được giới hạn theo hồ sơ bệnh nhân đang đăng nhập."
 						/>
 
 						<Card className="border-[#E2E8F0] bg-[#fafdff]">

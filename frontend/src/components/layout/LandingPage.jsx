@@ -263,11 +263,18 @@ function LandingPage() {
                 </button>
               </Dropdown>
             ) : (
-              <button
-                onClick={() => navigate("/login")}
-                className="rounded-md bg-emerald-700 px-5 py-2.5 text-xs font-bold text-white hover:bg-emerald-800 cursor-pointer">
-                Đăng nhập
-              </button>
+              <>
+                <button
+                  onClick={() => navigate("/register")}
+                  className="rounded-md border border-emerald-700 px-5 py-2.5 text-xs font-bold text-emerald-700 hover:bg-emerald-50 cursor-pointer">
+                  Đăng ký
+                </button>
+                <button
+                  onClick={() => navigate("/login")}
+                  className="rounded-md bg-emerald-700 px-5 py-2.5 text-xs font-bold text-white hover:bg-emerald-800 cursor-pointer">
+                  Đăng nhập
+                </button>
+              </>
             )}
             <button className="rounded-md border border-red-200 bg-red-50 px-5 py-2.5 text-xs font-bold text-red-700 cursor-pointer">
               1900 1234
@@ -297,7 +304,7 @@ function LandingPage() {
               <div className="mt-6 flex flex-wrap gap-3">
                 <button
                   onClick={() =>
-                    navigate(authState.isAuthenticated ? "/booking" : "/login")
+                    navigate(authState.isAuthenticated ? "/patient/dat-lich" : "/login")
                   }
                   className="rounded-md bg-white px-4 py-2 text-xs font-bold text-emerald-800 md:text-sm cursor-pointer">
                   Đặt lịch ngay
@@ -313,7 +320,7 @@ function LandingPage() {
         <section className="mx-auto w-full max-w-6xl px-4 py-8 lg:px-6">
           <div className="mb-6 flex items-end justify-between">
             <div>
-              <h3 className="text-2xl font-black text-slate-900 font-bold">
+              <h3 className="text-2xl font-black text-slate-900">
                 Chuyên khoa nổi bật
               </h3>
               <p className="mt-1 text-sm text-slate-600">
@@ -344,7 +351,7 @@ function LandingPage() {
         <section className="bg-white py-10">
           <div className="mx-auto w-full max-w-6xl px-4 lg:px-6">
             <div className="mb-6 text-center">
-              <h3 className="text-2xl font-black text-slate-900 font-bold">
+              <h3 className="text-2xl font-black text-slate-900">
                 Đội ngũ bác sĩ tiêu biểu
               </h3>
               <p className="mx-auto mt-1 max-w-xl text-sm text-slate-600">
@@ -367,7 +374,7 @@ function LandingPage() {
                     <p className="text-[10px] font-bold uppercase tracking-wider text-emerald-700">
                       {doctor.specialty}
                     </p>
-                    <h4 className="mt-1 text-sm font-black text-slate-900 font-bold">
+                    <h4 className="mt-1 text-sm font-black text-slate-900">
                       {doctor.name}
                     </h4>
                     <p className="mt-1 text-xs text-slate-600">{doctor.bio}</p>

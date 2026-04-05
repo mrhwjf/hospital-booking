@@ -10,10 +10,13 @@ class BacSiNghiSeeder extends Seeder
     public function run(): void
     {
         $bacSi = DB::table('bac_si')->pluck('id', 'ma_bac_si');
+        $doctorIds = array_values($bacSi->all());
+        $doctorOneId = $bacSi['BS-0001'] ?? ($doctorIds[0] ?? null);
+        $doctorTwoId = $bacSi['BS-0002'] ?? ($doctorIds[1] ?? $doctorOneId);
 
         $rows = [
             [
-                'bac_si_id' => $bacSi['BS-0001'] ?? null,
+                'bac_si_id' => $doctorOneId,
                 'ngay' => '2026-03-20',
                 'gio_bat_dau' => null,
                 'gio_ket_thuc' => null,
@@ -22,7 +25,7 @@ class BacSiNghiSeeder extends Seeder
                 'created_at' => now(),
             ],
             [
-                'bac_si_id' => $bacSi['BS-0002'] ?? null,
+                'bac_si_id' => $doctorTwoId,
                 'ngay' => '2026-03-22',
                 'gio_bat_dau' => '13:30:00',
                 'gio_ket_thuc' => '17:00:00',

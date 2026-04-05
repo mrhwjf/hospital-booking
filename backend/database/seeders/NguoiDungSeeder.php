@@ -29,15 +29,15 @@ class NguoiDungSeeder extends Seeder
         ];
 
         $rows = [
-            $buildUserRow('admin@hospital.local', $roles['ADMIN'] ?? null, true),
-            $buildUserRow('doctor1@hospital.local', $roles['BACSI'] ?? null, true),
-            $buildUserRow('doctor2@hospital.local', $roles['BACSI'] ?? null, true),
+            $buildUserRow('admin@test.local', $roles['ADMIN'] ?? null, true),
+            $buildUserRow('doctor1@test.local', $roles['BACSI'] ?? null, true),
+            $buildUserRow('doctor2@test.local', $roles['BACSI'] ?? null, true),
 
-            $buildUserRow('staff1@hospital.local', $roles['NHANVIEN'] ?? null, true),
-            $buildUserRow('staff2@hospital.local', $roles['NHANVIEN'] ?? null, true),
+            $buildUserRow('staff1@test.local', $roles['NHANVIEN'] ?? null, true),
+            $buildUserRow('staff2@test.local', $roles['NHANVIEN'] ?? null, true),
 
-            $buildUserRow('patient1@hospital.local', $roles['BENHNHAN'] ?? null),
-            $buildUserRow('patient2@hospital.local', $roles['BENHNHAN'] ?? null),
+            $buildUserRow('patient1@test.local', $roles['BENHNHAN'] ?? null),
+            $buildUserRow('patient2@test.local', $roles['BENHNHAN'] ?? null),
         ];
 
         foreach (range(3, 50) as $index) {

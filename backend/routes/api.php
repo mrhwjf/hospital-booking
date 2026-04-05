@@ -25,6 +25,8 @@ Route::prefix('v1')->group(function () {
     require base_path('routes/api/v1/auth.php');
     require base_path('routes/api/v1/admin.php');
     require base_path('routes/api/v1/patients.php');
+    require base_path('routes/api/v1/profile.php');
+    require base_path('routes/api/v1/dashboard.php');
     require base_path('routes/api/v1/clinical.php');
     require base_path('routes/api/v1/reports.php');
     require base_path('routes/api/v1/scheduling.php');
@@ -47,11 +49,4 @@ Route::prefix('services')->middleware('role:public')->group(function () {
     Route::get('/{id}', [ServiceController::class, 'show'])
         ->whereNumber('id')
         ->name('services.show');
-});
-
-Route::prefix('v1')->group(function () {
-    require __DIR__ . '/api/v1/auth.php';
-    require __DIR__ . '/api/v1/patients.php';
-    require __DIR__ . '/api/v1/profile.php';
-    require __DIR__ . '/api/v1/dashboard.php';
 });

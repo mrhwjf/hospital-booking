@@ -3,7 +3,8 @@
 use App\Http\Controllers\Api\V1\Patient\ProfileController;
 use Illuminate\Support\Facades\Route;
 
-Route::prefix('patient-profile')->group(function () {
+Route::middleware(['auth.jwt', 'role:BENHNHAN'])->prefix('patient-profile')->group(function () {
     Route::get('/', [ProfileController::class, 'getProfile']);
     Route::put('/', [ProfileController::class, 'updateProfile']);
+    Route::patch('/', [ProfileController::class, 'updateProfile']);
 });

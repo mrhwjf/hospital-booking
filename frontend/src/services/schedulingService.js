@@ -48,7 +48,7 @@ export const resolveCurrentReceptionistUserId = () => {
 const mapItems = (response) => response?.data?.items || []
 
 export const fetchSpecialties = async () => {
-	const response = await getChuyenKhoas({ page: 1, pageSize: DEFAULT_LIST_PAGE_SIZE })
+	const response = await getChuyenKhoas({ page: 1, pageSize: 100 })
 	return mapItems(response)
 }
 
@@ -60,7 +60,7 @@ export const fetchDoctorsBySpecialty = async ({ chuyenKhoaId, keyword = '' }) =>
 
 	const response = await getBacSiTheoChuyenKhoa(chuyenKhoaId, {
 		page: 1,
-		pageSize: DEFAULT_LIST_PAGE_SIZE,
+		pageSize: 100,
 		ten: keyword,
 	})
 
@@ -75,13 +75,13 @@ export const fetchServicesAndPackages = async ({ chuyenKhoaId, keyword = '' }) =
 	const [serviceResponse, packageResponse] = await Promise.all([
 		getDichVus({
 			page: 1,
-			pageSize: DEFAULT_LIST_PAGE_SIZE,
+			pageSize: 100,
 			chuyen_khoa_id: chuyenKhoaId,
 			ten: keyword,
 		}),
 		getGoiKhams({
 			page: 1,
-			pageSize: DEFAULT_LIST_PAGE_SIZE,
+			pageSize: 100,
 			chuyen_khoa_id: chuyenKhoaId,
 			ten: keyword,
 		}),
@@ -120,13 +120,8 @@ export const submitAppointmentBooking = async (payload) => {
 	return response?.data
 }
 
-export const fetchMyAppointments = async ({ benhNhanId, page = 1, pageSize = DEFAULT_LIST_PAGE_SIZE, trangThai } = {}) => {
-	if (!benhNhanId) {
-		return { items: [], pagination: null }
-	}
-
+export const fetchMyAppointments = async ({ page = 1, pageSize = DEFAULT_LIST_PAGE_SIZE, trangThai } = {}) => {
 	const response = await getLichHenCuaToi({
-		benh_nhan_id: benhNhanId,
 		page,
 		pageSize,
 		trang_thai: trangThai,

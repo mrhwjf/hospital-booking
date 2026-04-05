@@ -52,7 +52,7 @@ export default function PatientProfilePage() {
       errs.so_dien_thoai = "Số điện thoại là bắt buộc";
     if (!profile.ngay_sinh?.trim()) errs.ngay_sinh = "Ngày sinh là bắt buộc";
     if (profile.email?.trim()) {
-      const re = /^[^\@\s]+@[^\@\s]+\.[^\@\s]+$/;
+      const re = /^[^@\s]+@[^@\s]+\.[^@\s]+$/;
       if (!re.test(profile.email)) errs.email = "Vui lòng nhập email hợp lệ.";
     }
     setErrors(errs);
@@ -270,11 +270,10 @@ export default function PatientProfilePage() {
                           setProfile({ ...profile, nhom_mau: blood });
                       }}
                       disabled={!editing}
-                      className={`px-3 py-2 rounded-lg font-medium transition-colors ${
-                        profile.nhom_mau === blood
+                      className={`px-3 py-2 rounded-lg font-medium transition-colors ${profile.nhom_mau === blood
                           ? "bg-teal-700 text-white"
                           : "bg-slate-100 text-slate-900 border border-slate-200"
-                      } ${!editing ? "cursor-default" : "cursor-pointer hover:bg-slate-200"}`}>
+                        } ${!editing ? "cursor-default" : "cursor-pointer hover:bg-slate-200"}`}>
                       {blood}
                     </button>
                   ),

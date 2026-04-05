@@ -25,7 +25,7 @@ class PhieuKhamSeeder extends Seeder
                 'lich_hen_id' => $appointment->id,
                 'benh_nhan_id' => $appointment->benh_nhan_id,
                 'bac_si_id' => $appointment->bac_si_id,
-                'nguoi_tao_id' => $users['staff1@hospital.local'] ?? null,
+                'nguoi_tao_id' => $users['staff1@hospital.local'] ?? $users['staff1@test.local'] ?? null,
                 'thoi_gian_tiep_nhan' => now()->subDays(1),
                 'mach' => 78,
                 'nhiet_do' => 36.8,

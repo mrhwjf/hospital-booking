@@ -121,7 +121,7 @@ function AccountProfile() {
       } catch (error) {
         const msg =
           error?.response?.data?.message ||
-          "Khong the tai thong tin tai khoan. Vui long tai lai trang.";
+          "Không thể tải thông tin tài khoản. Vui lòng tải lại trang.";
         setProfileMessage(msg);
       } finally {
         setLoadingAccount(false);
@@ -153,7 +153,7 @@ function AccountProfile() {
       .catch((error) => {
         const msg =
           error?.response?.data?.message ||
-          "Khong the cap nhat anh dai dien. Vui long thu lai.";
+          "Không thể cập nhật ảnh đại diện. Vui lòng thử lại.";
         setProfileMessage(msg);
       });
 
@@ -189,12 +189,12 @@ function AccountProfile() {
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
     if (!emailRegex.test(trimmedEmail)) {
-      setEmailError("Email khong hop le.");
+      setEmailError("Email không hợp lệ.");
       return;
     }
 
     if (!emailConfirmed) {
-      setEmailError("Vui long xac nhan thay doi email.");
+      setEmailError("Vui lòng xác nhận thay đổi email.");
       return;
     }
 
@@ -206,14 +206,14 @@ function AccountProfile() {
         ...current,
         email: updated?.email || trimmedEmail,
       }));
-      setProfileMessage("Cap nhat email thanh cong!");
+      setProfileMessage("Cập nhật email thành công!");
       setIsEmailModalOpen(false);
       setEmailError("");
     } catch (error) {
       const msg =
         error?.response?.data?.message ||
         error?.response?.data?.errors?.email?.[0] ||
-        "Khong the cap nhat email.";
+        "Không thể cập nhật email.";
       setEmailError(msg);
     } finally {
       setSavingEmail(false);
@@ -236,22 +236,22 @@ function AccountProfile() {
     event?.preventDefault?.();
 
     if (!passwords.currentPassword) {
-      setPasswordError("Vui long nhap mat khau hien tai.");
+      setPasswordError("Vui lòng nhập mật khẩu hiện tại.");
       return;
     }
 
     if (!/[A-Z]/.test(passwords.newPassword)) {
-      setPasswordError("Mat khau moi phai chua it nhat 1 chu hoa.");
+      setPasswordError("Mật khẩu mới phải chứa ít nhất 1 chữ hoa.");
       return;
     }
 
     if (passwords.newPassword.length < 8) {
-      setPasswordError("Mat khau moi phai co it nhat 8 ky tu.");
+      setPasswordError("Mật khẩu mới phải có ít nhất 8 ký tự.");
       return;
     }
 
     if (passwords.newPassword !== passwords.confirmPassword) {
-      setPasswordError("Mat khau xac nhan khong khop.");
+      setPasswordError("Mật khẩu xác nhận không khớp.");
       return;
     }
 
@@ -264,14 +264,14 @@ function AccountProfile() {
       });
 
       setPasswordError("");
-      setPasswordMessage("Mat khau da duoc cap nhat.");
+      setPasswordMessage("Mật khẩu đã được cập nhật.");
       setPasswords(INITIAL_PASSWORDS);
       setIsPasswordModalOpen(false);
     } catch (error) {
       const msg =
         error?.response?.data?.message ||
         error?.response?.data?.errors?.new_password?.[0] ||
-        "Khong the doi mat khau.";
+        "Không thể đổi mật khẩu.";
       setPasswordError(msg);
     } finally {
       setSavingPassword(false);
@@ -282,7 +282,7 @@ function AccountProfile() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-sm text-slate-600">
-          Dang tai thong tin tai khoan...
+          Đang tải thông tin tài khoản...
         </div>
       </div>
     );
@@ -297,9 +297,9 @@ function AccountProfile() {
           className="overflow-hidden rounded-2xl border bg-white shadow-sm"
           style={{ borderColor: COLORS.border }}>
           <div className="border-b p-6" style={{ borderColor: COLORS.border }}>
-            <h3 className="text-lg font-bold">Thong tin tai khoan</h3>
+            <h3 className="text-lg font-bold">Thông tin tài khoản</h3>
             <p className="text-sm text-slate-500">
-              Xem va cap nhat email, mat khau tai khoan dang dang nhap.
+              Xem và cập nhật thông tin tài khoản của bạn. Bạn có thể thay đổi email, mật khẩu và ảnh đại diện tại đây.
             </p>
           </div>
 
@@ -375,13 +375,13 @@ function AccountProfile() {
                     Email:
                   </span>
                   <span className="text-sm text-slate-600">
-                    {profile.email || "Chua co email"}
+                    {profile.email || "Chưa có email"}
                   </span>
                 </div>
                 <button
                   type="button"
                   className="text-slate-500 transition hover:text-slate-700"
-                  aria-label="Chinh sua email"
+                  aria-label="Chỉnh sửa email"
                   onClick={handleOpenEmailModal}>
                   <Icon name="edit" className="h-4 w-4 cursor-pointer" />
                 </button>
@@ -391,7 +391,7 @@ function AccountProfile() {
                 <div className="flex flex-col gap-1">
                   <div className="flex items-center gap-3">
                     <span className="text-sm font-semibold text-slate-700">
-                      Mat khau:
+                      Mật khẩu:
                     </span>
                     <span className="text-sm text-slate-600">••••••••••••</span>
                   </div>
@@ -403,7 +403,7 @@ function AccountProfile() {
                 <button
                   type="button"
                   className="text-slate-500 transition hover:text-slate-700"
-                  aria-label="Chinh sua mat khau"
+                  aria-label="Chỉnh sửa mật khẩu"
                   onClick={handleOpenPasswordModal}>
                   <Icon name="edit" className="h-4 w-4 cursor-pointer" />
                 </button>
@@ -420,11 +420,11 @@ function AccountProfile() {
           },
         }}>
         <Modal
-          title="Doi email"
+          title="Đổi email"
           open={isEmailModalOpen}
           onOk={handleEmailSubmit}
           onCancel={handleCloseEmailModal}
-          okText="Cap nhat"
+          okText="Cập nhật"
           confirmLoading={savingEmail}
           okButtonProps={{
             style: {
@@ -432,11 +432,11 @@ function AccountProfile() {
               borderColor: COLORS.primary,
             },
           }}
-          cancelText="Huy">
+          cancelText="Hủy">
           <div className="space-y-4 pt-2">
             <div className="space-y-1">
               <label className="text-sm font-semibold text-slate-700">
-                Nhap email moi
+                Nhập email mới
               </label>
               <Input
                 value={newEmail}
@@ -444,7 +444,7 @@ function AccountProfile() {
                   setNewEmail(event.target.value);
                   setEmailError("");
                 }}
-                placeholder="Nhap email moi"
+                placeholder="Nhập email mới"
               />
             </div>
 
@@ -454,7 +454,7 @@ function AccountProfile() {
                 setEmailConfirmed(event.target.checked);
                 setEmailError("");
               }}>
-              Xac nhan thay doi email
+              Xác nhận thay đổi email
             </Checkbox>
 
             {emailError ? (
@@ -466,11 +466,11 @@ function AccountProfile() {
         </Modal>
 
         <Modal
-          title="Doi mat khau"
+          title="Đổi mật khẩu"
           open={isPasswordModalOpen}
           onOk={handlePasswordSubmit}
           onCancel={handleClosePasswordModal}
-          okText="Cap nhat"
+          okText="Cập nhật"
           confirmLoading={savingPassword}
           okButtonProps={{
             style: {
@@ -478,41 +478,41 @@ function AccountProfile() {
               borderColor: COLORS.primary,
             },
           }}
-          cancelText="Huy">
+          cancelText="Hủy">
           <div className="space-y-4 pt-2">
             <div className="space-y-1">
               <label className="text-sm font-semibold text-slate-700">
-                Mat khau hien tai
+                Mật khẩu hiện tại
               </label>
               <Input.Password
                 name="currentPassword"
                 value={passwords.currentPassword}
                 onChange={handlePasswordChange}
-                placeholder="Nhap mat khau hien tai"
+                placeholder="Nhập mật khẩu hiện tại"
               />
             </div>
 
             <div className="space-y-1">
               <label className="text-sm font-semibold text-slate-700">
-                Nhap mat khau moi
+                Nhập mật khẩu mới
               </label>
               <Input.Password
                 name="newPassword"
                 value={passwords.newPassword}
                 onChange={handlePasswordChange}
-                placeholder="Nhap mat khau moi"
+                placeholder="Nhập mật khẩu mới"
               />
             </div>
 
             <div className="space-y-1">
               <label className="text-sm font-semibold text-slate-700">
-                Xac nhan mat khau moi
+                Xác nhận mật khẩu mới
               </label>
               <Input.Password
                 name="confirmPassword"
                 value={passwords.confirmPassword}
                 onChange={handlePasswordChange}
-                placeholder="Nhap lai mat khau moi"
+                placeholder="Nhập lại mật khẩu mới"
               />
             </div>
 

@@ -7,8 +7,30 @@ use Illuminate\Validation\Validator;
 
 class VisitHistoryListRequest extends FormRequest
 {
+	protected function prepareForValidation(): void
+	{
+		$authenticatedPatientId = $this->user()?->benhNhan?->id;
+
+		if (!empty($authenticatedPatientId) && empty($this->input('benh_nhan_id'))) {
+			$this->merge([
+				'benh_nhan_id' => (int) $authenticatedPatientId,
+			]);
+		}
+	}
+
 	public function authorize(): bool
 	{
+		$user = $this->user();
+		$authPatientId = (int) ($user?->benhNhan?->id ?? 0);
+
+		if ($authPatientId <= 0) {
+			return false;
+		}
+
+		if (!empty($this->input('benh_nhan_id')) && (int) $this->input('benh_nhan_id') !== $authPatientId) {
+			return false;
+		}
+
 		return true;
 	}
 
@@ -44,5 +66,10 @@ class VisitHistoryListRequest extends FormRequest
 			'benh_nhan_id.exists' => 'Bệnh nhân không tồn tại.',
 			'trang_thai.in' => 'trang_thai không hợp lệ.',
 		];
+	}
+
+	protected function failedAuthorization(): void
+	{
+		throw new \Illuminate\Auth\Access\AuthorizationException('Bạn không có quyền truy cập dữ liệu bệnh nhân khác.');
 	}
 }

@@ -3,8 +3,6 @@
 namespace App\Services\Dashboard;
 
 use App\Models\BenhNhan;
-use App\Models\LichHen;
-use App\Models\PhieuKham;
 use Carbon\Carbon;
 use Illuminate\Support\Facades\Cache;
 
@@ -17,7 +15,7 @@ class PatientDashboardService
     public function getDashboardData(int $benhNhanId): array
     {
         $cacheKey = "dashboard:patient:{$benhNhanId}";
-        
+
         if (Cache::has($cacheKey)) {
             return Cache::get($cacheKey);
         }
@@ -28,7 +26,7 @@ class PatientDashboardService
             $data = [
                 'patient_info' => $this->getPatientInfo($benh_nhan),
                 'upcoming_appointments' => $this->getUpcomingAppointments($benh_nhan),
-                'recent_visit_history' => [], // Temporarily disabled
+                'recent_visit_history' => $this->getRecentVisitHistory($benh_nhan),
                 'health_profile' => $this->getHealthProfile($benh_nhan),
                 'health_reminder' => $this->getHealthReminder(),
             ];
@@ -52,7 +50,7 @@ class PatientDashboardService
             'ma_benh_nhan' => $benh_nhan->ma_benh_nhan,
             'ho_ten' => $benh_nhan->ho_ten,
             'ngay_sinh' => $benh_nhan->ngay_sinh,
-            'tuoi' => $benh_nhan->ngay_sinh ? 
+            'tuoi' => $benh_nhan->ngay_sinh ?
                 now()->diffInYears(Carbon::parse($benh_nhan->ngay_sinh)) : null,
             'gioi_tinh' => $benh_nhan->gioi_tinh,
             'nhom_mau' => $benh_nhan->nhom_mau,
@@ -70,29 +68,35 @@ class PatientDashboardService
         return $benh_nhan->lichHens()
             ->where('ngay_hen', '>=', now()->toDateString())
             ->where('trang_thai', '!=', 'da_huy')
-            ->with(['bac_si', 'chuyen_khoa', 'khung_gio_kham'])
+            ->with([
+                'bacSi:id,ma_bac_si,ho_ten',
+                'chuyenKhoa:id,ten_chuyen_khoa',
+                'khungGioKham:id,lich_lam_viec_bac_si_id,gio_bat_dau,gio_ket_thuc',
+                'khungGioKham.lichLamViecBacSi:id,phong_kham_id',
+                'khungGioKham.lichLamViecBacSi.phongKham:id,ma_phong,ten_phong',
+            ])
             ->orderBy('ngay_hen')
             ->limit(5)
             ->get()
-            ->map(fn ($lh) => [
+            ->map(fn($lh) => [
                 'id' => $lh->id,
                 'ma_lich_hen' => $lh->ma_lich_hen,
                 'ngay_hen' => $lh->ngay_hen,
-                'gio_hen' => $lh->khung_gio_kham?->gio_bat_dau,
-                'gio_ket_thuc' => $lh->khung_gio_kham?->gio_ket_thuc,
+                'gio_hen' => $lh->khungGioKham?->gio_bat_dau,
+                'gio_ket_thuc' => $lh->khungGioKham?->gio_ket_thuc,
                 'bac_si' => [
-                    'id' => $lh->bac_si->id,
-                    'ho_ten' => $lh->bac_si->ho_ten,
-                    'ma_bac_si' => $lh->bac_si->ma_bac_si,
+                    'id' => $lh->bacSi?->id,
+                    'ho_ten' => $lh->bacSi?->ho_ten,
+                    'ma_bac_si' => $lh->bacSi?->ma_bac_si,
                 ],
                 'chuyen_khoa' => [
-                    'id' => $lh->chuyen_khoa->id,
-                    'ten_chuyen_khoa' => $lh->chuyen_khoa->ten_chuyen_khoa,
+                    'id' => $lh->chuyenKhoa?->id,
+                    'ten_chuyen_khoa' => $lh->chuyenKhoa?->ten_chuyen_khoa,
                 ],
-                'phong_kham' => $lh->khung_gio_kham?->lich_lam_viec_bac_si?->phong_kham ? [
-                    'id' => $lh->khung_gio_kham->lich_lam_viec_bac_si->phong_kham->id,
-                    'ma_phong' => $lh->khung_gio_kham->lich_lam_viec_bac_si->phong_kham->ma_phong,
-                    'ten_phong' => $lh->khung_gio_kham->lich_lam_viec_bac_si->phong_kham->ten_phong,
+                'phong_kham' => $lh->khungGioKham?->lichLamViecBacSi?->phongKham ? [
+                    'id' => $lh->khungGioKham->lichLamViecBacSi->phongKham->id,
+                    'ma_phong' => $lh->khungGioKham->lichLamViecBacSi->phongKham->ma_phong,
+                    'ten_phong' => $lh->khungGioKham->lichLamViecBacSi->phongKham->ten_phong,
                 ] : null,
                 'dich_vu' => [],
                 'trang_thai' => $lh->trang_thai,
@@ -107,31 +111,38 @@ class PatientDashboardService
     private function getRecentVisitHistory(BenhNhan $benh_nhan): array
     {
         return $benh_nhan->phieuKhams()
-            ->with(['lich_hen', 'bac_si', 'bac_si.bac_si_chuyen_khoa'])
+            ->with([
+                'lichHen:id,ngay_hen,ly_do_kham',
+                'lichHen.dichVuLichHens:id,lich_hen_id,dich_vu_id,goi_kham_id',
+                'lichHen.dichVuLichHens.dichVu:id,ten_dich_vu',
+                'lichHen.dichVuLichHens.goiKham:id,ten_goi_kham',
+                'bacSi:id,ho_ten,ma_bac_si',
+                'bacSi.bacSiChuyenKhoas:id,bac_si_id,chuyen_khoa_id,la_chuyen_khoa_chinh',
+                'bacSi.bacSiChuyenKhoas.chuyenKhoa:id,ten_chuyen_khoa',
+            ])
             ->where('trang_thai', '!=', 'tiep_nhan')
             ->orderByDesc('created_at')
             ->limit(10)
             ->get()
-            ->map(fn ($pk) => [
+            ->map(fn($pk) => [
                 'id' => $pk->id,
                 'ma_phieu_kham' => $pk->ma_phieu_kham,
-                'ngay_kham' => $pk->lich_hen?->ngay_hen ?? $pk->created_at->toDateString(),
+                'ngay_kham' => $pk->lichHen?->ngay_hen ?? $pk->created_at->toDateString(),
                 'bac_si' => [
-                    'ho_ten' => $pk->bac_si->ho_ten,
-                    'ma_bac_si' => $pk->bac_si->ma_bac_si,
+                    'ho_ten' => $pk->bacSi?->ho_ten,
+                    'ma_bac_si' => $pk->bacSi?->ma_bac_si,
                 ],
-                'chuyen_khoa' => $pk->bac_si->bac_si_chuyen_khoa()
-                    ->where('la_chuyen_khoa_chinh', true)
-                    ->with('chuyen_khoa')
-                    ->first()?->chuyen_khoa?->ten_chuyen_khoa,
-                'dich_vu' => $pk->lich_hen?->dich_vu_lich_hen()
-                    ->with('dich_vu', 'goi_kham')
-                    ->get()
-                    ->map(fn ($d) => $d->dich_vu?->ten_dich_vu ?? $d->goi_kham?->ten_goi_kham)
+                'chuyen_khoa' => optional(
+                    collect($pk->bacSi?->bacSiChuyenKhoas ?? [])
+                        ->firstWhere('la_chuyen_khoa_chinh', true)
+                )->chuyenKhoa?->ten_chuyen_khoa,
+                'dich_vu' => collect($pk->lichHen?->dichVuLichHens ?? [])
+                    ->map(fn($d) => $d->dichVu?->ten_dich_vu ?? $d->goiKham?->ten_goi_kham)
+                    ->filter()
                     ->implode(', '),
                 'chan_doan' => $pk->chan_doan,
                 'trang_thai' => $pk->trang_thai,
-                'ly_do_kham' => $pk->lich_hen?->ly_do_kham,
+                'ly_do_kham' => $pk->lichHen?->ly_do_kham,
             ])
             ->toArray();
     }

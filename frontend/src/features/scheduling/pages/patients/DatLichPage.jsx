@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import dayjs from 'dayjs'
 import { EyeOutlined } from '@ant-design/icons'
+import { useSearchParams } from 'react-router-dom'
 import {
 	Alert,
 	Button,
@@ -11,6 +12,7 @@ import {
 	Layout,
 	List,
 	Modal,
+	Pagination,
 	Select,
 	Segmented,
 	Space,
@@ -38,20 +40,6 @@ import { SEGMENTED_STYLES, TABLE_STYLES } from '../../styles/const-styles'
 const { Content } = Layout
 const { Paragraph, Text, Title } = Typography
 const { useBreakpoint } = Grid
-
-const resolvePatientId = () => {
-	const fromStorage = Number(window.localStorage.getItem('benh_nhan_id'))
-	if (Number.isInteger(fromStorage) && fromStorage > 0) {
-		return fromStorage
-	}
-
-	const fromEnv = Number(import.meta.env.VITE_DEFAULT_BENH_NHAN_ID)
-	if (Number.isInteger(fromEnv) && fromEnv > 0) {
-		return fromEnv
-	}
-
-	return 1
-}
 
 const stepItems = [
 	{ title: 'Bác sĩ', description: 'Chọn chuyên khoa và bác sĩ' },
@@ -100,10 +88,32 @@ const confirmColumns = [
 ]
 
 const BOOKING_FEE = 150000
+const DOCTORS_PER_PAGE = 4
+
+const parsePositiveInteger = (value) => {
+	const parsed = Number(value)
+	if (Number.isInteger(parsed) && parsed > 0) {
+		return parsed
+	}
+
+	return null
+}
+
+const parseIdList = (rawValue) => {
+	if (!rawValue) {
+		return []
+	}
+
+	return String(rawValue)
+		.split(',')
+		.map((item) => parsePositiveInteger(item.trim()))
+		.filter(Boolean)
+}
 
 export default function DatLichPage() {
+	const [searchParams] = useSearchParams()
 	const [step, setStep] = useState(0)
-	const patientId = useMemo(() => resolvePatientId(), [])
+	const [doctorPage, setDoctorPage] = useState(1)
 	const [keyword, setKeyword] = useState('')
 	const [itemMode, setItemMode] = useState('dich_vu')
 	const [itemKeyword, setItemKeyword] = useState('')
@@ -125,6 +135,8 @@ export default function DatLichPage() {
 	const [packages, setPackages] = useState([])
 	const [scheduleItems, setScheduleItems] = useState([])
 	const [calendarSlots, setCalendarSlots] = useState([])
+	const doctorPrefillAppliedRef = useRef(false)
+	const itemsPrefillAppliedRef = useRef(false)
 
 	const screen = useBreakpoint()
 
@@ -141,6 +153,24 @@ export default function DatLichPage() {
 	const debouncedDoctorKeyword = useDebounce(keyword, 400)
 	const debouncedItemKeyword = useDebounce(itemKeyword, 400)
 
+	const prefillSelection = useMemo(() => {
+		const serviceIds = [
+			...parseIdList(searchParams.get('service_id')),
+			...parseIdList(searchParams.get('service_ids')),
+		]
+		const packageIds = [
+			...parseIdList(searchParams.get('package_id')),
+			...parseIdList(searchParams.get('package_ids')),
+		]
+
+		return {
+			specialtyId: parsePositiveInteger(searchParams.get('specialty_id')),
+			doctorId: parsePositiveInteger(searchParams.get('doctor_id')),
+			serviceIds: Array.from(new Set(serviceIds)),
+			packageIds: Array.from(new Set(packageIds)),
+		}
+	}, [searchParams])
+
 	useEffect(() => {
 		const loadSpecialties = async () => {
 			try {
@@ -148,7 +178,12 @@ export default function DatLichPage() {
 				setSpecialties(items)
 
 				if (items.length > 0) {
-					setBooking((prev) => ({ ...prev, chuyen_khoa_id: items[0].id }))
+					const preferredSpecialty =
+						(prefillSelection.specialtyId &&
+							items.find((item) => item.id === prefillSelection.specialtyId)) ||
+						items[0]
+
+					setBooking((prev) => ({ ...prev, chuyen_khoa_id: preferredSpecialty.id }))
 				}
 			} catch {
 				message.error('Không thể tải danh sách chuyên khoa.')
@@ -156,7 +191,7 @@ export default function DatLichPage() {
 		}
 
 		loadSpecialties()
-	}, [])
+	}, [prefillSelection.specialtyId])
 
 	useEffect(() => {
 		const loadBookingRules = async () => {
@@ -179,6 +214,7 @@ export default function DatLichPage() {
 	useEffect(() => {
 		if (!booking.chuyen_khoa_id) {
 			setDoctors([])
+			setDoctorPage(1)
 			return
 		}
 
@@ -190,6 +226,7 @@ export default function DatLichPage() {
 					keyword: debouncedDoctorKeyword,
 				})
 				setDoctors(items)
+				setDoctorPage(1)
 			} catch {
 				message.error('Không thể tải danh sách bác sĩ.')
 			} finally {
@@ -199,6 +236,31 @@ export default function DatLichPage() {
 
 		loadDoctors()
 	}, [booking.chuyen_khoa_id, debouncedDoctorKeyword])
+
+	useEffect(() => {
+		if (doctorPrefillAppliedRef.current || !prefillSelection.doctorId || doctors.length === 0) {
+			return
+		}
+
+		const matchedDoctor = doctors.find((doctor) => doctor.id === prefillSelection.doctorId)
+		if (!matchedDoctor) {
+			return
+		}
+
+		setBooking((prev) => ({
+			...prev,
+			bac_si_id: matchedDoctor.id,
+		}))
+
+		doctorPrefillAppliedRef.current = true
+	}, [doctors, prefillSelection.doctorId])
+
+	useEffect(() => {
+		const totalPages = Math.max(1, Math.ceil(doctors.length / DOCTORS_PER_PAGE))
+		if (doctorPage > totalPages) {
+			setDoctorPage(totalPages)
+		}
+	}, [doctorPage, doctors.length])
 
 	useEffect(() => {
 		if (!booking.chuyen_khoa_id) {
@@ -228,6 +290,59 @@ export default function DatLichPage() {
 	}, [booking.chuyen_khoa_id, debouncedItemKeyword])
 
 	useEffect(() => {
+		if (itemsPrefillAppliedRef.current) {
+			return
+		}
+
+		if (prefillSelection.serviceIds.length === 0 && prefillSelection.packageIds.length === 0) {
+			itemsPrefillAppliedRef.current = true
+			return
+		}
+
+		if (services.length === 0 && packages.length === 0) {
+			return
+		}
+
+		const serviceIdSet = new Set(services.map((item) => item.id))
+		const packageIdSet = new Set(packages.map((item) => item.id))
+
+		const selectedServices = prefillSelection.serviceIds.filter((id) => serviceIdSet.has(id))
+		const selectedPackages = prefillSelection.packageIds.filter((id) => packageIdSet.has(id))
+
+		if (selectedServices.length === 0 && selectedPackages.length === 0) {
+			itemsPrefillAppliedRef.current = true
+			return
+		}
+
+		setBooking((prev) => {
+			const nextServices = { ...(prev.items.dich_vu || {}) }
+			const nextPackages = { ...(prev.items.goi_kham || {}) }
+
+			selectedServices.forEach((id) => {
+				nextServices[id] = nextServices[id] || 1
+			})
+
+			selectedPackages.forEach((id) => {
+				nextPackages[id] = nextPackages[id] || 1
+			})
+
+			return {
+				...prev,
+				items: {
+					dich_vu: nextServices,
+					goi_kham: nextPackages,
+				},
+			}
+		})
+
+		if (selectedPackages.length > 0 && selectedServices.length === 0) {
+			setItemMode('goi_kham')
+		}
+
+		itemsPrefillAppliedRef.current = true
+	}, [packages, prefillSelection.packageIds, prefillSelection.serviceIds, services])
+
+	useEffect(() => {
 		if (!booking.bac_si_id) {
 			setScheduleItems([])
 			return
@@ -255,6 +370,11 @@ export default function DatLichPage() {
 		() => doctors.find((doctor) => doctor.id === booking.bac_si_id),
 		[doctors, booking.bac_si_id],
 	)
+
+	const pagedDoctors = useMemo(() => {
+		const startIndex = (doctorPage - 1) * DOCTORS_PER_PAGE
+		return doctors.slice(startIndex, startIndex + DOCTORS_PER_PAGE)
+	}, [doctorPage, doctors])
 
 	const selectedSpecialty = useMemo(
 		() => specialties.find((specialty) => specialty.id === booking.chuyen_khoa_id),
@@ -352,7 +472,6 @@ export default function DatLichPage() {
 		]
 
 		const payload = {
-			benh_nhan_id: patientId,
 			bac_si_id: booking.bac_si_id,
 			chuyen_khoa_id: booking.chuyen_khoa_id,
 			ngay_hen: booking.ngay_hen,
@@ -549,7 +668,7 @@ export default function DatLichPage() {
 										/>
 									</div>
 									<div className="grid gap-3 lg:grid-cols-2">
-										{doctors.map((doctor) => (
+										{pagedDoctors.map((doctor) => (
 											<DoctorCard
 												key={doctor.id}
 												doctor={doctor}
@@ -568,6 +687,18 @@ export default function DatLichPage() {
 											/>
 										))}
 									</div>
+									{!loadingDoctors && doctors.length === 0 && (
+										<Text className="text-slate-500">Không tìm thấy bác sĩ phù hợp với bộ lọc hiện tại.</Text>
+									)}
+									{doctors.length > DOCTORS_PER_PAGE && (
+										<Pagination
+											current={doctorPage}
+											pageSize={DOCTORS_PER_PAGE}
+											total={doctors.length}
+											onChange={setDoctorPage}
+											hideOnSinglePage
+										/>
+									)}
 									{loadingDoctors && <Text className="text-slate-500">Đang tải danh sách bác sĩ...</Text>}
 								</Space>
 							)}

@@ -7,6 +7,17 @@ use Illuminate\Validation\Validator;
 
 class CreateLichHenRequest extends FormRequest
 {
+	protected function prepareForValidation(): void
+	{
+		$authenticatedPatientId = $this->user()?->benhNhan?->id;
+
+		if (!empty($authenticatedPatientId)) {
+			$this->merge([
+				'benh_nhan_id' => (int) $authenticatedPatientId,
+			]);
+		}
+	}
+
 	public function authorize(): bool
 	{
 		return true;
@@ -15,7 +26,7 @@ class CreateLichHenRequest extends FormRequest
 	public function rules(): array
 	{
 		return [
-			'benh_nhan_id' => ['required', 'integer', 'exists:benh_nhan,id'],
+			'benh_nhan_id' => ['nullable', 'integer', 'exists:benh_nhan,id'],
 			'bac_si_id' => ['required', 'integer', 'exists:bac_si,id'],
 			'chuyen_khoa_id' => ['required', 'integer', 'exists:chuyen_khoa,id'],
 			'ngay_hen' => ['required', 'date_format:Y-m-d'],
@@ -49,6 +60,12 @@ class CreateLichHenRequest extends FormRequest
 	public function withValidator(Validator $validator): void
 	{
 		$validator->after(function (Validator $validator) {
+			$authenticatedPatientId = $this->user()?->benhNhan?->id;
+
+			if (empty($authenticatedPatientId) && empty($this->input('benh_nhan_id'))) {
+				$validator->errors()->add('benh_nhan_id', 'Vui lòng cung cấp benh_nhan_id hợp lệ.');
+			}
+
 			$items = $this->input('items', []);
 
 			foreach ($items as $index => $item) {

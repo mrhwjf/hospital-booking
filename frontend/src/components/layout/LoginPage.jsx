@@ -33,6 +33,12 @@ function LoginPage() {
       localStorage.setItem("user_name", data.nguoi_dung.ho_ten);
       localStorage.setItem("payload", JSON.stringify(data.payload));
 
+      if (data?.nguoi_dung?.benh_nhan_id) {
+        localStorage.setItem("benh_nhan_id", String(data.nguoi_dung.benh_nhan_id));
+      } else {
+        localStorage.removeItem("benh_nhan_id");
+      }
+
       setStoredUserProfile({
         userName: data?.nguoi_dung?.ho_ten,
         avatarUrl: data?.nguoi_dung?.hinh_anh,
@@ -50,11 +56,11 @@ function LoginPage() {
 
       const vaiTro = data.nguoi_dung.vai_tro;
       if (vaiTro === "ADMIN") {
-        navigate(`/admin/${data.nguoi_dung.id}/dashboard`);
+        navigate("/admin/dashboard");
       } else if (vaiTro === "NHANVIEN") {
-        navigate(`/staff/${data.nguoi_dung.id}/dashboard`);
+        navigate("/staff/appointments");
       } else if (vaiTro === "BACSI") {
-        navigate(`/doctor/${data.nguoi_dung.id}/dashboard`);
+        navigate("/doctor/thong-tin");
       } else {
         // Bệnh nhân - dùng route theo phiên đăng nhập, không truyền ID trên URL
         navigate("/patient/dashboard");
@@ -121,7 +127,7 @@ function LoginPage() {
       </div>
 
       <div className="w-full lg:w-1/2 flex flex-col justify-center items-center p-6 sm:p-12 bg-white">
-        <div className="w-full max-w-[480px] flex flex-col gap-8">
+        <div className="w-full max-w-120 flex flex-col gap-8">
           <div className="lg:hidden flex items-center gap-2 mb-4 text-[#0f756d]">
             <HospitalIcon className="h-8 w-8" />
             <span className="text-xl font-bold">Hệ thống ABC</span>

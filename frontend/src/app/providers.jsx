@@ -1,4 +1,3 @@
-import { BrowserRouter } from 'react-router-dom'
 import { ConfigProvider, theme } from 'antd'
 import viVN from 'antd/locale/vi_VN'
 
@@ -17,7 +16,7 @@ export default function AppProviders({ children }) {
 			theme={antTheme}
 			locale={viVN}
 		>
-			<BrowserRouter>{children}</BrowserRouter>
+			{children}
 		</ConfigProvider>
 	)
 }

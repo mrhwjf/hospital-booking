@@ -22,10 +22,19 @@ export const MENU_CONFIG = {
 		{ key: 'logout', label: 'Đăng xuất', icon: 'logout', route: '/doctor/logout' },
 	],
 	PATIENT: [
+		{ key: 'dashboard', label: 'Tổng quan', icon: 'dashboard', route: '/patient/dashboard' },
+		{ key: 'explore-doctors', label: 'Khám phá bác sĩ', icon: 'compass', route: '/patient/kham-pha/explore' },
+		{ key: 'explore-services', label: 'Khám phá dịch vụ', icon: 'medicine', route: '/patient/kham-pha/services' },
 		{ key: 'booking', label: 'Đặt lịch', icon: 'calendar', route: '/patient/dat-lich' },
 		{ key: 'my-appointments', label: 'Lịch hẹn của tôi', icon: 'schedule', route: '/patient/lich-cua-toi' },
 		{ key: 'visit-history', label: 'Lịch sử khám', icon: 'file', route: '/patient/lich-su-kham' },
-		{ key: 'profile', label: 'Hồ sơ bệnh nhân', icon: 'user', route: '/patient/ho-so' },
+		{ key: 'profile', label: 'Hồ sơ bệnh nhân', icon: 'user', route: '/patient/profile' },
+		{ key: 'account', label: 'Tài khoản', icon: 'setting', route: '/patient/account' },
 		{ key: 'logout', label: 'Đăng xuất', icon: 'logout', route: '/patient/logout' },
+	],
+	AUTH: [
+		{ key: 'landing', label: 'Trang chủ', route: '/' },
+		{ key: 'login', label: 'Đăng nhập', route: '/login' },
+		{ key: 'register', label: 'Đăng ký', route: '/register' },
 	],
 }

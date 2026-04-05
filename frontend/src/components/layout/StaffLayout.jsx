@@ -24,6 +24,7 @@ import {
 	message,
 } from 'antd'
 import { MENU_CONFIG } from '../../app/menuConfig'
+import { clearStoredAuthState } from '../../utils/userProfileSync'
 
 const { Header, Sider, Content } = Layout
 const { useBreakpoint } = Grid
@@ -78,11 +79,9 @@ export default function StaffLayout({ staffName = 'Nhân viên mô phỏng', chi
 	}, [])
 
 	const handleLogout = () => {
-		localStorage.removeItem('access_token')
-		localStorage.removeItem('refresh_token')
-		localStorage.removeItem('user')
+		clearStoredAuthState()
 		message.success('Đã đăng xuất khỏi khu vực nhân viên.')
-		navigate('/', { replace: true })
+		navigate('/login', { replace: true })
 	}
 
 	const handleProfileMenuClick = ({ key }) => {

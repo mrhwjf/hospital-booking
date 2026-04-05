@@ -19,9 +19,12 @@ class NhanVienSeeder extends Seeder
         $rows = [];
 
         foreach (range(1, 50) as $index) {
+            $staffHospitalEmail = "staff{$index}@hospital.local";
+            $staffTestEmail = "staff{$index}@test.local";
+
             $rows[] = [
                 'ma_nhan_vien' => sprintf('NV-%04d', $index),
-                'nguoi_dung_id' => $users["staff{$index}@hospital.local"] ?? null,
+                'nguoi_dung_id' => $users[$staffHospitalEmail] ?? $users[$staffTestEmail] ?? null,
                 'ho_ten' => sprintf(
                     '%s %s %s',
                     $ho[$index % count($ho)],

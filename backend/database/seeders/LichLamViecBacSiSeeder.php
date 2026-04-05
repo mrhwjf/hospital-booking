@@ -14,6 +14,14 @@ class LichLamViecBacSiSeeder extends Seeder
         $ca = DB::table('lich_lam_viec')->pluck('id', 'ma_ca');
         $phong = DB::table('phong_kham')->pluck('id', 'ma_phong');
 
+        $doctorIds = array_values($bacSi->all());
+        $roomIds = array_values($phong->all());
+
+        $doctorOneId = $bacSi['BS-0001'] ?? ($doctorIds[0] ?? null);
+        $doctorTwoId = $bacSi['BS-0002'] ?? ($doctorIds[1] ?? $doctorOneId);
+        $roomOneId = $phong['PK-101'] ?? ($roomIds[0] ?? null);
+        $roomTwoId = $phong['PK-201'] ?? ($roomIds[1] ?? $roomOneId);
+
         $rows = [];
 
         // Generate schedule rows from today for the next 7 days.
@@ -27,9 +35,9 @@ class LichLamViecBacSiSeeder extends Seeder
             }
 
             $rows[] = [
-                'bac_si_id' => $bacSi['BS-0001'] ?? null,
+                'bac_si_id' => $doctorOneId,
                 'lich_lam_viec_id' => $ca['CA_SANG_T' . $thu] ?? null,
-                'phong_kham_id' => $phong['PK-101'] ?? null,
+                'phong_kham_id' => $roomOneId,
                 'ngay_lam_viec' => $date->format('Y-m-d'),
                 'ghi_chu' => null,
                 'trang_thai' => 'hoat_dong',
@@ -38,9 +46,9 @@ class LichLamViecBacSiSeeder extends Seeder
             ];
 
             $rows[] = [
-                'bac_si_id' => $bacSi['BS-0002'] ?? null,
+                'bac_si_id' => $doctorTwoId,
                 'lich_lam_viec_id' => $ca['CA_CHIEU_T' . $thu] ?? null,
-                'phong_kham_id' => $phong['PK-201'] ?? null,
+                'phong_kham_id' => $roomTwoId,
                 'ngay_lam_viec' => $date->format('Y-m-d'),
                 'ghi_chu' => null,
                 'trang_thai' => 'hoat_dong',

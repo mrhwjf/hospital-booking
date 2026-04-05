@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Patients;
 
 use App\Http\Controllers\Controller;
+use App\Models\PhieuKham;
 use App\Requests\Patients\VisitHistoryListRequest;
 use App\Requests\Patients\VisitHistoryScopedRequest;
 use App\Resources\ApiResponse;
@@ -12,6 +13,7 @@ use App\Resources\Patients\TaiLieuHoSoResource;
 use App\Resources\Patients\VisitDetailResource;
 use App\Resources\Patients\VisitHistoryItemResource;
 use App\Services\Patients\VisitHistoryService;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\ValidationException;
 
@@ -24,6 +26,8 @@ class LichSuKhamController extends Controller
 	public function index(VisitHistoryListRequest $request): JsonResponse
 	{
 		try {
+			$this->authorize('viewAny', PhieuKham::class);
+
 			$paginator = $this->visitHistoryService->getVisitHistory($request->validated());
 
 			return ApiResponse::paginated(
@@ -31,6 +35,8 @@ class LichSuKhamController extends Controller
 				VisitHistoryItemResource::class,
 				'Lấy danh sách lịch sử khám thành công.'
 			);
+		} catch (AuthorizationException $exception) {
+			return ApiResponse::error('Bạn không có quyền truy cập lịch sử khám này.', null, 403);
 		} catch (ValidationException $exception) {
 			return ApiResponse::error(
 				'Không thể lấy danh sách lịch sử khám.',
@@ -51,6 +57,7 @@ class LichSuKhamController extends Controller
 				$id,
 				(int) $request->validated('benh_nhan_id')
 			);
+			$this->authorize('view', $bundle['visit']);
 
 			return ApiResponse::success(
 				[
@@ -61,6 +68,8 @@ class LichSuKhamController extends Controller
 				],
 				'Lấy chi tiết phiếu khám thành công.'
 			);
+		} catch (AuthorizationException $exception) {
+			return ApiResponse::error('Bạn không có quyền truy cập phiếu khám này.', null, 403);
 		} catch (ValidationException $exception) {
 			$status = $this->resolveScopedErrorStatus($exception->errors());
 
@@ -79,6 +88,12 @@ class LichSuKhamController extends Controller
 	public function chiDinh(int $id, VisitHistoryScopedRequest $request): JsonResponse
 	{
 		try {
+			$visit = $this->visitHistoryService->getVisitDetail(
+				$id,
+				(int) $request->validated('benh_nhan_id')
+			);
+			$this->authorize('view', $visit);
+
 			$items = $this->visitHistoryService->getVisitChiDinhs(
 				$id,
 				(int) $request->validated('benh_nhan_id')
@@ -87,6 +102,8 @@ class LichSuKhamController extends Controller
 			return ApiResponse::success([
 				'items' => ChiDinhResource::collection($items),
 			], 'Lấy danh sách chỉ định thành công.');
+		} catch (AuthorizationException $exception) {
+			return ApiResponse::error('Bạn không có quyền truy cập chỉ định của phiếu khám này.', null, 403);
 		} catch (ValidationException $exception) {
 			$status = $this->resolveScopedErrorStatus($exception->errors());
 
@@ -105,6 +122,12 @@ class LichSuKhamController extends Controller
 	public function donThuoc(int $id, VisitHistoryScopedRequest $request): JsonResponse
 	{
 		try {
+			$visit = $this->visitHistoryService->getVisitDetail(
+				$id,
+				(int) $request->validated('benh_nhan_id')
+			);
+			$this->authorize('view', $visit);
+
 			$donThuoc = $this->visitHistoryService->getVisitDonThuoc(
 				$id,
 				(int) $request->validated('benh_nhan_id')
@@ -116,6 +139,8 @@ class LichSuKhamController extends Controller
 				? 'Lấy thông tin đơn thuốc thành công.'
 				: 'Phiếu khám chưa có đơn thuốc.'
 			);
+		} catch (AuthorizationException $exception) {
+			return ApiResponse::error('Bạn không có quyền truy cập đơn thuốc của phiếu khám này.', null, 403);
 		} catch (ValidationException $exception) {
 			$status = $this->resolveScopedErrorStatus($exception->errors());
 
@@ -134,6 +159,12 @@ class LichSuKhamController extends Controller
 	public function taiLieu(int $id, VisitHistoryScopedRequest $request): JsonResponse
 	{
 		try {
+			$visit = $this->visitHistoryService->getVisitDetail(
+				$id,
+				(int) $request->validated('benh_nhan_id')
+			);
+			$this->authorize('view', $visit);
+
 			$items = $this->visitHistoryService->getVisitTaiLieus(
 				$id,
 				(int) $request->validated('benh_nhan_id')
@@ -142,6 +173,8 @@ class LichSuKhamController extends Controller
 			return ApiResponse::success([
 				'items' => TaiLieuHoSoResource::collection($items),
 			], 'Lấy danh sách tài liệu hồ sơ thành công.');
+		} catch (AuthorizationException $exception) {
+			return ApiResponse::error('Bạn không có quyền truy cập tài liệu hồ sơ này.', null, 403);
 		} catch (ValidationException $exception) {
 			$status = $this->resolveScopedErrorStatus($exception->errors());
 
@@ -160,6 +193,12 @@ class LichSuKhamController extends Controller
 	public function taiLieuSignedUrl(int $id, int $taiLieuId, VisitHistoryScopedRequest $request): JsonResponse
 	{
 		try {
+			$visit = $this->visitHistoryService->getVisitDetail(
+				$id,
+				(int) $request->validated('benh_nhan_id')
+			);
+			$this->authorize('view', $visit);
+
 			$data = $this->visitHistoryService->getVisitTaiLieuSignedUrl(
 				$id,
 				$taiLieuId,
@@ -167,6 +206,8 @@ class LichSuKhamController extends Controller
 			);
 
 			return ApiResponse::success($data, 'Lấy URL tài liệu thành công.');
+		} catch (AuthorizationException $exception) {
+			return ApiResponse::error('Bạn không có quyền truy cập tài liệu hồ sơ này.', null, 403);
 		} catch (ValidationException $exception) {
 			$status = $this->resolveScopedErrorStatus($exception->errors());
 

@@ -2,6 +2,14 @@ import { Avatar, Card, Tag, Typography } from 'antd'
 
 const { Paragraph, Title } = Typography
 
+const hocViMap = {
+	'tien_si': 'Tiến sĩ',
+	'thac_si': 'Thạc sĩ',
+	'baci_si': 'Bác sĩ',
+	'pgs': 'Phó giáo sư',
+	'gs': 'Giáo sư',
+}
+
 export default function DoctorCard({ doctor, selected = false, onSelect, specialtyNames = [] }) {
 	if (!doctor) {
 		return null
@@ -31,9 +39,9 @@ export default function DoctorCard({ doctor, selected = false, onSelect, special
 					</div>
 					<Paragraph className="mb-1 mt-1 text-slate-500">{doctor.gioi_thieu || 'Chua co mo ta gioi thieu.'}</Paragraph>
 					<div className="flex flex-wrap items-center gap-2">
-						{doctor.hoc_vi && <Tag color="blue">{doctor.hoc_vi.replace('_', ' ')}</Tag>}
+						{doctor.hoc_vi && <Tag color="blue">{hocViMap[doctor.hoc_vi] || doctor.hoc_vi.replace('_', ' ')}</Tag>}
 						{doctor.kinh_nghiem !== null && doctor.kinh_nghiem !== undefined && (
-							<Tag color="green">{doctor.kinh_nghiem} nam kinh nghiem</Tag>
+							<Tag color="green">{doctor.kinh_nghiem} năm kinh nghiệm</Tag>
 						)}
 						{resolvedSpecialtyNames.map((name) => (
 							<Tag key={`${doctor.id}-${name}`}>{name}</Tag>

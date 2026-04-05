@@ -19,9 +19,12 @@ class BacSiSeeder extends Seeder
         $rows = [];
 
         foreach (range(1, 50) as $index) {
+            $doctorHospitalEmail = "doctor{$index}@hospital.local";
+            $doctorTestEmail = "doctor{$index}@test.local";
+
             $rows[] = [
                 'ma_bac_si' => sprintf('BS-%04d', $index),
-                'nguoi_dung_id' => $users["doctor{$index}@hospital.local"] ?? null,
+                'nguoi_dung_id' => $users[$doctorHospitalEmail] ?? $users[$doctorTestEmail] ?? null,
                 'ho_ten' => sprintf(
                     '%s %s %s',
                     $ho[$index % count($ho)],

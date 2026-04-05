@@ -13,11 +13,13 @@ class ChiDinhSeeder extends Seeder
         $bacSi = DB::table('bac_si')->pluck('id', 'ma_bac_si');
         $dichVu = DB::table('dich_vu')->pluck('id', 'ma_dich_vu');
         $goiKham = DB::table('goi_kham')->pluck('id', 'ma_goi_kham');
+        $doctorIds = array_values($bacSi->all());
+        $defaultDoctorId = $bacSi['BS-0001'] ?? ($doctorIds[0] ?? null);
 
         $rows = [
             [
                 'phieu_kham_id' => $phieu['PK-20260316-08000032'] ?? null,
-                'bac_si_id' => $bacSi['BS-0001'] ?? null,
+                'bac_si_id' => $defaultDoctorId,
                 'dich_vu_id' => $dichVu['DV-011'] ?? null,
                 'goi_kham_id' => null,
                 'so_luong' => 1,

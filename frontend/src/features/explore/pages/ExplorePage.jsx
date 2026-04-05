@@ -1,6 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
+import { Pagination } from 'antd'
 import DoctorCard from '../components/DoctorCard'
 import { getDoctors, getSpecialties } from '../services/exploreService'
+
+const DOCTORS_PER_PAGE = 4
 
 function ExplorePage() {
   const [allDoctors, setAllDoctors] = useState([])
@@ -8,6 +11,7 @@ function ExplorePage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [selectedSpecialty, setSelectedSpecialty] = useState('all')
+  const [currentPage, setCurrentPage] = useState(1)
 
   const specialties = useMemo(() => {
     const bucket = new Map()
@@ -29,6 +33,11 @@ function ExplorePage() {
     return allDoctors.filter((doctor) => String(doctor.specialty_id) === String(selectedSpecialty))
   }, [allDoctors, selectedSpecialty])
 
+  const pagedDoctors = useMemo(() => {
+    const start = (currentPage - 1) * DOCTORS_PER_PAGE
+    return doctors.slice(start, start + DOCTORS_PER_PAGE)
+  }, [currentPage, doctors])
+
   const loadDoctors = async () => {
     setLoading(true)
     setError('')
@@ -48,6 +57,17 @@ function ExplorePage() {
     loadDoctors()
   }, [])
 
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [selectedSpecialty])
+
+  useEffect(() => {
+    const totalPages = Math.max(1, Math.ceil(doctors.length / DOCTORS_PER_PAGE))
+    if (currentPage > totalPages) {
+      setCurrentPage(totalPages)
+    }
+  }, [currentPage, doctors.length])
+
   const specialtyStats = useMemo(() => {
     return specialtyList.map((specialty) => {
       const doctorCount = allDoctors.filter((doctor) =>
@@ -66,7 +86,7 @@ function ExplorePage() {
     if (selectedSpecialty === 'all') {
       return null
     }
-    
+
     return specialtyStats.find((specialty) => String(specialty.id) === String(selectedSpecialty))
   }, [specialtyStats, selectedSpecialty])
 
@@ -83,7 +103,7 @@ function ExplorePage() {
             </p>
           </div>
           <div className="lg:col-span-5">
-            <div className="aspect-[4/3] rounded-2xl overflow-hidden shadow-xl">
+            <div className="aspect-4/3 rounded-2xl overflow-hidden shadow-xl">
               <img
                 alt="Clinic"
                 className="w-full h-full object-cover"
@@ -125,7 +145,7 @@ function ExplorePage() {
             {selectedSpecialty !== 'all' && (
               <div className="bg-white p-6 rounded-2xl border border-slate-200">
                 <h5 className="text-sm font-bold uppercase tracking-widest text-slate-900 mb-4">Thông tin chuyên khoa</h5>
-                
+
                 {selectedSpecialtyData ? (
                   <article className="rounded-xl border border-slate-200 p-4">
                     <div className="flex items-start justify-between gap-3 mb-3">
@@ -168,10 +188,22 @@ function ExplorePage() {
             )}
 
             <div className="grid grid-cols-1 gap-6">
-              {!loading && !error && doctors.map((doctor) => (
+              {!loading && !error && pagedDoctors.map((doctor) => (
                 <DoctorCard doctor={doctor} key={doctor.id} />
               ))}
             </div>
+
+            {!loading && !error && doctors.length > DOCTORS_PER_PAGE && (
+              <div className="mt-6 flex justify-center">
+                <Pagination
+                  current={currentPage}
+                  pageSize={DOCTORS_PER_PAGE}
+                  total={doctors.length}
+                  onChange={setCurrentPage}
+                  hideOnSinglePage
+                />
+              </div>
+            )}
           </div>
         </div>
       </div>

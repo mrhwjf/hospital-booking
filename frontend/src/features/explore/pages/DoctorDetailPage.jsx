@@ -46,19 +46,29 @@ function DoctorDetailPage() {
     return (
       <main className="min-h-screen bg-slate-50 px-6 py-12">
         <p className="text-red-600 mb-4">{error || 'Không tìm thấy bác sĩ'}</p>
-        <Link className="text-teal-700 font-medium hover:underline" to="/explore">
+        <Link className="text-teal-700 font-medium hover:underline" to="/patient/kham-pha/explore">
           Quay lại danh sách
         </Link>
       </main>
     )
   }
 
+  const bookingTarget = `/patient/dat-lich?doctor_id=${doctor.id}${doctor.specialty_id ? `&specialty_id=${doctor.specialty_id}` : ''}`
+
   return (
     <main className="min-h-screen bg-slate-50">
       <div className="max-w-5xl mx-auto px-6 py-12">
-        <Link className="text-teal-700 font-medium hover:underline" to="/explore">
-          ← Quay lại danh sách bác sĩ
-        </Link>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <Link className="text-teal-700 font-medium hover:underline" to="/patient/kham-pha/explore">
+            ← Quay lại danh sách bác sĩ
+          </Link>
+          <Link
+            className="rounded-lg bg-teal-700 px-5 py-2.5 text-sm font-bold text-white transition hover:bg-teal-800"
+            to={bookingTarget}
+          >
+            Đăng ký ngay
+          </Link>
+        </div>
 
         <div className="mt-6 bg-white rounded-2xl border border-slate-200 p-8 grid grid-cols-1 md:grid-cols-3 gap-8">
           <div className="md:col-span-1">

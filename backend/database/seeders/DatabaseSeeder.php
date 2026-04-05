@@ -55,6 +55,9 @@ class DatabaseSeeder extends Seeder
             DonThuocSeeder::class,
             ChiTietDonThuocSeeder::class,
             ThongBaoSeeder::class,
+
+                // Utility seeders.
+            DatabaseDumpSeeder::class,
         ]);
     }
 }

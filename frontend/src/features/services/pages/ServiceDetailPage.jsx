@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useParams, useSearchParams } from 'react-router-dom'
 import { getServiceById } from '../services/servicesApi'
 
 function formatPrice(price) {
@@ -7,8 +7,10 @@ function formatPrice(price) {
   return Number(price).toLocaleString('vi-VN') + 'đ'
 }
 
-function formatServiceType(type) {
+function formatServiceType(type, catalogType) {
   const mapping = {
+    goi_kham: 'Gói khám',
+    dich_vu: 'Dịch vụ',
     kham_benh: 'Khám bệnh',
     xet_nghiem: 'Xét nghiệm',
     chan_doan_hinh_anh: 'Chẩn đoán hình ảnh',
@@ -16,14 +18,19 @@ function formatServiceType(type) {
     phau_thuat: 'Phẫu thuật',
     khac: 'Khác',
   }
-  return mapping[type] || type || 'Chưa phân loại'
+
+  const normalizedType = type || catalogType
+  return mapping[normalizedType] || mapping[catalogType] || 'Khác'
 }
 
 function ServiceDetailPage() {
   const { id } = useParams()
+  const [searchParams] = useSearchParams()
   const [service, setService] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+
+  const selectedType = searchParams.get('type') === 'dich_vu' ? 'dich_vu' : 'goi_kham'
 
   useEffect(() => {
     let mounted = true
@@ -32,7 +39,7 @@ function ServiceDetailPage() {
       setLoading(true)
       setError('')
       try {
-        const response = await getServiceById(id)
+        const response = await getServiceById(id, selectedType)
         if (!mounted) return
         setService(response?.data || null)
       } catch (e) {
@@ -48,18 +55,25 @@ function ServiceDetailPage() {
     return () => {
       mounted = false
     }
-  }, [id])
+  }, [id, selectedType])
 
   if (loading) return <main className="p-8">Đang tải chi tiết...</main>
   if (error) return <main className="p-8 text-rose-700">{error}</main>
   if (!service) return <main className="p-8">Không tìm thấy gói khám.</main>
 
+  const isStandaloneService = service.catalog_type === 'dich_vu'
+  const descriptionLabel = isStandaloneService ? 'Mô tả dịch vụ' : 'Mô tả gói khám'
+  const codeLabel = isStandaloneService ? 'Mã dịch vụ' : 'Mã gói khám'
+  const bookingTarget = isStandaloneService
+    ? `/patient/dat-lich?service_id=${service.id}${service.specialty_id ? `&specialty_id=${service.specialty_id}` : ''}`
+    : `/patient/dat-lich?package_id=${service.id}${service.specialty_id ? `&specialty_id=${service.specialty_id}` : ''}`
+
   return (
     <main className="min-h-screen bg-slate-50 px-6 py-10 md:px-8">
       <div className="mx-auto max-w-4xl">
-        <Link 
+        <Link
           className="inline-flex items-center gap-2 text-teal-700 font-medium hover:underline mb-6"
-          to="/services"
+          to="/patient/kham-pha/services"
         >
           ← Quay lại danh sách
         </Link>
@@ -80,13 +94,15 @@ function ServiceDetailPage() {
             </div>
             <div>
               <p className="text-xs uppercase tracking-wider text-slate-500 font-semibold">Loại dịch vụ</p>
-              <p className="text-sm font-semibold text-slate-900 mt-1">{formatServiceType(service.service_type)}</p>
+              <p className="text-sm font-semibold text-slate-900 mt-1">
+                {formatServiceType(service.service_type, service.catalog_type)}
+              </p>
             </div>
           </div>
 
           {/* Mô tả chi tiết */}
           <div className="mb-8">
-            <h2 className="mb-4 text-xl font-bold text-slate-900">Mô tả gói khám</h2>
+            <h2 className="mb-4 text-xl font-bold text-slate-900">{descriptionLabel}</h2>
             <p className="leading-relaxed text-slate-700 whitespace-pre-line">
               {service.description_full || service.description_short || 'Chưa có mô tả chi tiết'}
             </p>
@@ -125,7 +141,7 @@ function ServiceDetailPage() {
                     )}
                     <div className="flex flex-wrap gap-2">
                       <span className="inline-block px-2 py-1 rounded-md bg-slate-100 text-xs text-slate-700">
-                        {svc.type || svc.loai_dich_vu ? formatServiceType(svc.type || svc.loai_dich_vu) : 'Dịch vụ'}
+                        {formatServiceType(svc.service_type || svc.type || svc.loai_dich_vu, 'dich_vu')}
                       </span>
                       {svc.expected_time || svc.thoi_gian_du_kien && (
                         <span className="inline-block px-2 py-1 rounded-md bg-slate-100 text-xs text-slate-700">
@@ -156,17 +172,16 @@ function ServiceDetailPage() {
           {/* Mã dịch vụ & Trạng thái */}
           <div className="mb-8 grid gap-4 rounded-xl border border-slate-200 p-4 sm:grid-cols-2">
             <div>
-              <p className="text-xs uppercase tracking-wider text-slate-500 font-semibold">Mã dịch vụ/gói</p>
+              <p className="text-xs uppercase tracking-wider text-slate-500 font-semibold">{codeLabel}</p>
               <p className="text-sm font-mono text-slate-900 mt-1">{service.code || '--'}</p>
             </div>
             <div>
               <p className="text-xs uppercase tracking-wider text-slate-500 font-semibold">Trạng thái</p>
               <div className="mt-1">
-                <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${
-                  service.status === 'hoat_dong' 
-                    ? 'bg-green-100 text-green-800' 
+                <span className={`inline-block px-3 py-1 rounded-full text-xs font-semibold ${service.status === 'hoat_dong'
+                    ? 'bg-green-100 text-green-800'
                     : 'bg-gray-100 text-gray-800'
-                }`}>
+                  }`}>
                   {service.status === 'hoat_dong' ? 'Hoạt động' : 'Tạm ngừng'}
                 </span>
               </div>
@@ -177,7 +192,7 @@ function ServiceDetailPage() {
           <div className="flex gap-3">
             <Link
               className="rounded-lg bg-teal-700 px-6 py-3 text-sm font-bold text-white transition hover:bg-teal-800"
-              to={`/booking?service_id=${service.id}`}
+              to={bookingTarget}
             >
               Đăng ký ngay
             </Link>

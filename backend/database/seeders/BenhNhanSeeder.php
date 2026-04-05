@@ -20,6 +20,16 @@ class BenhNhanSeeder extends Seeder
         $rows = [];
 
         foreach (range(1, 50) as $index) {
+            $patientHospitalEmail = "patient{$index}@hospital.local";
+            $patientTestEmail = "patient{$index}@test.local";
+            $patientEmail = $patientHospitalEmail;
+            $patientUserId = $users[$patientHospitalEmail] ?? null;
+
+            if (is_null($patientUserId)) {
+                $patientUserId = $users[$patientTestEmail] ?? null;
+                $patientEmail = $patientTestEmail;
+            }
+
             $cccd = match ($index) {
                 1 => '079093001111',
                 2 => '079093002222',
@@ -35,12 +45,12 @@ class BenhNhanSeeder extends Seeder
 
             $rows[] = [
                 'ma_benh_nhan' => 'BN-' . $cccd,
-                'nguoi_dung_id' => $users["patient{$index}@hospital.local"] ?? null,
+                'nguoi_dung_id' => $patientUserId,
                 'ho_ten' => $fullName,
                 'ngay_sinh' => now()->subYears(18 + ($index % 45))->subDays($index)->format('Y-m-d'),
                 'gioi_tinh' => $index % 3 === 0 ? 'khac' : ($index % 2 === 0 ? 'nu' : 'nam'),
                 'so_dien_thoai' => '0901' . str_pad((string) $index, 6, '0', STR_PAD_LEFT),
-                'email' => "patient{$index}@hospital.local",
+                'email' => $patientEmail,
                 'so_cccd' => $cccd,
                 'dia_chi' => $diaChi[$index % count($diaChi)],
                 'nguoi_lien_he' => $ho[($index + 2) % count($ho)] . ' ' . $ten[($index + 3) % count($ten)],

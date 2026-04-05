@@ -4,6 +4,7 @@ const STORAGE_KEYS = {
     authToken: "auth_token",
     role: "vai_tro",
     userId: "user_id",
+    patientId: "benh_nhan_id",
     userName: "user_name",
     payload: "payload",
     userAvatar: "user_avatar",

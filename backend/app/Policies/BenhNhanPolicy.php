@@ -2,23 +2,23 @@
 
 namespace App\Policies;
 
+use App\Models\BenhNhan;
 use App\Models\NguoiDung;
-use App\Models\PhieuKham;
 
-class PhieuKhamPolicy
+class BenhNhanPolicy
 {
     public function viewAny(NguoiDung $user): bool
     {
         return $this->isPrivilegedUser($user) || $this->resolvePatientId($user) !== null;
     }
 
-    public function view(NguoiDung $user, PhieuKham $phieuKham): bool
+    public function view(NguoiDung $user, BenhNhan $benhNhan): bool
     {
         if ($this->isPrivilegedUser($user)) {
             return true;
         }
 
-        return $this->resolvePatientId($user) === (int) $phieuKham->benh_nhan_id;
+        return $this->resolvePatientId($user) === (int) $benhNhan->id;
     }
 
     public function create(NguoiDung $user): bool
@@ -26,16 +26,16 @@ class PhieuKhamPolicy
         return $this->isPrivilegedUser($user);
     }
 
-    public function update(NguoiDung $user, PhieuKham $phieuKham): bool
+    public function update(NguoiDung $user, BenhNhan $benhNhan): bool
     {
         if ($this->isPrivilegedUser($user)) {
             return true;
         }
 
-        return $this->resolvePatientId($user) === (int) $phieuKham->benh_nhan_id;
+        return $this->resolvePatientId($user) === (int) $benhNhan->id;
     }
 
-    public function delete(NguoiDung $user, PhieuKham $phieuKham): bool
+    public function delete(NguoiDung $user, BenhNhan $benhNhan): bool
     {
         return $this->isPrivilegedUser($user);
     }

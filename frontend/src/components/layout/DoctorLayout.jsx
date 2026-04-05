@@ -14,6 +14,7 @@ import {
 } from '@ant-design/icons'
 import { Avatar, Button, Drawer, Grid, Layout, Menu, Space, Typography } from 'antd'
 import { MENU_CONFIG } from '../../app/menuConfig'
+import { clearStoredAuthState } from '../../utils/userProfileSync'
 
 const { Header, Sider, Content } = Layout
 const { useBreakpoint } = Grid
@@ -71,10 +72,8 @@ export default function DoctorLayout({ doctorName = 'Bác sĩ', children }) {
 
 	const handleMenuClick = ({ key }) => {
 		if (key === '/doctor/logout') {
-			localStorage.removeItem('access_token')
-			localStorage.removeItem('refresh_token')
-			localStorage.removeItem('user')
-			navigate('/', { replace: true })
+			clearStoredAuthState()
+			navigate('/login', { replace: true })
 			return
 		}
 
@@ -119,7 +118,7 @@ export default function DoctorLayout({ doctorName = 'Bác sĩ', children }) {
 							<Title level={4} className="mb-0! text-teal-700!">
 								Hospital Booking
 							</Title>
-							<div className="my-1 h-0.5 w-full bg-slate-300 sm:mx-2 sm:my-0 sm:h-6 sm:w-[2px]" />
+							<div className="my-1 h-0.5 w-full bg-slate-300 sm:mx-2 sm:my-0 sm:h-6 sm:w-0.5" />
 							<Text type="secondary">Khu vực bác sĩ</Text>
 						</div>
 					</div>

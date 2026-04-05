@@ -3,41 +3,45 @@
 namespace App\Policies;
 
 use App\Models\NguoiDung;
-use App\Models\PhieuKham;
+use App\Models\TaiLieuHoSo;
 
-class PhieuKhamPolicy
+class TaiLieuHoSoPolicy
 {
     public function viewAny(NguoiDung $user): bool
     {
         return $this->isPrivilegedUser($user) || $this->resolvePatientId($user) !== null;
     }
 
-    public function view(NguoiDung $user, PhieuKham $phieuKham): bool
+    public function view(NguoiDung $user, TaiLieuHoSo $taiLieuHoSo): bool
     {
         if ($this->isPrivilegedUser($user)) {
             return true;
         }
 
-        return $this->resolvePatientId($user) === (int) $phieuKham->benh_nhan_id;
+        return $this->resolvePatientId($user) === (int) $taiLieuHoSo->phieuKham?->benh_nhan_id;
     }
 
     public function create(NguoiDung $user): bool
     {
-        return $this->isPrivilegedUser($user);
+        return $this->isPrivilegedUser($user) || $this->resolvePatientId($user) !== null;
     }
 
-    public function update(NguoiDung $user, PhieuKham $phieuKham): bool
+    public function update(NguoiDung $user, TaiLieuHoSo $taiLieuHoSo): bool
     {
         if ($this->isPrivilegedUser($user)) {
             return true;
         }
 
-        return $this->resolvePatientId($user) === (int) $phieuKham->benh_nhan_id;
+        return $this->resolvePatientId($user) === (int) $taiLieuHoSo->phieuKham?->benh_nhan_id;
     }
 
-    public function delete(NguoiDung $user, PhieuKham $phieuKham): bool
+    public function delete(NguoiDung $user, TaiLieuHoSo $taiLieuHoSo): bool
     {
-        return $this->isPrivilegedUser($user);
+        if ($this->isPrivilegedUser($user)) {
+            return true;
+        }
+
+        return $this->resolvePatientId($user) === (int) $taiLieuHoSo->phieuKham?->benh_nhan_id;
     }
 
     private function resolvePatientId(NguoiDung $user): ?int

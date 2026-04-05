@@ -7,6 +7,7 @@ use App\Requests\Patients\CurrentPatientRequest;
 use App\Resources\ApiResponse;
 use App\Resources\Patients\BenhNhanProfileResource;
 use App\Services\Patients\VisitHistoryService;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Validation\ValidationException;
 use App\Models\BenhNhan;
@@ -27,11 +28,14 @@ class BenhNhanController extends Controller
             $benhNhan = $this->visitHistoryService->getCurrentPatient(
                 (int) $request->validated('benh_nhan_id')
             );
+            $this->authorize('view', $benhNhan);
 
             return ApiResponse::success(
                 new BenhNhanProfileResource($benhNhan),
                 'Lấy thông tin bệnh nhân thành công.'
             );
+        } catch (AuthorizationException $exception) {
+            return ApiResponse::error('Bạn không có quyền truy cập hồ sơ bệnh nhân này.', null, 403);
         } catch (ValidationException $exception) {
             return ApiResponse::error(
                 'Không thể lấy thông tin bệnh nhân.',

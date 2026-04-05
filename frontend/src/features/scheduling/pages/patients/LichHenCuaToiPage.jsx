@@ -30,20 +30,6 @@ import { MODAL_STYLES, TABLE_STYLES } from '../../styles/const-styles'
 const { useBreakpoint } = Grid
 const { Paragraph, Text, Title } = Typography
 
-const resolvePatientId = () => {
-	const fromStorage = Number(window.localStorage.getItem('benh_nhan_id'))
-	if (Number.isInteger(fromStorage) && fromStorage > 0) {
-		return fromStorage
-	}
-
-	const fromEnv = Number(import.meta.env.VITE_DEFAULT_BENH_NHAN_ID)
-	if (Number.isInteger(fromEnv) && fromEnv > 0) {
-		return fromEnv
-	}
-
-	return 1
-}
-
 const appointmentStatusMeta = {
 	dang_cho: { label: 'Đang chờ', color: 'gold' },
 	da_thanh_toan: { label: 'Đã thanh toán', color: 'blue' },
@@ -76,13 +62,11 @@ export default function LichHenCuaToiPage() {
 	const [lyDoHuyId, setLyDoHuyId] = useState(null)
 	const [lyDoHuyKhac, setLyDoHuyKhac] = useState('')
 	const screens = useBreakpoint()
-	const patientId = useMemo(() => resolvePatientId(), [])
 
 	const loadAppointments = useCallback(async () => {
 		setLoading(true)
 		try {
 			const { items } = await fetchMyAppointments({
-				benhNhanId: patientId,
 				page: 1,
 				pageSize: 100,
 			})
@@ -92,7 +76,7 @@ export default function LichHenCuaToiPage() {
 		} finally {
 			setLoading(false)
 		}
-	}, [patientId])
+	}, [])
 
 	useEffect(() => {
 		loadAppointments()

@@ -11,6 +11,7 @@ class LichLamViecSeeder extends Seeder
 	{
 		$rows = [];
 
+		// Human-readable labels for display
 		$thuLabel = [
 			1 => 'Thứ 2',
 			2 => 'Thứ 3',
@@ -21,6 +22,18 @@ class LichLamViecSeeder extends Seeder
 			7 => 'Chủ nhật',
 		];
 
+		// Mapping for ma_ca IDs
+		$maThu = [
+			1 => 'T2',
+			2 => 'T3',
+			3 => 'T4',
+			4 => 'T5',
+			5 => 'T6',
+			6 => 'T7',
+			7 => 'CN', // Sunday
+		];
+
+		// Shift definitions
 		$caMau = [
 			[
 				'prefix' => 'SANG',
@@ -50,14 +63,15 @@ class LichLamViecSeeder extends Seeder
 				'thoi_luong_kham' => 30,
 				'ghi_chu' => 'Khung giờ khám ngoài giờ hành chính.',
 				'trang_thai' => 'tam_ngung',
-				'thu_ap_dung' => [1, 2, 3, 4, 5],
+				'thu_ap_dung' => [1, 2, 3, 4, 5], // only Mon-Fri
 			],
 		];
 
+		// Build rows
 		foreach ($caMau as $ca) {
 			foreach ($ca['thu_ap_dung'] as $thu) {
 				$rows[] = [
-					'ma_ca' => sprintf('CA_%s_T%d', $ca['prefix'], $thu),
+					'ma_ca' => sprintf('CA_%s_%s', $ca['prefix'], $maThu[$thu]),
 					'ten_ca' => sprintf('%s %s', $ca['ten'], $thuLabel[$thu]),
 					'thu_trong_tuan' => $thu,
 					'gio_bat_dau' => $ca['gio_bat_dau'],
@@ -71,9 +85,10 @@ class LichLamViecSeeder extends Seeder
 			}
 		}
 
+		// Upsert into database
 		DB::table('lich_lam_viec')->upsert(
 			$rows,
-			['ma_ca'],
+			['ma_ca'], // unique key
 			['ten_ca', 'thu_trong_tuan', 'gio_bat_dau', 'gio_ket_thuc', 'thoi_luong_kham', 'ghi_chu', 'trang_thai', 'updated_at']
 		);
 	}

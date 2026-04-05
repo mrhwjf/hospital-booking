@@ -28,6 +28,7 @@ import {
   CalendarOutlined,
 } from '@ant-design/icons'
 import { MENU_CONFIG } from '../../app/menuConfig'
+import { clearStoredAuthState } from '../../utils/userProfileSync'
 
 const { Header, Sider, Content } = Layout
 const { Title, Text } = Typography
@@ -147,9 +148,7 @@ export default function AdminLayout() {
       cancelText: 'Ở lại',
       okButtonProps: { danger: true },
       onOk: () => {
-        localStorage.removeItem('access_token')
-        localStorage.removeItem('refresh_token')
-        localStorage.removeItem('user')
+        clearStoredAuthState()
         navigate('/login', { replace: true })
       },
     })

@@ -13,7 +13,7 @@ class ThongBaoSeeder extends Seeder
 
         $rows = [
             [
-                'nguoi_nhan_id' => $users['patient1@hospital.local'] ?? null,
+                'nguoi_nhan_id' => $users['patient1@hospital.local'] ?? $users['patient1@test.local'] ?? null,
                 'tieu_de' => 'Lich hen da duoc xac nhan',
                 'noi_dung' => 'Ban co lich kham vao ngay 2026-03-16. Vui long den truoc 15 phut.',
                 'loai' => 'lich_hen',
@@ -22,7 +22,7 @@ class ThongBaoSeeder extends Seeder
                 'created_at' => now(),
             ],
             [
-                'nguoi_nhan_id' => $users['staff1@hospital.local'] ?? null,
+                'nguoi_nhan_id' => $users['staff1@hospital.local'] ?? $users['staff1@test.local'] ?? null,
                 'tieu_de' => 'Co lich hen moi',
                 'noi_dung' => 'He thong ghi nhan lich hen LH-20260316-09300045 can tiep nhan.',
                 'loai' => 'he_thong',

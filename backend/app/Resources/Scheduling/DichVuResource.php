@@ -16,6 +16,9 @@ class DichVuResource extends JsonResource
 			'ten_dich_vu' => $this->ten_dich_vu,
 			'mo_ta' => $this->mo_ta,
 			'gia_dich_vu' => $this->gia_dich_vu,
+			'thoi_gian_du_kien' => $this->thoi_gian_du_kien,
+			'yeu_cau_dac_biet' => $this->yeu_cau_dac_biet,
+			'loai_dich_vu' => $this->loai_dich_vu,
 			'trang_thai' => $this->trang_thai,
 			'chuyen_khoa' => $this->whenLoaded('chuyenKhoa', fn() => new ChuyenKhoaResource($this->chuyenKhoa)),
 		];
