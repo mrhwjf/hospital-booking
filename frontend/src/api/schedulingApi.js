@@ -35,3 +35,5 @@ export const cancelLichHen = (id, payload) => httpClient.patch(`/lich-hen/${id}/
 export const rescheduleLichHen = (id, payload) => httpClient.patch(`/lich-hen/${id}/doi-lich`, payload)
 
 export const checkInLichHen = (id, payload = {}) => httpClient.post(`/lich-hen/${id}/check-in`, payload)
+
+export const getThongTinNhanVienHienTai = () => httpClient.get('/staff-profile/me')

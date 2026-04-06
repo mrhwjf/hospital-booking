@@ -6,15 +6,14 @@ import {
 	CalendarOutlined,
 	LogoutOutlined,
 	MedicineBoxOutlined,
-	MenuFoldOutlined,
 	MenuOutlined,
-	MenuUnfoldOutlined,
 	TeamOutlined,
 	UserOutlined,
+	SettingOutlined,
 } from '@ant-design/icons'
 import { Avatar, Button, Drawer, Grid, Layout, Menu, Space, Typography } from 'antd'
 import { MENU_CONFIG } from '../../app/menuConfig'
-import { clearStoredAuthState } from '../../utils/userProfileSync'
+import { clearStoredAuthState, getStoredUserAvatar } from '../../utils/userProfileSync'
 
 const { Header, Sider, Content } = Layout
 const { useBreakpoint } = Grid
@@ -25,9 +24,7 @@ const DOCTOR_MENU = MENU_CONFIG.DOCTOR
 const iconMap = {
 	user: <UserOutlined />,
 	team: <TeamOutlined />,
-	calendar: <CalendarOutlined />,
-	schedule: <AppstoreOutlined />,
-	file: <BarsOutlined />,
+	setting: <SettingOutlined />,
 	logout: <LogoutOutlined />,
 }
 
@@ -43,7 +40,7 @@ export default function DoctorLayout({ doctorName = 'Bác sĩ', children }) {
 	const [collapsed, setCollapsed] = useState(false)
 	const [drawerOpen, setDrawerOpen] = useState(false)
 
-	const isMobile = !screens.lg
+	const isMobile = screens.md
 	const selectedRoute = getSelectedRoute(location.pathname, DOCTOR_MENU)
 
 	const mainMenuItems = useMemo(
@@ -109,7 +106,7 @@ export default function DoctorLayout({ doctorName = 'Bác sĩ', children }) {
 		<Layout className="h-screen overflow-hidden bg-slate-50 sticky top-0">
 			<Header className="z-20 flex h-16 items-center justify-between border-b-4 border-slate-200! bg-white! px-4! md:px-6!">
 				<Space size={12} align="center">
-					{isMobile ? (
+					{!isMobile ? (
 						<Button type="text" icon={<MenuOutlined />} onClick={() => setDrawerOpen(true)} />
 					) : null}
 					<div className="flex items-center gap-2">
@@ -125,20 +122,13 @@ export default function DoctorLayout({ doctorName = 'Bác sĩ', children }) {
 				</Space>
 
 				<Space size={8} align="center">
-					{!isMobile ? (
-						<Button
-							type="text"
-							icon={collapsed ? <MenuUnfoldOutlined /> : <MenuFoldOutlined />}
-							onClick={() => setCollapsed((prev) => !prev)}
-						/>
-					) : null}
-					<Avatar size="small" icon={<UserOutlined />} className="bg-teal-700" />
+					<Avatar size="large" src={getStoredUserAvatar()} className="bg-teal-700" />
 					<Text className="hidden md:inline">{doctorName}</Text>
 				</Space>
 			</Header>
 
 			<Layout className="h-[calc(100vh-64px)] overflow-hidden">
-				{!isMobile ? (
+				{isMobile ? (
 					<Sider
 						collapsible
 						collapsed={collapsed}

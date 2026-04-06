@@ -21,7 +21,6 @@ class JwtService
             'exp' => $now + $ttlSeconds,
             'jti' => (string) Str::uuid(),
             'email' => $user->email,
-            'name' => $user->ho_ten,
             'role' => $user->vaiTro?->ma_vai_tro,
         ], $extraClaims);
 

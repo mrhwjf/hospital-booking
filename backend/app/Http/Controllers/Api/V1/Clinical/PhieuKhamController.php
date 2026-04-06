@@ -9,6 +9,7 @@ use App\Resources\Clinical\PhieuKhamResource;
 use App\Services\ClinicalService;
 use App\Models\PhieuKham;
 use Illuminate\Http\Request;
+use Symfony\Component\HttpFoundation\Response;
 
 class PhieuKhamController extends Controller
 {
@@ -19,6 +20,7 @@ class PhieuKhamController extends Controller
     public function show(int $id)
     {
         $phieuKham = $this->clinicalService->getPhieuKham($id);
+        $this->authorize('view', $phieuKham);
 
         return ApiResponse::success(new PhieuKhamResource($phieuKham));
     }
@@ -26,6 +28,7 @@ class PhieuKhamController extends Controller
     public function update(UpdatePhieuKhamRequest $request, int $id)
     {
         $phieuKham = $this->clinicalService->getPhieuKham($id);
+        $this->authorize('update', $phieuKham);
         $phieuKham = $this->clinicalService->updatePhieuKham($phieuKham, $request->validated());
 
         return ApiResponse::success(new PhieuKhamResource($phieuKham), 'Cập nhật phiếu khám thành công');
@@ -33,16 +36,32 @@ class PhieuKhamController extends Controller
 
     public function indexByDoctor(Request $request)
     {
-        // Nếu có query parameter bac_si_id, sử dụng nó (dùng cho testing)
-        // Nếu không, sử dụng bác sĩ từ user authenticated
-        $doctor_id = $request->get('bac_si_id') ?? auth()->user()?->bacSi?->id;
+        $this->authorize('viewAny', PhieuKham::class);
 
-        if (!$doctor_id) {
-            return ApiResponse::error('Không xác định được bác sĩ hiện tại.', ['code' => 'UNAUTHORIZED'], 401);
+        $authDoctorId = auth()->user()?->bacSi?->id;
+
+        if (!$authDoctorId) {
+            return ApiResponse::error(
+                'Không xác định được bác sĩ hiện tại.',
+                ['code' => 'UNAUTHORIZED'],
+                Response::HTTP_UNAUTHORIZED
+            );
         }
 
+        $doctorIdFromQuery = $request->filled('bac_si_id') ? (int) $request->get('bac_si_id') : null;
+
+        if ($doctorIdFromQuery !== null && $doctorIdFromQuery !== (int) $authDoctorId) {
+            return ApiResponse::error(
+                'Bạn không có quyền truy cập dữ liệu của bác sĩ khác.',
+                ['code' => 'FORBIDDEN'],
+                Response::HTTP_FORBIDDEN
+            );
+        }
+
+        $doctorId = (int) $authDoctorId;
+
         $query = PhieuKham::query()
-            ->where('bac_si_id', $doctor_id)
+            ->where('bac_si_id', $doctorId)
             ->with(['benhNhan', 'bacSi']);
 
         if ($request->has('benh_nhan_id')) {

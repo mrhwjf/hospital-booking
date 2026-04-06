@@ -31,6 +31,36 @@ class ChiDinhSeeder extends Seeder
             ],
         ];
 
+        $testPhieuRows = DB::table('phieu_kham')
+            ->where('ma_phieu_kham', 'like', 'PK-T%')
+            ->orderBy('ma_phieu_kham')
+            ->get(['id', 'lich_hen_id', 'bac_si_id']);
+
+        $bookingsByLichHen = DB::table('dich_vu_lich_hen')
+            ->whereIn('lich_hen_id', $testPhieuRows->pluck('lich_hen_id')->filter()->values())
+            ->orderBy('id')
+            ->get(['lich_hen_id', 'dich_vu_id', 'goi_kham_id', 'so_luong'])
+            ->groupBy('lich_hen_id');
+
+        foreach ($testPhieuRows as $index => $testPhieu) {
+            $matchedBookings = $bookingsByLichHen->get($testPhieu->lich_hen_id, collect());
+
+            foreach ($matchedBookings as $booking) {
+                $rows[] = [
+                    'phieu_kham_id' => $testPhieu->id,
+                    'bac_si_id' => $testPhieu->bac_si_id ?? $defaultDoctorId,
+                    'dich_vu_id' => $booking->dich_vu_id,
+                    'goi_kham_id' => $booking->goi_kham_id,
+                    'so_luong' => $booking->so_luong ?? 1,
+                    'trang_thai' => $index % 2 === 0 ? 'da_hoan_thanh' : 'cho_thuc_hien',
+                    'ngay_chi_dinh' => now()->subDays($index % 5)->toDateString(),
+                    'ghi_chu' => 'Chỉ định khớp với dịch vụ/gói khám đã đặt.',
+                    'created_at' => now(),
+                    'updated_at' => now(),
+                ];
+            }
+        }
+
         $rows = array_values(array_filter($rows, function (array $row) {
             $hasService = $row['dich_vu_id'] !== null;
             $hasPackage = $row['goi_kham_id'] !== null;

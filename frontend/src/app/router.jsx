@@ -29,6 +29,7 @@ import LichHenCuaToiPage from '../features/scheduling/pages/patients/LichHenCuaT
 import LeTanQuanLyLichHenPage from '../features/scheduling/pages/receptionist/LeTanQuanLyLichHenPage'
 import QuanLyBenhNhanPage from '../features/clinical/pages/QuanLyBenhNhanPage'
 import { clearStoredAuthState, getStoredAuthToken } from '../utils/userProfileSync'
+import AccountProfile from '../features/auth/pages/ProfilePage'
 
 const DEFAULT_HOME_BY_ROLE = {
 	ADMIN: '/admin/dashboard',
@@ -147,23 +148,12 @@ export default function AppRouter() {
 				</Route>
 			</Route>
 
-			<Route element={<RequireAuth allowedRoles={['NHANVIEN', 'LETAN']} />}>
+			<Route element={<RequireAuth allowedRoles={['NHANVIEN']} />}>
 				<Route path="/staff" element={<StaffLayout />}>
 					<Route index element={<Navigate to="appointments" replace />} />
 					<Route path="appointments" element={<LeTanQuanLyLichHenPage />} />
 					<Route path="profile" element={<StaffProfilePage />} />
-					<Route
-						path="account-settings"
-						element={<LayoutPreviewContent title="Cài đặt tài khoản" description="Khu vực cài đặt tài khoản nhân viên." />}
-					/>
-					<Route
-						path="my-appointments"
-						element={<LayoutPreviewContent title="Lịch hẹn của tôi" description="Danh sách lịch hẹn cá nhân của lễ tân/nhân viên." />}
-					/>
-					<Route
-						path="visit-history"
-						element={<LayoutPreviewContent title="Lịch sử khám" description="Khu vực lịch sử khám dành cho nhân viên." />}
-					/>
+					<Route path="account-settings" element={<AccountProfile />} />
 					<Route path="logout" element={<LogoutRedirect />} />
 				</Route>
 			</Route>
@@ -173,6 +163,7 @@ export default function AppRouter() {
 					<Route index element={<Navigate to="thong-tin" replace />} />
 					<Route path="thong-tin" element={<ThongTinBS />} />
 					<Route path="quan-ly-benh-nhan" element={<QuanLyBenhNhanPage />} />
+					<Route path="account-settings" element={<AccountProfile />} />
 					<Route path="logout" element={<LogoutRedirect />} />
 				</Route>
 			</Route>

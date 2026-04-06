@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { SearchOutlined } from "@ant-design/icons";
 import { Alert, Avatar, Button, Empty, Input, Spin, Table } from "antd";
 import { getPhieuKhamList } from "../../../Services/clinicalService";
+import LichSuKhamPage from "./LichSuKhamPage";
 
 function computeAgeFromDate(dateOfBirth) {
   if (!dateOfBirth) {
@@ -35,7 +36,7 @@ function normalizeGender(rawGender) {
     return "Nữ";
   }
 
-  return "-";
+  return "Khác";
 }
 
 function buildPatientListFromExams(exams = []) {
@@ -87,11 +88,12 @@ function buildPatientListFromExams(exams = []) {
   });
 }
 
-export default function QuanLyBenhNhanPage({ selectedDoctorId, onSelectPatient }) {
+export default function QuanLyBenhNhanPage({ onSelectPatient }) {
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState("");
   const [allExams, setAllExams] = useState([]);
   const [patientNameKeyword, setPatientNameKeyword] = useState("");
+  const [selectedPatient, setSelectedPatient] = useState(null);
 
   const patients = useMemo(() => buildPatientListFromExams(allExams), [allExams]);
 
@@ -162,12 +164,13 @@ export default function QuanLyBenhNhanPage({ selectedDoctorId, onSelectPatient }
           <Button
             type="primary"
             size="middle"
-            disabled={!selectedDoctorId}
-            className="!bg-teal-600 hover:!bg-teal-700 !border-teal-600"
+            className="bg-teal-600! hover:bg-teal-700! border-teal-600!"
             onClick={() => {
               if (typeof onSelectPatient === "function") {
                 onSelectPatient(record);
               }
+
+              setSelectedPatient(record);
             }}
           >
             Xem lịch sử phiếu khám
@@ -175,24 +178,18 @@ export default function QuanLyBenhNhanPage({ selectedDoctorId, onSelectPatient }
         ),
       },
     ],
-    [onSelectPatient, selectedDoctorId],
+    [onSelectPatient],
   );
 
   useEffect(() => {
     let mounted = true;
 
     async function loadExamDataForDoctor() {
-      if (!selectedDoctorId) {
-        setAllExams([]);
-        setLoading(false);
-        return;
-      }
-
       setLoading(true);
       setLoadError("");
 
       try {
-        const response = await getPhieuKhamList({ bac_si_id: selectedDoctorId, per_page: 200 });
+        const response = await getPhieuKhamList({ per_page: 200 });
 
         if (!mounted) {
           return;
@@ -216,7 +213,20 @@ export default function QuanLyBenhNhanPage({ selectedDoctorId, onSelectPatient }
     return () => {
       mounted = false;
     };
-  }, [selectedDoctorId]);
+  }, []);
+
+  if (selectedPatient) {
+    return (
+      <div className="p-8 min-h-screen" style={{ background: "#F8FAFC" }}>
+        <div className="max-w-6xl mx-auto">
+          <LichSuKhamPage
+            selectedPatient={selectedPatient}
+            onBack={() => setSelectedPatient(null)}
+          />
+        </div>
+      </div>
+    );
+  }
 
   if (loading) {
     return (
@@ -256,21 +266,11 @@ export default function QuanLyBenhNhanPage({ selectedDoctorId, onSelectPatient }
                   onChange={(event) => setPatientNameKeyword(event.target.value)}
                   placeholder="Tìm theo tên bệnh nhân"
                   prefix={<SearchOutlined className="text-slate-400" />}
-                  className="w-full sm:w-[280px]"
+                  className="w-full sm:w-70"
                 />
               </div>
             </div>
           </div>
-
-          {!selectedDoctorId && (
-            <div className="px-6 pt-4">
-              <Alert
-                type="info"
-                showIcon
-                message="Vui lòng chọn bác sĩ ở trang Thông tin bác sĩ trước khi quản lý bệnh nhân."
-              />
-            </div>
-          )}
 
           {filteredPatients.length === 0 ? (
             <div className="px-6 py-12">
@@ -286,7 +286,7 @@ export default function QuanLyBenhNhanPage({ selectedDoctorId, onSelectPatient }
                 showSizeChanger: false,
                 showTotal: (total, range) => `Đang hiển thị ${range[0]}-${range[1]} trong số ${total} bệnh nhân`,
               }}
-              className="[&_.ant-table-thead>tr>th]:!bg-slate-50 [&_.ant-table-thead>tr>th]:!text-slate-500 [&_.ant-table-thead>tr>th]:!font-semibold [&_.ant-table-thead>tr>th]:!text-xs [&_.ant-table-tbody>tr>td]:!py-5"
+              className="[&_.ant-table-thead>tr>th]:bg-slate-50! [&_.ant-table-thead>tr>th]:text-slate-500! [&_.ant-table-thead>tr>th]:font-semibold! [&_.ant-table-thead>tr>th]:text-xs! [&_.ant-table-tbody>tr>td]:py-5!"
             />
           )}
         </div>

@@ -7,6 +7,8 @@ use App\Requests\Clinical\StoreDonThuocRequest;
 use App\Requests\Clinical\StoreDonThuocItemsRequest;
 use App\Requests\Clinical\UpdateDonThuocItemsRequest;
 use App\Requests\Clinical\SearchThuocRequest;
+use App\Models\DonThuoc;
+use App\Models\PhieuKham;
 use App\Resources\ApiResponse;
 use App\Resources\Clinical\DonThuocResource;
 use App\Services\ClinicalService;
@@ -20,6 +22,8 @@ class DonThuocController extends Controller
     // Tạo đơn thuốc mới cho một phiếu khám
     public function store(StoreDonThuocRequest $request, int $phieu_kham_id)
     {
+        $this->authorizePhieuKhamAccess($phieu_kham_id, 'update');
+
         try {
             $payload = $request->validated();
             $donThuoc = $this->clinicalService->createPrescription($phieu_kham_id, $payload);
@@ -34,6 +38,8 @@ class DonThuocController extends Controller
     // Thêm thuốc vào đơn thuốc
     public function storeItems(StoreDonThuocItemsRequest $request, int $don_thuoc_id)
     {
+        $this->authorizeDonThuocAccess($don_thuoc_id, 'update');
+
         try {
             $payload = $request->validated();
             $result = $this->clinicalService->addItemsToPrescription($don_thuoc_id, $payload['items']);
@@ -47,6 +53,8 @@ class DonThuocController extends Controller
     // Sửa danh sách thuốc trong đơn thuốc (thay toàn bộ danh sách)
     public function updateItems(UpdateDonThuocItemsRequest $request, int $don_thuoc_id)
     {
+        $this->authorizeDonThuocAccess($don_thuoc_id, 'update');
+
         try {
             $payload = $request->validated();
             $result = $this->clinicalService->updatePrescriptionItems($don_thuoc_id, $payload['items']);
@@ -60,6 +68,8 @@ class DonThuocController extends Controller
     // Xóa đơn thuốc
     public function destroy(int $id)
     {
+        $this->authorizeDonThuocAccess($id, 'update');
+
         try {
             $deletedData = $this->clinicalService->deletePrescription($id);
 
@@ -72,6 +82,8 @@ class DonThuocController extends Controller
     // Lấy đơn thuốc theo phiếu khám
     public function showByPhieuKham(int $phieu_kham_id)
     {
+        $this->authorizePhieuKhamAccess($phieu_kham_id, 'view');
+
         try {
             $donThuoc = $this->clinicalService->getPrescriptionByPhieuKham($phieu_kham_id);
 
@@ -92,5 +104,24 @@ class DonThuocController extends Controller
         $medicines = $this->clinicalService->searchMedicines($validated);
 
         return ApiResponse::success($medicines->items(), 'Danh sách thuốc');
+    }
+
+    private function authorizePhieuKhamAccess(int $phieuKhamId, string $ability): PhieuKham
+    {
+        $phieuKham = PhieuKham::query()->findOrFail($phieuKhamId);
+        $this->authorize($ability, $phieuKham);
+
+        return $phieuKham;
+    }
+
+    private function authorizeDonThuocAccess(int $donThuocId, string $ability): DonThuoc
+    {
+        $donThuoc = DonThuoc::query()
+            ->with(['phieuKham:id,bac_si_id'])
+            ->findOrFail($donThuocId);
+
+        $this->authorize($ability, $donThuoc->phieuKham);
+
+        return $donThuoc;
     }
 }

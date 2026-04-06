@@ -3,45 +3,41 @@
 namespace App\Http\Controllers\Api\V1\Clinical;
 
 use App\Http\Controllers\Controller;
-use App\Models\NhanVien;
-use App\Requests\Clinical\CurrentStaffRequest;
 use App\Resources\ApiResponse;
 use App\Resources\Clinical\NhanVienProfileResource;
+use App\Services\StaffProfileService;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+use Illuminate\Auth\Access\AuthorizationException;
+use Throwable;
 
 class NhanVienController extends Controller
 {
-	public function me(CurrentStaffRequest $request): JsonResponse
+	public function __construct(
+		private readonly StaffProfileService $staffProfileService,
+	) {
+	}
+	public function me(Request $request): JsonResponse
 	{
+		$user = $request->user();
+		if (!$user) {
+			return ApiResponse::error('Bạn chưa đăng nhập.', null, 401);
+		}
+
 		try {
-			$nguoiDungId = (int) $request->validated('nguoi_dung_id');
+			$profile = $this->staffProfileService->getByUserId((int) $user->id);
 
-			$nhanVien = NhanVien::query()
-				->with([
-					'nguoiDung:id,email,trang_thai,vai_tro_id',
-					'nguoiDung.vaiTro:id,ma_vai_tro,ten_vai_tro',
-				])
-				->where('nguoi_dung_id', $nguoiDungId)
-				->first();
-
-			if (!$nhanVien) {
-				return ApiResponse::error(
-					'Không tìm thấy hồ sơ nhân viên.',
-					[
-						'errors' => [
-							'nguoi_dung_id' => ['Không tồn tại hồ sơ nhân viên tương ứng.'],
-						],
-					],
-					404,
-				);
+			if (!$profile) {
+				return ApiResponse::error('Hồ sơ nhân viên không tồn tại', null, 404);
 			}
 
-			return ApiResponse::success(
-				new NhanVienProfileResource($nhanVien),
-				'Lấy thông tin nhân viên thành công.'
-			);
-		} catch (\Throwable $throwable) {
-			return ApiResponse::error('Không thể lấy thông tin nhân viên.', null, 500);
+			$this->authorize('view', $profile);
+
+			return ApiResponse::success(new NhanVienProfileResource($profile), 'Lấy thông tin hồ sơ nhân viên thành công');
+		} catch (AuthorizationException $exception) {
+			return ApiResponse::error('Bạn không có quyền truy cập hồ sơ này.', null, 403);
+		} catch (Throwable $exception) {
+			return ApiResponse::error('Lỗi khi lấy thông tin hồ sơ', null, 500);
 		}
 	}
 }

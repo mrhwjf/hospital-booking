@@ -19,6 +19,7 @@ export const MENU_CONFIG = {
 	DOCTOR: [
 		{ key: 'doctor-info', label: 'Thông tin bác sĩ', icon: 'user', route: '/doctor/thong-tin' },
 		{ key: 'patient-management', label: 'Quản lý bệnh nhân', icon: 'team', route: '/doctor/quan-ly-benh-nhan' },
+		{ key: 'account-settings', label: 'Cài đặt tài khoản', icon: 'setting', route: '/doctor/account-settings' },
 		{ key: 'logout', label: 'Đăng xuất', icon: 'logout', route: '/doctor/logout' },
 	],
 	PATIENT: [

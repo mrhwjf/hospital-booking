@@ -19,7 +19,7 @@ import {
 	ReloadOutlined,
 	UserOutlined,
 } from '@ant-design/icons'
-import { getCurrentStaffProfile, resolveCurrentStaffUserId } from '../../../api/clinicalApi'
+import { getThongTinNhanVienHienTai } from '../../../Services/schedulingService'
 
 const { Paragraph, Text, Title } = Typography
 
@@ -60,8 +60,8 @@ export default function StaffProfilePage() {
 	const loadProfile = useCallback(async () => {
 		setLoading(true)
 		try {
-			const response = await getCurrentStaffProfile()
-			setProfile(response?.data || null)
+			const response = await getThongTinNhanVienHienTai()
+			setProfile(response || null)
 		} catch (error) {
 			message.error(
 				error?.response?.data?.message || 'Không thể tải hồ sơ nhân viên.',
@@ -97,12 +97,6 @@ export default function StaffProfilePage() {
 							</Button>
 						</div>
 					</Card>
-
-					<Alert
-						type="info"
-						showIcon
-						message={`Đang mô phỏng người dùng nhân viên với nguoi_dung_id = ${resolveCurrentStaffUserId()}.`}
-					/>
 
 					{loading ? (
 						<Card className="rounded-2xl border-[#E2E8F0]">

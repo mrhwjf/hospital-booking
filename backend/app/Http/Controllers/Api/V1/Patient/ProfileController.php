@@ -13,8 +13,9 @@ use Throwable;
 
 class ProfileController extends Controller
 {
-    public function __construct(private readonly PatientProfileService $patientProfileService)
-    {
+    public function __construct(
+        private readonly PatientProfileService $patientProfileService,
+    ) {
     }
 
     /**

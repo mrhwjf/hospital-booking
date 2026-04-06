@@ -7,7 +7,7 @@ use App\Http\Controllers\Api\V1\Patients\LichSuPhieuKhamController;
 use App\Http\Controllers\Api\V1\Patients\TaiLieuHoSoController;
 use App\Http\Controllers\Api\V1\Patient\ProfileController;
 
-Route::middleware(['auth.jwt', 'role:BENHNHAN'])->group(function () {
+Route::middleware(['auth.jwt', 'role:BENHNHAN,BACSI'])->group(function () {
     Route::prefix('benh-nhan')->group(function () {
         Route::get('/me', [BenhNhanController::class, 'me']);
         Route::get('/profile', [ProfileController::class, 'getProfile']);

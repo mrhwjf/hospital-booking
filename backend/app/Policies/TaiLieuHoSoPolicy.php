@@ -59,6 +59,6 @@ class TaiLieuHoSoPolicy
     {
         $role = strtoupper((string) $user->vaiTro?->ma_vai_tro);
 
-        return in_array($role, ['ADMIN', 'LETAN', 'NHANVIEN', 'BACSI'], true);
+        return in_array($role, ['ADMIN', 'NHANVIEN', 'BACSI'], true);
     }
 }

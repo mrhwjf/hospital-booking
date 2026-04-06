@@ -17,6 +17,7 @@ import {
 	getGoiKhams,
 	getLichLamViecBacSi,
 	rescheduleLichHen,
+	getThongTinNhanVienHienTai as getThongTinNhanVienHienTaiApi,
 } from '../api/schedulingApi'
 
 const DEFAULT_LIST_PAGE_SIZE = 10
@@ -204,6 +205,11 @@ export const submitCheckInAppointment = async ({ lichHenId, nguoiTiepNhanId }) =
 	})
 
 	return response?.data
+}
+
+export const getThongTinNhanVienHienTai = async () => {
+	const response = await getThongTinNhanVienHienTaiApi()
+	return response?.data || null
 }
 
 export { getApiErrorMessage }

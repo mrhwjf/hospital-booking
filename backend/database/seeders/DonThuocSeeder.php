@@ -10,6 +10,10 @@ class DonThuocSeeder extends Seeder
     public function run(): void
     {
         $phieu = DB::table('phieu_kham')->pluck('id', 'ma_phieu_kham');
+        $testPhieus = DB::table('phieu_kham')
+            ->where('ma_phieu_kham', 'like', 'PK-T%')
+            ->orderBy('ma_phieu_kham')
+            ->get(['id', 'ma_phieu_kham', 'thoi_gian_tiep_nhan', 'trang_thai']);
 
         $rows = [
             [
@@ -22,6 +26,18 @@ class DonThuocSeeder extends Seeder
                 'updated_at' => now(),
             ],
         ];
+
+        foreach ($testPhieus as $index => $testPhieu) {
+            $rows[] = [
+                'ma_don_thuoc' => sprintf('DT-T%06d', $testPhieu->id),
+                'phieu_kham_id' => $testPhieu->id,
+                'ngay_ke' => now()->subDays($index % 7)->toDateString(),
+                'ghi_chu' => 'Đơn thuốc dữ liệu kiểm thử cho doctor portal.',
+                'trang_thai' => $testPhieu->trang_thai === 'hoan_thanh' ? 'da_cap' : 'moi_tao',
+                'created_at' => now(),
+                'updated_at' => now(),
+            ];
+        }
 
         $rows = array_values(array_filter($rows, fn(array $row) => !is_null($row['phieu_kham_id'])));
 

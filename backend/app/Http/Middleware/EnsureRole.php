@@ -22,7 +22,7 @@ class EnsureRole
 					'code' => 'UNAUTHORIZED',
 					'message' => 'Bạn chưa đăng nhập.',
 				],
-			], 401);
+			], Response::HTTP_UNAUTHORIZED);
 		}
 
 		$currentRole = $user->vaiTro->ma_vai_tro;
@@ -31,9 +31,9 @@ class EnsureRole
 			return response()->json([
 				'error' => [
 					'code' => 'FORBIDDEN',
-					'message' => 'Bạn không có quyền truy cập tài nguyên này.',
+					'message' => 'Bạn không có quyền truy cập tài nguyên này TEST.',
 				],
-			], 403);
+			], Response::HTTP_FORBIDDEN);
 		}
 
 		return $next($request);

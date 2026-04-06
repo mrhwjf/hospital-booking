@@ -2,8 +2,6 @@ import { useMemo, useState } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
 	AppstoreOutlined,
-	CalendarOutlined,
-	FileTextOutlined,
 	LogoutOutlined,
 	MedicineBoxOutlined,
 	MenuOutlined,
@@ -24,7 +22,7 @@ import {
 	message,
 } from 'antd'
 import { MENU_CONFIG } from '../../app/menuConfig'
-import { clearStoredAuthState } from '../../utils/userProfileSync'
+import { clearStoredAuthState, getStoredUserAvatar } from '../../utils/userProfileSync'
 
 const { Header, Sider, Content } = Layout
 const { useBreakpoint } = Grid
@@ -165,7 +163,7 @@ export default function StaffLayout({ staffName = 'Nhân viên mô phỏng', chi
 
 				<Dropdown menu={profileMenu} trigger={['hover', 'click']}>
 					<div className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1 hover:bg-[#F8FAFC]">
-						<Avatar size="small" icon={<UserOutlined />} className="bg-[#0F766E]" />
+						<Avatar size="large" src={getStoredUserAvatar()} className="bg-[#0F766E]" />
 						<Text className="hidden md:inline">{staffName}</Text>
 					</div>
 				</Dropdown>

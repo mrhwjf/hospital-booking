@@ -317,10 +317,12 @@ export default function DoctorWorkSchedulePage() {
 		async (page = 1, pageSize = DEFAULT_PAGE_SIZE, filters = appliedDoctorFilters) => {
 			setLoadingDoctors(true)
 			try {
+				const keyword = filters.keyword?.trim()
+
 				const result = await fetchAdminDoctors({
 					page,
 					pageSize,
-					ten: filters.keyword || undefined,
+					q: keyword || undefined,
 					chuyen_khoa_id: filters.specialtyId || undefined,
 				})
 

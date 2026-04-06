@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Clinical;
 
 use App\Http\Controllers\Controller;
 use App\Requests\Clinical\StoreChiDinhRequest;
+use App\Models\PhieuKham;
 use App\Resources\ApiResponse;
 use App\Resources\Clinical\ChiDinhResource;
 use App\Resources\Clinical\DichVuResource;
@@ -28,6 +29,9 @@ class ChiDinhController extends Controller
 
     public function index(int $phieuKhamId)
     {
+        $phieuKham = PhieuKham::query()->findOrFail($phieuKhamId);
+        $this->authorize('view', $phieuKham);
+
         $items = $this->clinicalService->getChiDinhList($phieuKhamId);
 
         return ApiResponse::success(
@@ -39,6 +43,9 @@ class ChiDinhController extends Controller
 
     public function store(StoreChiDinhRequest $request, int $phieuKhamId)
     {
+        $phieuKham = PhieuKham::query()->findOrFail($phieuKhamId);
+        $this->authorize('update', $phieuKham);
+
         $items = $this->clinicalService->createChiDinh($phieuKhamId, $request->validated());
 
         return ApiResponse::success(

@@ -10,7 +10,6 @@ import {
   Row,
   Col,
   Alert,
-  Select,
 } from "antd";
 import {
   PhoneOutlined,
@@ -167,7 +166,7 @@ const ScheduleTimetable = ({
   });
 
   return (
-    <div className="min-w-[720px] text-[11px] sm:min-w-full sm:text-xs">
+    <div className="min-w-180 text-[11px] sm:min-w-full sm:text-xs">
       <div className="flex">
         <div className="w-20 bg-teal-600 text-white text-sm flex items-center justify-center font-semibold px-2 py-1.5 border-r border-teal-500">
           Giờ
@@ -219,16 +218,16 @@ const ScheduleTimetable = ({
 
             const columnShifts = day.holidayName
               ? [
-                  {
-                    id: `holiday-${day.dateKey}`,
-                    isHoliday: true,
-                    ca_lam_viec: {
-                      ten_ca: day.holidayName,
-                      gio_bat_dau: "07:00",
-                      gio_ket_thuc: "18:00",
-                    },
+                {
+                  id: `holiday-${day.dateKey}`,
+                  isHoliday: true,
+                  ca_lam_viec: {
+                    ten_ca: day.holidayName,
+                    gio_bat_dau: "07:00",
+                    gio_ket_thuc: "18:00",
                   },
-                ]
+                },
+              ]
               : day.shifts;
 
             const displayShifts = [...columnShifts, ...leaveBlocks];
@@ -236,9 +235,8 @@ const ScheduleTimetable = ({
             return (
               <div
                 key={day.day}
-                className={`relative border-r border-slate-200 last:border-r-0 ${
-                  day.holidayName ? "bg-red-50" : "bg-white"
-                }`}
+                className={`relative border-r border-slate-200 last:border-r-0 ${day.holidayName ? "bg-red-50" : "bg-white"
+                  }`}
               >
                 {hourBlocks.map((hour) => (
                   <div
@@ -297,8 +295,7 @@ const ScheduleTimetable = ({
  * Trang thông tin bác sĩ
  * Hiển thị: thông tin bác sĩ, chuyên khoa, và lịch làm việc
  */
-const ThongTinBS = ({ selectedDoctorId, onDoctorChange }) => {
-  const activeDoctorId = Number(selectedDoctorId) || 1;
+const ThongTinBS = () => {
   const [bacSiInfo, setBacSiInfo] = useState(null);
   const [chuyenKhoa, setChuyenKhoa] = useState([]);
   const [lichLamViec, setLichLamViec] = useState([]);
@@ -334,7 +331,7 @@ const ThongTinBS = ({ selectedDoctorId, onDoctorChange }) => {
 
     try {
       const response = await getThongTinBacSiStatic(
-        { bac_si_id: activeDoctorId },
+        {},
         { signal: controller.signal },
       );
       if (
@@ -368,7 +365,7 @@ const ThongTinBS = ({ selectedDoctorId, onDoctorChange }) => {
         setLoadingStatic(false);
       }
     }
-  }, [activeDoctorId]);
+  }, []);
 
   const fetchWeeklySchedule = useCallback(async (weekOffset) => {
     scheduleAbortRef.current?.abort();
@@ -382,7 +379,6 @@ const ThongTinBS = ({ selectedDoctorId, onDoctorChange }) => {
     try {
       const response = await getThongTinBacSiWeekly(
         {
-          bac_si_id: activeDoctorId,
           week_offset: weekOffset,
         },
         { signal: controller.signal },
@@ -422,7 +418,7 @@ const ThongTinBS = ({ selectedDoctorId, onDoctorChange }) => {
         setLoadingSchedule(false);
       }
     }
-  }, [activeDoctorId]);
+  }, []);
 
   useEffect(() => {
     fetchStaticInfo();
@@ -431,10 +427,6 @@ const ThongTinBS = ({ selectedDoctorId, onDoctorChange }) => {
   useEffect(() => {
     fetchWeeklySchedule(selectedWeek);
   }, [selectedWeek, fetchWeeklySchedule]);
-
-  useEffect(() => {
-    setSelectedWeek(0);
-  }, [activeDoctorId]);
 
   if (loadingStatic) {
     return (
@@ -483,39 +475,14 @@ const ThongTinBS = ({ selectedDoctorId, onDoctorChange }) => {
 
   const weekRangeText = weekMeta?.week_range
     ? `${dayjs(weekMeta.week_range.start).format("DD/MM")} - ${dayjs(
-        weekMeta.week_range.end,
-      ).format("DD/MM/YYYY")}`
+      weekMeta.week_range.end,
+    ).format("DD/MM/YYYY")}`
     : null;
 
   return (
     <ConfigProvider locale={viVN}>
       <div className="bg-linear-to-br from-slate-50 to-slate-100 min-h-screen py-6 px-4 sm:px-6 lg:px-8">
         <div className="max-w-6xl mx-auto space-y-6">
-          <Card className="shadow-lg border-0 rounded-[10px]">
-            <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <div>
-                <h3 className="text-lg font-semibold text-slate-900">Bác sĩ đang thao tác</h3>
-                <p className="text-sm text-slate-500">Chọn bác sĩ để test luồng khám trước khi tích hợp đăng nhập.</p>
-              </div>
-              <Select
-                value={activeDoctorId}
-                onChange={(value) => {
-                  if (typeof onDoctorChange === "function") {
-                    onDoctorChange(value);
-                  }
-                }}
-                style={{ width: 220 }}
-                options={[
-                  { value: 1, label: "Bác sĩ #1" },
-                  { value: 2, label: "Bác sĩ #2" },
-                  { value: 3, label: "Bác sĩ #3" },
-                  { value: 4, label: "Bác sĩ #4" },
-                  { value: 5, label: "Bác sĩ #5" },
-                ]}
-              />
-            </div>
-          </Card>
-
           {/* Header */}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
             <h3 className="text-2xl font-bold text-slate-900">
@@ -656,11 +623,10 @@ const ThongTinBS = ({ selectedDoctorId, onDoctorChange }) => {
                 <Button
                   type="default"
                   onClick={() => setSelectedWeek(0)}
-                  className={`${buttonBaseClass} ${
-                    selectedWeek === 0
+                  className={`${buttonBaseClass} ${selectedWeek === 0
                       ? buttonStyles.solid
                       : buttonStyles.outline
-                  }`}
+                    }`}
                 >
                   Tuần này
                 </Button>
@@ -674,7 +640,7 @@ const ThongTinBS = ({ selectedDoctorId, onDoctorChange }) => {
                 </Button>
               </div>
             </div>
-            
+
 
             {scheduleError && (
               <Alert

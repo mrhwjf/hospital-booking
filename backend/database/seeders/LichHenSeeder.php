@@ -11,6 +11,19 @@ class LichHenSeeder extends Seeder
     public function run(): void
     {
         $benhNhanIds = DB::table('benh_nhan')->orderBy('id')->pluck('id')->values()->all();
+        $testPatientIdsByEmail = DB::table('benh_nhan as bn')
+            ->join('nguoi_dung as nd', 'nd.id', '=', 'bn.nguoi_dung_id')
+            ->whereIn('nd.email', ['patient1@test.local', 'patient2@test.local'])
+            ->pluck('bn.id', 'nd.email');
+
+        $testPatientIds = array_map('intval', $testPatientIdsByEmail->values()->all());
+
+        $regularBenhNhanIds = array_values(array_filter(
+            $benhNhanIds,
+            fn($benhNhanId) => !in_array((int) $benhNhanId, $testPatientIds, true)
+        ));
+        $genericPatientIds = !empty($regularBenhNhanIds) ? $regularBenhNhanIds : $benhNhanIds;
+
         $staffUserIds = DB::table('nguoi_dung as nd')
             ->join('vai_tro as vt', 'vt.id', '=', 'nd.vai_tro_id')
             ->where('vt.ma_vai_tro', 'NHANVIEN')
@@ -18,6 +31,15 @@ class LichHenSeeder extends Seeder
             ->pluck('nd.id')
             ->values()
             ->all();
+
+        $testDoctorIdsByEmail = DB::table('bac_si as bs')
+            ->join('nguoi_dung as nd', 'nd.id', '=', 'bs.nguoi_dung_id')
+            ->whereIn('nd.email', ['doctor1@test.local', 'doctor2@test.local'])
+            ->pluck('bs.id', 'nd.email');
+
+        $testStaffUserIdsByEmail = DB::table('nguoi_dung')
+            ->whereIn('email', ['staff1@test.local', 'staff2@test.local'])
+            ->pluck('id', 'email');
 
         $defaultChuyenKhoaId = DB::table('chuyen_khoa')->orderBy('id')->value('id');
         $chuyenKhoaByBacSi = DB::table('bac_si_chuyen_khoa')
@@ -48,7 +70,7 @@ class LichHenSeeder extends Seeder
             ->orderBy('kgk.id')
             ->get();
 
-        if (empty($benhNhanIds) || empty($staffUserIds) || $slots->isEmpty() || is_null($defaultChuyenKhoaId)) {
+        if (empty($genericPatientIds) || empty($staffUserIds) || $slots->isEmpty() || is_null($defaultChuyenKhoaId)) {
             return;
         }
 
@@ -72,7 +94,7 @@ class LichHenSeeder extends Seeder
 
         for ($index = 0; $index < $targetCount; $index++) {
             $slot = $slots[$index % $slots->count()];
-            $benhNhanId = $benhNhanIds[$index % count($benhNhanIds)];
+            $benhNhanId = $genericPatientIds[$index % count($genericPatientIds)];
             $nguoiTaoId = $staffUserIds[$index % count($staffUserIds)];
             $nguoiTiepNhanId = $staffUserIds[($index + 1) % count($staffUserIds)];
 
@@ -137,6 +159,72 @@ class LichHenSeeder extends Seeder
                 'created_at' => $createdAt,
                 'updated_at' => now(),
             ];
+        }
+
+        $slotsByDoctor = $slots->groupBy('bac_si_id');
+        $testStatuses = ['da_hoan_tat', 'da_xac_nhan', 'dang_cho', 'da_hoan_tat', 'khong_den'];
+
+        foreach ([1, 2] as $testIndex) {
+            $testPatientEmail = "patient{$testIndex}@test.local";
+            $testDoctorEmail = "doctor{$testIndex}@test.local";
+            $testStaffEmail = "staff{$testIndex}@test.local";
+
+            $benhNhanId = $testPatientIdsByEmail[$testPatientEmail] ?? null;
+            $bacSiId = $testDoctorIdsByEmail[$testDoctorEmail] ?? null;
+            $nguoiTaoId = $testStaffUserIdsByEmail[$testStaffEmail] ?? ($staffUserIds[0] ?? null);
+            $nguoiTiepNhanId = $testStaffUserIdsByEmail[$testStaffEmail] ?? null;
+
+            if (is_null($benhNhanId) || is_null($bacSiId) || is_null($nguoiTaoId)) {
+                continue;
+            }
+
+            $doctorSlots = ($slotsByDoctor[$bacSiId] ?? collect())->values();
+
+            if ($doctorSlots->isEmpty()) {
+                continue;
+            }
+
+            $chuyenKhoaCandidates = $chuyenKhoaByBacSi[$bacSiId] ?? [];
+            $chuyenKhoaId = !empty($chuyenKhoaCandidates)
+                ? $chuyenKhoaCandidates[0]
+                : $defaultChuyenKhoaId;
+
+            foreach (range(0, 4) as $slotOffset) {
+                $slot = $doctorSlots[$slotOffset % $doctorSlots->count()];
+                $status = $testStatuses[$slotOffset % count($testStatuses)];
+
+                $gioDenThucTe = null;
+                if ($status === 'da_hoan_tat') {
+                    $gioDenThucTe = Carbon::createFromFormat('H:i:s', $slot->gio_bat_dau)
+                        ->subMinutes(8)
+                        ->format('H:i:s');
+                }
+
+                $createdAt = Carbon::parse($slot->ngay_hen)
+                    ->subDays(2 + $slotOffset)
+                    ->setTime(9, 0)
+                    ->format('Y-m-d H:i:s');
+
+                $rows[] = [
+                    'ma_lich_hen' => sprintf('LH-T%d-%04d', $testIndex, $slotOffset + 1),
+                    'benh_nhan_id' => $benhNhanId,
+                    'bac_si_id' => $bacSiId,
+                    'chuyen_khoa_id' => $chuyenKhoaId,
+                    'khung_gio_id' => $slot->khung_gio_id,
+                    'ngay_hen' => $slot->ngay_hen,
+                    'ly_do_kham' => 'Khám theo dõi định kỳ cho tài khoản kiểm thử.',
+                    'trang_thai' => $status,
+                    'nguoi_tao_id' => $nguoiTaoId,
+                    'gio_den_thuc_te' => $gioDenThucTe,
+                    'nguoi_tiep_nhan_id' => in_array($status, ['da_hoan_tat', 'khong_den'], true) ? $nguoiTiepNhanId : null,
+                    'ly_do_huy_id' => null,
+                    'ly_do_huy_khac' => null,
+                    'ghi_chu' => 'Dữ liệu kiểm thử doctor portal.',
+                    'ghi_chu_noi_bo' => null,
+                    'created_at' => $createdAt,
+                    'updated_at' => now(),
+                ];
+            }
         }
 
         $rows = array_values(array_filter(

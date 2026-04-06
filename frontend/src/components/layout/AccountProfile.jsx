@@ -290,7 +290,7 @@ function AccountProfile() {
 
   return (
     <div
-      className="min-h-screen flex items-center justify-center px-4 py-8 md:px-8"
+      className="flex items-center justify-center pt-14"
       style={{ backgroundColor: COLORS.background, color: COLORS.text }}>
       <main className="w-full max-w-4xl space-y-8">
         <section

@@ -9,35 +9,49 @@ class PhieuKhamPolicy
 {
     public function viewAny(NguoiDung $user): bool
     {
-        return $this->isPrivilegedUser($user) || $this->resolvePatientId($user) !== null;
+        return $this->isElevatedUser($user)
+            || $this->resolvePatientId($user) !== null
+            || $this->resolveDoctorId($user) !== null;
     }
 
     public function view(NguoiDung $user, PhieuKham $phieuKham): bool
     {
-        if ($this->isPrivilegedUser($user)) {
+        if ($this->isElevatedUser($user)) {
             return true;
         }
 
-        return $this->resolvePatientId($user) === (int) $phieuKham->benh_nhan_id;
+        $patientId = $this->resolvePatientId($user);
+
+        if ($patientId !== null && $patientId === (int) $phieuKham->benh_nhan_id) {
+            return true;
+        }
+
+        return $this->resolveDoctorId($user) === (int) $phieuKham->bac_si_id;
     }
 
     public function create(NguoiDung $user): bool
     {
-        return $this->isPrivilegedUser($user);
+        return $this->isElevatedUser($user) || $this->resolveDoctorId($user) !== null;
     }
 
     public function update(NguoiDung $user, PhieuKham $phieuKham): bool
     {
-        if ($this->isPrivilegedUser($user)) {
+        if ($this->isElevatedUser($user)) {
             return true;
         }
 
-        return $this->resolvePatientId($user) === (int) $phieuKham->benh_nhan_id;
+        $patientId = $this->resolvePatientId($user);
+
+        if ($patientId !== null && $patientId === (int) $phieuKham->benh_nhan_id) {
+            return true;
+        }
+
+        return $this->resolveDoctorId($user) === (int) $phieuKham->bac_si_id;
     }
 
     public function delete(NguoiDung $user, PhieuKham $phieuKham): bool
     {
-        return $this->isPrivilegedUser($user);
+        return $this->isElevatedUser($user);
     }
 
     private function resolvePatientId(NguoiDung $user): ?int
@@ -51,10 +65,21 @@ class PhieuKhamPolicy
         return (int) $patientId;
     }
 
-    private function isPrivilegedUser(NguoiDung $user): bool
+    private function resolveDoctorId(NguoiDung $user): ?int
+    {
+        $doctorId = $user->bacSi?->id;
+
+        if (empty($doctorId)) {
+            return null;
+        }
+
+        return (int) $doctorId;
+    }
+
+    private function isElevatedUser(NguoiDung $user): bool
     {
         $role = strtoupper((string) $user->vaiTro?->ma_vai_tro);
 
-        return in_array($role, ['ADMIN', 'LETAN', 'NHANVIEN', 'BACSI'], true);
+        return in_array($role, ['ADMIN', 'BACSI'], true);
     }
 }

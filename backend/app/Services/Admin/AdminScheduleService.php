@@ -32,11 +32,20 @@ class AdminScheduleService
 	public function getDoctors(array $filters): LengthAwarePaginator
 	{
 		$pageSize = $this->resolvePageSize($filters['pageSize'] ?? null);
+		$keyword = trim((string) ($filters['q'] ?? $filters['ten'] ?? ''));
+		$doctorCode = trim((string) ($filters['ma_bac_si'] ?? ''));
 
 		return BacSi::query()
 			->with(['bacSiChuyenKhoas.chuyenKhoa:id,ten_chuyen_khoa'])
-			->when(!empty($filters['ten']), function ($query) use ($filters) {
-				$query->where('ho_ten', 'like', '%' . trim((string) $filters['ten']) . '%');
+			->when($keyword !== '', function ($query) use ($keyword) {
+				$query->where(function ($subQuery) use ($keyword) {
+					$subQuery
+						->where('ho_ten', 'like', '%' . $keyword . '%')
+						->orWhere('ma_bac_si', 'like', '%' . $keyword . '%');
+				});
+			})
+			->when($doctorCode !== '', function ($query) use ($doctorCode) {
+				$query->where('ma_bac_si', 'like', '%' . $doctorCode . '%');
 			})
 			->when(!empty($filters['chuyen_khoa_id']), function ($query) use ($filters) {
 				$query->whereHas('bacSiChuyenKhoas', function ($subQuery) use ($filters) {
