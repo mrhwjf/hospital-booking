@@ -3,6 +3,7 @@
 namespace App\Requests\Clinical;
 
 use Illuminate\Foundation\Http\FormRequest;
+use App\Models\PhieuKham;
 
 class StoreDonThuocRequest extends FormRequest
 {
@@ -11,9 +12,18 @@ class StoreDonThuocRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        // TODO: Thêm kiểm tra policy - bác sĩ chỉ có thể tạo đơn thuốc cho phiếu khám của mình
-        // return $this->user()->can('create', DonThuoc::class);
-        return true;
+        $phieuKhamId = (int) $this->route('phieu_kham_id');
+
+        if (!$phieuKhamId) {
+            return false;
+        }
+
+        $phieuKham = PhieuKham::query()->find($phieuKhamId);
+        if (!$phieuKham) {
+            return false;
+        }
+
+        return (bool) $this->user()?->can('update', $phieuKham);
     }
 
     /**

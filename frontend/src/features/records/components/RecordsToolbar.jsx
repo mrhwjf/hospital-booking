@@ -8,6 +8,7 @@ export default function RecordsToolbar({
   onTypeFilterChange,
   onReset,
   onAdd,
+  addDisabled = false,
   documentTypeOptions,
 }) {
   return (
@@ -27,7 +28,7 @@ export default function RecordsToolbar({
           value={typeFilter}
           onChange={onTypeFilterChange}
           options={[{ value: "all", label: "Tất cả loại tài liệu" }, ...documentTypeOptions]}
-          className="w-full xl:w-[260px] xl:shrink-0"
+          className="w-full xl:w-65 xl:shrink-0"
         />
 
         <div className="flex flex-wrap gap-3 xl:ml-auto xl:shrink-0">
@@ -35,7 +36,13 @@ export default function RecordsToolbar({
             Đặt lại lọc
           </Button>
           {onAdd ? (
-            <Button type="primary" size="large" icon={<PlusOutlined />} onClick={onAdd}>
+            <Button
+              type="primary"
+              size="large"
+              icon={<PlusOutlined />}
+              onClick={onAdd}
+              disabled={addDisabled}
+            >
               Thêm tài liệu
             </Button>
           ) : null}

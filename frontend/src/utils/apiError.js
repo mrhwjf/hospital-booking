@@ -3,5 +3,11 @@ export const getApiErrorMessage = (error, fallbackMessage) => {
 		error?.response?.data?.data?.errors &&
 		Object.values(error.response.data.data.errors)[0]?.[0]
 
-	return firstError || error?.response?.data?.message || fallbackMessage
+	return (
+		firstError ||
+		error?.response?.data?.error?.message ||
+		error?.response?.data?.message ||
+		error?.message ||
+		fallbackMessage
+	)
 }

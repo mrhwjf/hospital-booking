@@ -30,9 +30,6 @@ export function getTrangThaiLabel(trangThai) {
   if (trangThai === "dang_kham") {
     return "Đang khám";
   }
-  if (trangThai === "cho_ke_don") {
-    return "Chờ kê đơn";
-  }
 
   return "Tiếp nhận";
 }

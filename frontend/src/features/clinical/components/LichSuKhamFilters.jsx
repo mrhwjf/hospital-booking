@@ -1,9 +1,5 @@
-import {
-  ClockCircleOutlined,
-  DownOutlined,
-  SearchOutlined,
-  UserOutlined,
-} from "@ant-design/icons";
+import { ClockCircleOutlined, SearchOutlined, UserOutlined } from "@ant-design/icons";
+import { Form, Input, Select } from "antd";
 
 export default function LichSuKhamFilters({
   keyword,
@@ -17,66 +13,76 @@ export default function LichSuKhamFilters({
   doctors,
   specialties,
 }) {
+  const doctorOptions = [
+    { label: "Bác sĩ: Tất cả", value: "all" },
+    ...doctors.map((doctor) => ({
+      label: doctor.ho_ten,
+      value: String(doctor.id),
+    })),
+  ];
+
+  const specialtyOptions = [
+    { label: "Chuyên khoa: Tất cả", value: "all" },
+    ...specialties.map((specialty) => ({
+      label: specialty.ten_chuyen_khoa,
+      value: String(specialty.id),
+    })),
+  ];
+
+  const timeOptions = [
+    { label: "Thời gian: Tất cả", value: "all" },
+    { label: "30 ngày gần đây", value: "30d" },
+    { label: "90 ngày gần đây", value: "90d" },
+    { label: "12 tháng gần đây", value: "365d" },
+  ];
+
   return (
-    <div className="grid grid-cols-1 gap-3 rounded-2xl border border-slate-200 bg-white p-3 md:grid-cols-12">
-      <div className="relative md:col-span-5">
-        <SearchOutlined className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
-        <input
-          type="text"
-          value={keyword}
-          onChange={(event) => onKeywordChange(event.target.value)}
-          className="h-11 w-full rounded-xl border border-slate-200 bg-slate-50 pl-11 pr-3 text-sm outline-none transition focus:border-teal-600"
-          placeholder="Tìm kiếm theo bác sĩ hoặc chẩn đoán..."
-        />
-      </div>
+    <Form layout="vertical" className="rounded-2xl border border-slate-200 bg-white p-3">
+      <div className="grid grid-cols-1 gap-3 md:grid-cols-12">
+        <Form.Item className="md:col-span-5 mb-0" label="Tìm kiếm">
+          <Input
+            value={keyword}
+            onChange={(event) => onKeywordChange(event.target.value)}
+            prefix={<SearchOutlined className="text-slate-400" />}
+            className="h-11"
+            placeholder="Tìm kiếm theo bác sĩ hoặc chẩn đoán..."
+            allowClear
+          />
+        </Form.Item>
 
-      <div className="relative md:col-span-2">
-        <ClockCircleOutlined className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-        <select
-          value={timeFilter}
-          onChange={(event) => onTimeFilterChange(event.target.value)}
-          className="h-11 w-full appearance-none rounded-xl border border-slate-200 bg-white pl-9 pr-7 text-sm text-slate-700 outline-none transition focus:border-teal-600"
-        >
-          <option value="all">Thời gian: Tất cả</option>
-          <option value="30d">30 ngày gần đây</option>
-          <option value="90d">90 ngày gần đây</option>
-          <option value="365d">12 tháng gần đây</option>
-        </select>
-        <DownOutlined className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400" />
-      </div>
+        <Form.Item className="md:col-span-2 mb-0" label="Khoảng thời gian">
+          <Select
+            value={timeFilter}
+            onChange={onTimeFilterChange}
+            options={timeOptions}
+            suffixIcon={<ClockCircleOutlined className="text-slate-500" />}
+            className="h-11"
+          />
+        </Form.Item>
 
-      <div className="relative md:col-span-2">
-        <UserOutlined className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-slate-500" />
-        <select
-          value={doctorFilter}
-          onChange={(event) => onDoctorFilterChange(event.target.value)}
-          className="h-11 w-full appearance-none rounded-xl border border-slate-200 bg-white pl-9 pr-7 text-sm text-slate-700 outline-none transition focus:border-teal-600"
-        >
-          <option value="all">Bác sĩ: Tất cả</option>
-          {doctors.map((doctor) => (
-            <option key={doctor.id} value={doctor.id}>
-              {doctor.ho_ten}
-            </option>
-          ))}
-        </select>
-        <DownOutlined className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400" />
-      </div>
+        <Form.Item className="md:col-span-2 mb-0" label="Bác sĩ">
+          <Select
+            value={doctorFilter}
+            onChange={onDoctorFilterChange}
+            options={doctorOptions}
+            suffixIcon={<UserOutlined className="text-slate-500" />}
+            className="h-11"
+            showSearch
+            optionFilterProp="label"
+          />
+        </Form.Item>
 
-      <div className="relative md:col-span-3">
-        <select
-          value={specialtyFilter}
-          onChange={(event) => onSpecialtyFilterChange(event.target.value)}
-          className="h-11 w-full appearance-none rounded-xl border border-slate-200 bg-white px-3 pr-7 text-sm text-slate-700 outline-none transition focus:border-teal-600"
-        >
-          <option value="all">Chuyên khoa: Tất cả</option>
-          {specialties.map((specialty) => (
-            <option key={specialty.id} value={specialty.id}>
-              {specialty.ten_chuyen_khoa}
-            </option>
-          ))}
-        </select>
-        <DownOutlined className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-xs text-slate-400" />
+        <Form.Item className="md:col-span-3 mb-0" label="Chuyên khoa">
+          <Select
+            value={specialtyFilter}
+            onChange={onSpecialtyFilterChange}
+            options={specialtyOptions}
+            className="h-11"
+            showSearch
+            optionFilterProp="label"
+          />
+        </Form.Item>
       </div>
-    </div>
+    </Form>
   );
 }

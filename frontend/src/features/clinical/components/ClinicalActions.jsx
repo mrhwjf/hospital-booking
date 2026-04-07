@@ -1,4 +1,4 @@
-import { Button } from "antd";
+import { Button, message } from "antd";
 
 export default function ClinicalActions({ services = [], type, onSubmit, onEdit, disabled = false, isEditing = false, isSaving = false }) {
 
@@ -13,17 +13,17 @@ export default function ClinicalActions({ services = [], type, onSubmit, onEdit,
       console.log("Danh sách dịch vụ:", services);
 
       if (services.length === 0) {
-        alert("Chưa chọn dịch vụ!");
+        message.warning("Chưa chọn dịch vụ!");
         return;
       }
 
-      alert("Đã gửi chỉ định!");
+      message.success("Đã gửi chỉ định!");
 
     }
 
     if (type === "phieu-kham") {
 
-      alert("Đã lưu phiếu khám!");
+      message.success("Đã lưu phiếu khám!");
 
     }
 

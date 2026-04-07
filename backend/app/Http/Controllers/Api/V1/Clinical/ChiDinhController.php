@@ -7,8 +7,8 @@ use App\Requests\Clinical\StoreChiDinhRequest;
 use App\Models\PhieuKham;
 use App\Resources\ApiResponse;
 use App\Resources\Clinical\ChiDinhResource;
-use App\Resources\Clinical\DichVuResource;
 use App\Services\ClinicalService;
+use Illuminate\Http\Request;
 
 class ChiDinhController extends Controller
 {
@@ -16,15 +16,12 @@ class ChiDinhController extends Controller
     {
     }
 
-    public function dichVuList()
+    public function dichVuList(Request $request)
     {
-        $items = $this->clinicalService->getDichVuList();
+        $phieuKhamId = (int) $request->query('phieu_kham_id');
+        $items = $this->clinicalService->getDichVuList($phieuKhamId > 0 ? $phieuKhamId : null);
 
-        return ApiResponse::success(
-            $items
-                ->map(fn($item) => (new DichVuResource($item))->toArray(request()))
-                ->values()
-        );
+        return ApiResponse::success($items->values());
     }
 
     public function index(int $phieuKhamId)
@@ -52,8 +49,7 @@ class ChiDinhController extends Controller
             $items
                 ->map(fn($item) => (new ChiDinhResource($item))->toArray($request))
                 ->values(),
-            'Đã tạo phiếu chỉ định thành công',
-            201
+            'Đã lưu phiếu chỉ định thành công'
         );
     }
 }

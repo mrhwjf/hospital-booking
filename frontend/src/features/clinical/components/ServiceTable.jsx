@@ -1,5 +1,5 @@
 import { useMemo, useState } from "react";
-import { Input, Pagination } from "antd";
+import { Input, Pagination, Tag } from "antd";
 import {
   SearchOutlined,
   PlusCircleFilled,
@@ -12,10 +12,21 @@ function formatVnd(price) {
   return `${price.toLocaleString("vi-VN")} VNĐ`;
 }
 
-export default function ServiceTable({ services = [], selectedServices, setSelectedServices }) {
+export default function ServiceTable({ services = [], selectedServices, setSelectedServices, disabled = false }) {
   const [keyword, setKeyword] = useState("");
   const [activeFilter, setActiveFilter] = useState("Tất cả");
   const [currentPage, setCurrentPage] = useState(1);
+
+  function getServiceKey(service) {
+    if (service?.key) {
+      return service.key;
+    }
+
+    const rawType = service?.type === "goi_kham" ? "goi_kham" : "dich_vu";
+    const rawId = service?.entityId ?? service?.id;
+
+    return `${rawType}:${rawId}`;
+  }
 
   const filters = useMemo(() => {
     const categories = [...new Set((services || []).map((service) => service.category).filter(Boolean))];
@@ -35,17 +46,34 @@ export default function ServiceTable({ services = [], selectedServices, setSelec
     return filteredServices.slice(start, start + PAGE_SIZE);
   }, [filteredServices, currentPage]);
 
-  function isSelected(serviceId) {
-    return selectedServices.some((service) => service.id === serviceId);
+  function getSelectedItem(serviceKey) {
+    return selectedServices.find((service) => getServiceKey(service) === serviceKey);
   }
 
   function toggleService(service) {
-    if (isSelected(service.id)) {
-      setSelectedServices((prev) => prev.filter((item) => item.id !== service.id));
+    if (disabled) {
       return;
     }
 
-    setSelectedServices((prev) => [...prev, { ...service, quantity: 1 }]);
+    const serviceKey = getServiceKey(service);
+
+    if (getSelectedItem(serviceKey)) {
+      setSelectedServices((prev) => prev.filter((item) => getServiceKey(item) !== serviceKey));
+      return;
+    }
+
+    setSelectedServices((prev) => [
+      ...prev,
+      {
+        ...service,
+        key: serviceKey,
+        quantity: 1,
+        note: "",
+        isBooked: false,
+        bookedPackageName: null,
+        goiKhamId: null,
+      },
+    ]);
   }
 
   return (
@@ -68,6 +96,7 @@ export default function ServiceTable({ services = [], selectedServices, setSelec
         }}
         placeholder="Tìm nhanh: CTM, Glucose, X-Quang phổi..."
         prefix={<SearchOutlined style={{ color: "#94A3B8" }} />}
+        disabled={disabled}
         className="mb-6"
         style={{ borderRadius: 8, borderColor: "#E2E8F0", height: 40 }}
       />
@@ -80,15 +109,21 @@ export default function ServiceTable({ services = [], selectedServices, setSelec
               key={filter}
               type="button"
               onClick={() => {
+                if (disabled) {
+                  return;
+                }
                 setActiveFilter(filter);
                 setCurrentPage(1);
               }}
+              disabled={disabled}
               className="px-3 py-1.5 rounded-md text-sm"
               style={{
                 border: "1px solid #E2E8F0",
                 background: active ? "#0F766E" : "#F1F5F9",
-                color: active ? "#FFFFFF" : "#475569",
+                color: disabled ? "#94A3B8" : active ? "#FFFFFF" : "#475569",
                 fontWeight: active ? 600 : 500,
+                opacity: disabled ? 0.6 : 1,
+                cursor: disabled ? "not-allowed" : "pointer",
               }}
             >
               {filter}
@@ -99,23 +134,33 @@ export default function ServiceTable({ services = [], selectedServices, setSelec
 
       <div className="grid grid-cols-2 gap-5">
         {paginatedServices.map((service) => {
-          const selected = isSelected(service.id);
+          const serviceKey = getServiceKey(service);
+          const selectedItem = getSelectedItem(serviceKey);
+          const selected = Boolean(selectedItem);
 
           return (
             <button
-              key={service.id}
+              key={serviceKey}
               type="button"
               onClick={() => toggleService(service)}
               className="text-left rounded-[10px] p-4 flex items-center justify-between"
               style={{
                 border: "1px solid #D1E5E2",
                 background: selected ? "#ECFDF5" : "#FFFFFF",
+                opacity: disabled ? 0.7 : 1,
+                cursor: disabled ? "not-allowed" : "pointer",
               }}
+              disabled={disabled}
             >
               <div>
                 <p className="text-base font-semibold text-[#1E293B] leading-tight mb-1">
                   {service.name}
                 </p>
+                {/* {selectedItem?.isBooked ? (
+                  <Tag color="cyan" className="mb-1">
+                    Đặt từ lịch hẹn{selectedItem?.bookedPackageName ? ` • ${selectedItem.bookedPackageName}` : ""}
+                  </Tag>
+                ) : null} */}
                 <p className="text-sm font-semibold" style={{ color: "#0F766E" }}>
                   {formatVnd(service.price)}
                 </p>

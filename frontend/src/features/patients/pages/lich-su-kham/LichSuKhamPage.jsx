@@ -37,7 +37,6 @@ const { Paragraph, Text, Title } = Typography
 const visitStatusMeta = {
 	tiep_nhan: { label: 'Tiếp nhận', color: 'gold' },
 	dang_kham: { label: 'Đang khám', color: 'blue' },
-	cho_ke_don: { label: 'Chờ kê đơn', color: 'purple' },
 	hoan_thanh: { label: 'Hoàn thành', color: 'green' },
 }
 

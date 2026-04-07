@@ -31,7 +31,7 @@ class EnsureRole
 			return response()->json([
 				'error' => [
 					'code' => 'FORBIDDEN',
-					'message' => 'Bạn không có quyền truy cập tài nguyên này TEST.',
+					'message' => 'Bạn không có quyền truy cập tài nguyên này.',
 				],
 			], Response::HTTP_FORBIDDEN);
 		}

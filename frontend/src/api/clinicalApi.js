@@ -5,6 +5,9 @@ export const CLINICAL_ENDPOINTS = {
 	// Phiếu khám
 	phieuKhamList: () => "/phieu-kham",
 	phieuKham: (id) => `/phieu-kham/${id}`,
+	startPhieuKham: (id) => `/phieu-kham/${id}/start`,
+	completePhieuKham: (id) => `/phieu-kham/${id}/complete`,
+	icd10List: () => "/clinical/icd10",
 
 	// Chỉ định dịch vụ
 	dichVuList: () => "/clinical/dich-vu",

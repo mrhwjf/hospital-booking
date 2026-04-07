@@ -3,6 +3,7 @@
 namespace App\Requests\Clinical;
 
 use Illuminate\Foundation\Http\FormRequest;
+use App\Models\DonThuoc;
 
 class UpdateDonThuocItemsRequest extends FormRequest
 {
@@ -11,9 +12,18 @@ class UpdateDonThuocItemsRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        // TODO: Thêm kiểm tra policy - bác sĩ chỉ có thể cập nhật đơn của mình
-        // return $this->user()->can('update', $donThuoc);
-        return true;
+        $donThuocId = (int) $this->route('don_thuoc_id');
+
+        if (!$donThuocId) {
+            return false;
+        }
+
+        $donThuoc = DonThuoc::query()->with('phieuKham')->find($donThuocId);
+        if (!$donThuoc?->phieuKham) {
+            return false;
+        }
+
+        return (bool) $this->user()?->can('update', $donThuoc->phieuKham);
     }
 
     /**

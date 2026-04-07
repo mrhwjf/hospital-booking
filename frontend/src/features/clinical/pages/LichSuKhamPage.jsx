@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
-import { Alert, Button, Empty, Spin } from "antd";
+import { Alert, Button, Empty, Pagination, Spin } from "antd";
 import { getLichSuPhieuKham } from "../../../Services/clinicalService";
+import { getApiErrorMessage } from "../../../utils/apiError";
 import LichSuKhamFilters from "../components/LichSuKhamFilters";
 import LatestExamCard from "../components/LatestExamCard";
 import ExamHistoryList from "../components/ExamHistoryList";
@@ -8,6 +9,7 @@ import ExamHistoryList from "../components/ExamHistoryList";
 const IN_PROGRESS_STATUSES = new Set(["dang_kham"]);
 const NOT_EXAMINED_STATUSES = new Set(["tiep_nhan", "cho_kham", "dang_ky", "da_dat_lich", "chua_kham"]);
 const COMPLETED_STATUSES = new Set(["hoan_thanh", "da_hoan_tat", "da_hoan_thanh"]);
+const OLDER_RECORDS_PAGE_SIZE = 5;
 
 function normalizeStatus(value) {
   return String(value || "").trim().toLowerCase();
@@ -46,7 +48,30 @@ function pickLatestByPriority(items = []) {
   return sortedByCreatedAt.find((record) => COMPLETED_STATUSES.has(normalizeStatus(record?.trang_thai))) || null;
 }
 
-export default function LichSuKhamPage({ selectedPatient, onBack, onSelectPhieuKham }) {
+function getVisitActionMeta(record) {
+  const status = normalizeStatus(record?.trang_thai);
+
+  if (NOT_EXAMINED_STATUSES.has(status)) {
+    return {
+      type: "start",
+      label: "Bắt đầu khám",
+    };
+  }
+
+  if (IN_PROGRESS_STATUSES.has(status)) {
+    return {
+      type: "continue",
+      label: "Tiếp tục khám",
+    };
+  }
+
+  return {
+    type: "view",
+    label: "Xem chi tiết",
+  };
+}
+
+export default function LichSuKhamPage({ selectedPatient, onBack, onSelectPhieuKham, refreshKey = 0 }) {
   const [records, setRecords] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
@@ -54,6 +79,7 @@ export default function LichSuKhamPage({ selectedPatient, onBack, onSelectPhieuK
   const [timeFilter, setTimeFilter] = useState("all");
   const [doctorFilter, setDoctorFilter] = useState("all");
   const [specialtyFilter, setSpecialtyFilter] = useState("all");
+  const [olderPage, setOlderPage] = useState(1);
 
   const patientId = useMemo(() => {
     const rawId = selectedPatient?.benhNhanId ?? selectedPatient?.id;
@@ -94,7 +120,7 @@ export default function LichSuKhamPage({ selectedPatient, onBack, onSelectPhieuK
         }
       } catch (loadError) {
         if (mounted) {
-          setError(loadError?.response?.data?.message || "Không thể tải lịch sử khám của bệnh nhân.");
+          setError(getApiErrorMessage(loadError, "Không thể tải lịch sử khám của bệnh nhân."));
         }
       } finally {
         if (mounted) {
@@ -108,7 +134,7 @@ export default function LichSuKhamPage({ selectedPatient, onBack, onSelectPhieuK
     return () => {
       mounted = false;
     };
-  }, [patientId]);
+  }, [patientId, refreshKey]);
 
   const enrichedRecords = useMemo(() => {
     return records.map((record) => ({
@@ -191,16 +217,25 @@ export default function LichSuKhamPage({ selectedPatient, onBack, onSelectPhieuK
       .sort((a, b) => toTimeValue(b) - toTimeValue(a));
   }, [filteredRecords, latestRecord?.id]);
 
+  const paginatedOlderRecords = useMemo(() => {
+    const startIndex = (olderPage - 1) * OLDER_RECORDS_PAGE_SIZE;
+    return olderRecords.slice(startIndex, startIndex + OLDER_RECORDS_PAGE_SIZE);
+  }, [olderPage, olderRecords]);
+
+  useEffect(() => {
+    setOlderPage(1);
+  }, [keyword, timeFilter, doctorFilter, specialtyFilter, latestRecord?.id]);
+
   return (
     <div className="space-y-5">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
-          <h1 className="text-4xl font-extrabold leading-tight text-slate-900">Lịch sử khám bệnh</h1>
+          <h1 className="text-3xl font-extrabold leading-tight text-slate-900">Lịch sử khám bệnh</h1>
           <p className="text-sm text-slate-500 mt-1">
             Xem và quản lý các phiếu khám bệnh của bệnh nhân: <strong>{selectedPatient?.name || "-"}</strong> ({selectedPatient?.code || "-"})
           </p>
         </div>
-        <Button type="primary" onClick={onBack} className="!bg-teal-600 hover:!bg-teal-700 !border-teal-600 !h-10 !px-5 !font-semibold">
+        <Button type="primary" onClick={onBack} className="bg-teal-600! hover:bg-teal-700! border-teal-600! h-10! px-5! font-semibold!">
           Quay lại danh sách bệnh nhân
         </Button>
       </div>
@@ -228,25 +263,39 @@ export default function LichSuKhamPage({ selectedPatient, onBack, onSelectPhieuK
         <Empty description="Bệnh nhân này chưa có phiếu khám phù hợp." />
       ) : (
         <>
-          <div className="text-lg font-semibold text-slate-800">• Phiếu khám mới nhất</div>
+          <div className="text-lg font-semibold text-slate-800">Phiếu khám mới nhất</div>
           <LatestExamCard
             record={latestRecord}
+            resolveAction={getVisitActionMeta}
             onViewDetail={(record) => {
               if (typeof onSelectPhieuKham === "function") {
-                onSelectPhieuKham(record);
+                onSelectPhieuKham(record, getVisitActionMeta(record));
               }
             }}
           />
 
-          <div className="pt-2 text-[30px] font-bold text-slate-900">Lịch sử khám cũ hơn</div>
+          <div className="pt-2 text-2xl font-bold text-slate-900">Lịch sử khám cũ hơn</div>
           <ExamHistoryList
-            records={olderRecords}
+            records={paginatedOlderRecords}
+            resolveAction={getVisitActionMeta}
             onViewDetail={(record) => {
               if (typeof onSelectPhieuKham === "function") {
-                onSelectPhieuKham(record);
+                onSelectPhieuKham(record, getVisitActionMeta(record));
               }
             }}
           />
+
+          {olderRecords.length > OLDER_RECORDS_PAGE_SIZE ? (
+            <div className="flex justify-end pt-2">
+              <Pagination
+                current={olderPage}
+                pageSize={OLDER_RECORDS_PAGE_SIZE}
+                total={olderRecords.length}
+                showSizeChanger={false}
+                onChange={setOlderPage}
+              />
+            </div>
+          ) : null}
         </>
       )}
     </div>

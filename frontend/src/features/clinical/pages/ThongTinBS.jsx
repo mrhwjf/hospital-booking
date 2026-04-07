@@ -26,6 +26,7 @@ import {
   getThongTinBacSiStatic,
   getThongTinBacSiWeekly,
 } from "../../../Services/clinicalService";
+import { getApiErrorMessage } from "../../../utils/apiError";
 
 dayjs.locale("vi");
 
@@ -352,9 +353,7 @@ const ThongTinBS = () => {
         return;
       }
       console.error("Error loading doctor info:", error);
-      setProfileError(
-        error?.response?.data?.message || "Không thể tải thông tin bác sĩ.",
-      );
+      setProfileError(getApiErrorMessage(error, "Không thể tải thông tin bác sĩ."));
       setBacSiInfo(null);
       setChuyenKhoa([]);
     } finally {
@@ -403,9 +402,7 @@ const ThongTinBS = () => {
         return;
       }
       console.error("Error loading schedule:", error);
-      setScheduleError(
-        error?.response?.data?.message || "Không thể tải lịch làm việc.",
-      );
+      setScheduleError(getApiErrorMessage(error, "Không thể tải lịch làm việc."));
       setLichLamViec([]);
       setNgayNghiLe([]);
       setWeekMeta(null);

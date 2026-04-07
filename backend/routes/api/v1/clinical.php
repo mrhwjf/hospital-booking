@@ -17,6 +17,9 @@ Route::middleware(['auth.jwt', 'role:BACSI'])->group(function () {
 	Route::get('/phieu-kham', [PhieuKhamController::class, 'indexByDoctor']);
 	Route::get('/phieu-kham/{id}', [PhieuKhamController::class, 'show']);
 	Route::put('/phieu-kham/{id}', [PhieuKhamController::class, 'update']);
+	Route::post('/phieu-kham/{id}/start', [PhieuKhamController::class, 'start']);
+	Route::post('/phieu-kham/{id}/complete', [PhieuKhamController::class, 'complete']);
+	Route::get('/clinical/icd10', [PhieuKhamController::class, 'icd10List']);
 
 	// Chỉ định
 	// Dùng namespace /clinical để tránh xung đột với scheduling /dich-vu.

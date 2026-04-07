@@ -39,7 +39,7 @@ class VisitHistoryListRequest extends FormRequest
 		return [
 			'benh_nhan_id' => ['required', 'integer', 'exists:benh_nhan,id'],
 			'q' => ['nullable', 'string', 'max:255'],
-			'trang_thai' => ['nullable', 'string', 'in:tiep_nhan,dang_kham,cho_ke_don,hoan_thanh,all'],
+			'trang_thai' => ['nullable', 'string', 'in:tiep_nhan,dang_kham,hoan_thanh,all'],
 			'tu_ngay' => ['nullable', 'date_format:Y-m-d'],
 			'den_ngay' => ['nullable', 'date_format:Y-m-d'],
 			'page' => ['nullable', 'integer', 'min:1'],

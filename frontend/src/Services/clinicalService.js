@@ -26,20 +26,73 @@ export async function updatePhieuKham(id, payload) {
   return response?.data ?? null;
 }
 
-export async function completePhieuKham(id) {
-  return updatePhieuKham(id, { trang_thai: "hoan_thanh" });
+export async function startPhieuKham(id) {
+  const response = await httpClient.post(CLINICAL_ENDPOINTS.startPhieuKham(id));
+  return response?.data ?? null;
 }
 
-export async function getDichVuList() {
-  const response = await httpClient.get(CLINICAL_ENDPOINTS.dichVuList());
+export async function completePhieuKham(id) {
+  const response = await httpClient.post(CLINICAL_ENDPOINTS.completePhieuKham(id));
+  return response?.data ?? null;
+}
+
+export async function searchIcd10(params = {}) {
+  const response = await httpClient.get(CLINICAL_ENDPOINTS.icd10List(), { params });
+  return response?.data ?? [];
+}
+
+function normalizeChiDinhCatalogItem(item = {}) {
+  const sourceType = item?.loai_nguon === "goi_kham" ? "goi_kham" : "dich_vu";
+  const isPackage = sourceType === "goi_kham";
+  const entityId = Number(
+    isPackage
+      ? (item?.goi_kham_id ?? item?.id)
+      : (item?.dich_vu_id ?? item?.id),
+  );
+
+  if (!Number.isFinite(entityId) || entityId <= 0) {
+    return null;
+  }
+
+  const specialties = Array.isArray(item?.chuyen_khoa)
+    ? item.chuyen_khoa
+    : item?.chuyen_khoa
+      ? [item.chuyen_khoa]
+      : [];
+
+  const specialtyIds = specialties
+    .map((specialty) => Number(specialty?.id))
+    .filter((value) => Number.isFinite(value) && value > 0);
+
+  return {
+    key: `${sourceType}:${entityId}`,
+    id: entityId,
+    entityId,
+    type: sourceType,
+    code: isPackage ? (item?.ma_goi_kham || "") : (item?.ma_dich_vu || ""),
+    name: isPackage
+      ? (item?.ten_goi_kham || `Gói khám #${entityId}`)
+      : (item?.ten_dich_vu || `Dịch vụ #${entityId}`),
+    price: Number(isPackage ? (item?.gia_goi_kham ?? 0) : (item?.gia_dich_vu ?? 0)),
+    category: isPackage ? "Gói khám" : (LOAI_LABEL[item?.loai_dich_vu] ?? "Khác"),
+    specialtyId: specialtyIds[0] ?? (Number(item?.chuyen_khoa_id) || null),
+    specialtyIds,
+    specialtyName: specialties
+      .map((specialty) => specialty?.ten_chuyen_khoa)
+      .filter(Boolean)
+      .join(", "),
+    dichVuId: isPackage ? null : entityId,
+    goiKhamId: isPackage ? entityId : null,
+  };
+}
+
+export async function getDichVuList(params = {}) {
+  const response = await httpClient.get(CLINICAL_ENDPOINTS.dichVuList(), { params });
   const items = response?.data ?? [];
 
-  return items.map((item) => ({
-    id: item.id,
-    name: item.ten_dich_vu,
-    price: Number(item.gia_dich_vu ?? 0),
-    category: LOAI_LABEL[item.loai_dich_vu] ?? "Khác",
-  }));
+  return items
+    .map(normalizeChiDinhCatalogItem)
+    .filter(Boolean);
 }
 
 export async function getChiDinhList(phieuKhamId) {

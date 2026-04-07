@@ -12,7 +12,7 @@ class SearchThuocRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return true;
+        return $this->user()?->vaiTro?->ma_vai_tro === 'BACSI';
     }
 
     /**

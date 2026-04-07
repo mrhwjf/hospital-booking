@@ -1,291 +1,61 @@
-import { useDeferredValue, useEffect, useMemo, useState, startTransition } from "react";
-import { message } from "antd";
-import {
-  FolderOpenOutlined,
-} from "@ant-design/icons";
+import { FolderOpenOutlined } from "@ant-design/icons";
 import {
   DOCUMENT_TYPE_OPTIONS,
-  createEmptyForm,
 } from "../data/recordsData";
 import RecordsToolbar from "../components/RecordsToolbar";
 import RecordsTable from "../components/RecordsTable";
 import DocumentFormModal from "../components/DocumentFormModal";
 import DocumentDetailModal from "../components/DocumentDetailModal";
 import DocumentPreviewModal from "../components/DocumentPreviewModal";
-import {
-  createHoSoTaiLieu,
-  deleteHoSoTaiLieu,
-  getHoSoTaiLieuByBenhNhan,
-  getTaiLieuSignedUrl,
-  updateHoSoTaiLieu,
-  uploadHoSoTaiLieuFile,
-} from "../../../Services/clinicalService";
+import useHoSoTaiLieuManager from "../hooks/useHoSoTaiLieuManager";
 
 export default function HoSoTaiLieuPage({ benhNhanId, phieuKhamId, isLocked = false, refreshKey = 0 }) {
-
-  const [documents, setDocuments] = useState([]);
-  const [selectedDocumentId, setSelectedDocumentId] = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [keyword, setKeyword] = useState("");
-  const [typeFilter, setTypeFilter] = useState("all");
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [formState, setFormState] = useState(createEmptyForm(phieuKhamId));
-  const [fileList, setFileList] = useState([]);
-  const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-  const [isPreviewModalOpen, setIsPreviewModalOpen] = useState(false);
-  const [detailDocument, setDetailDocument] = useState(null);
-  const [previewDocument, setPreviewDocument] = useState(null);
-  const [previewUrl, setPreviewUrl] = useState(null);
-  const [previewLoading, setPreviewLoading] = useState(false);
-  const [messageApi, contextHolder] = message.useMessage();
-
-  const deferredKeyword = useDeferredValue(keyword.trim().toLowerCase());
-
-  const hydratedDocuments = useMemo(() => documents, [documents]);
-
-  async function fetchDocuments() {
-    if (!benhNhanId || !phieuKhamId) {
-      setDocuments([]);
-      setSelectedDocumentId(null);
-      setLoading(false);
-      setError("Bệnh nhân này chưa có phiếu khám hoàn thành để lưu tài liệu.");
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const data = await getHoSoTaiLieuByBenhNhan(benhNhanId, {
-        per_page: 100,
-        phieu_kham_id: phieuKhamId,
-      });
-      setDocuments(data);
-      setSelectedDocumentId((prev) => prev ?? data?.[0]?.id ?? null);
-    } catch (err) {
-      setError(err?.response?.data?.message ?? err?.message ?? "Không thể tải hồ sơ tài liệu.");
-    } finally {
-      setLoading(false);
-    }
-  }
-
-  useEffect(() => {
-    fetchDocuments();
-  }, [benhNhanId, phieuKhamId, refreshKey]);
-
-  const filteredDocuments = hydratedDocuments.filter((document) => {
-    const matchesType = typeFilter === "all" || document.loai_tai_lieu === typeFilter;
-
-    if (!matchesType) {
-      return false;
-    }
-
-    if (!deferredKeyword) {
-      return true;
-    }
-
-    const searchText = [
-      document.ma_tai_lieu,
-      document.ten_tai_lieu,
-      document.file_public_id,
-      document.benh_nhan?.ho_ten,
-      document.benh_nhan?.ma_benh_nhan,
-      document.phieu_kham?.ma_phieu_kham,
-    ]
-      .filter(Boolean)
-      .join(" ")
-      .toLowerCase();
-
-    return searchText.includes(deferredKeyword);
+  const {
+    contextHolder,
+    selectedDocument,
+    loading,
+    error,
+    isSubmitting,
+    keyword,
+    typeFilter,
+    filteredDocuments,
+    totalDocuments,
+    totalExamResults,
+    totalInstructions,
+    totalDischarge,
+    isAddModalOpen,
+    isEditModalOpen,
+    isDetailModalOpen,
+    isPreviewModalOpen,
+    detailDocument,
+    previewDocument,
+    previewUrl,
+    previewLoading,
+    formState,
+    fileList,
+    setTypeFilter,
+    setKeyword,
+    setIsAddModalOpen,
+    setIsEditModalOpen,
+    setIsDetailModalOpen,
+    setIsPreviewModalOpen,
+    handleSelectDocument,
+    handleOpenDetailModal,
+    handleOpenPreviewModal,
+    handleDeleteDocument,
+    handleOpenAddModal,
+    handleOpenEditModal,
+    handleFormChange,
+    handleUpload,
+    handleRemoveUpload,
+    handleCreateDocument,
+    handleEditDocument,
+    handleSearchChange,
+  } = useHoSoTaiLieuManager({
+    benhNhanId,
+    phieuKhamId,
+    refreshKey,
   });
-
-  const selectedDocument = hydratedDocuments.find((item) => item.id === selectedDocumentId) || filteredDocuments[0] || null;
-  const totalDocuments = hydratedDocuments.length;
-  const totalExamResults = hydratedDocuments.filter((item) => item.loai_tai_lieu.startsWith("ket_qua_")).length;
-  const totalInstructions = hydratedDocuments.filter((item) => item.loai_tai_lieu === "phieu_chi_dinh").length;
-  const totalDischarge = hydratedDocuments.filter((item) => item.loai_tai_lieu === "giay_ra_vien").length;
-
-  function handleSelectDocument(document) {
-    setSelectedDocumentId(document.id);
-  }
-
-  function handleOpenDetailModal(document) {
-    setDetailDocument(document);
-    setIsDetailModalOpen(true);
-  }
-
-  function handleOpenPreviewModal(document) {
-    setPreviewDocument(document);
-    setPreviewUrl(null);
-    setPreviewLoading(true);
-    setIsPreviewModalOpen(true);
-
-    getTaiLieuSignedUrl(benhNhanId, document.id)
-      .then((url) => {
-        setPreviewUrl(url);
-      })
-      .catch((err) => {
-        messageApi.error(err?.response?.data?.message ?? "Không thể lấy signed URL.");
-      })
-      .finally(() => setPreviewLoading(false));
-  }
-
-  async function handleDeleteDocument(document) {
-    if (isLocked) {
-      return;
-    }
-
-    try {
-      await deleteHoSoTaiLieu(benhNhanId, document.id);
-      await fetchDocuments();
-      messageApi.success("Đã xóa tài liệu thành công.");
-    } catch (err) {
-      messageApi.error(err?.response?.data?.message ?? "Xóa tài liệu thất bại.");
-    }
-  }
-
-  function handleFormChange(field, value) {
-    setFormState((prev) => ({
-      ...prev,
-      [field]: value,
-    }));
-  }
-
-  function handleUpload(file) {
-    setFileList([file]);
-    return false;
-  }
-
-  function handleRemoveUpload() {
-    setFileList([]);
-  }
-
-  function resetForm(targetPhieuKhamId = phieuKhamId) {
-    const nextForm = createEmptyForm(targetPhieuKhamId);
-
-    setFormState(nextForm);
-    setFileList([]);
-  }
-
-  function handleOpenAddModal() {
-    if (isLocked) {
-      return;
-    }
-    resetForm(phieuKhamId);
-    setIsAddModalOpen(true);
-  }
-
-  function handleOpenEditModal(document) {
-    if (isLocked) {
-      return;
-    }
-
-    setFormState({
-      id: document.id,
-      ma_tai_lieu: document.ma_tai_lieu,
-      phieu_kham_id: document.phieu_kham_id,
-      loai_tai_lieu: document.loai_tai_lieu,
-      ten_tai_lieu: document.ten_tai_lieu,
-      ngay_tao: document.ngay_tao,
-      ghi_chu: document.ghi_chu ?? "",
-    });
-    setFileList([]);
-    setIsEditModalOpen(true);
-  }
-
-  function validateForm() {
-    if (!phieuKhamId) {
-      messageApi.error("Thiếu phiếu khám ngữ cảnh. Vui lòng quay lại và chọn phiếu khám.");
-      return false;
-    }
-
-    if (!formState.loai_tai_lieu || !formState.ten_tai_lieu || !formState.ngay_tao) {
-      messageApi.error("Vui lòng nhập đủ thông tin bắt buộc.");
-      return false;
-    }
-
-    return true;
-  }
-
-  async function handleCreateDocument() {
-    if (!validateForm()) {
-      return;
-    }
-
-    const uploadFile = fileList?.[0]?.originFileObj ?? fileList?.[0];
-
-    if (!uploadFile) {
-      messageApi.error("Vui lòng chọn tệp để upload.");
-      return;
-    }
-
-    setIsSubmitting(true);
-
-    try {
-      const created = await createHoSoTaiLieu(benhNhanId, {
-        per_page: 100,
-        phieu_kham_id: phieuKhamId,
-        loai_tai_lieu: formState.loai_tai_lieu,
-        ten_tai_lieu: formState.ten_tai_lieu,
-        ngay_tao: formState.ngay_tao,
-        ghi_chu: formState.ghi_chu || null,
-      });
-
-      await uploadHoSoTaiLieuFile(benhNhanId, created.id, uploadFile);
-      await fetchDocuments();
-
-      setIsAddModalOpen(false);
-      resetForm();
-      messageApi.success("Đã tạo và upload tài liệu thành công.");
-    } catch (err) {
-      messageApi.error(err?.response?.data?.message ?? "Không thể tạo tài liệu.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
-
-  async function handleEditDocument() {
-    if (!validateForm() || !formState.id) {
-      return;
-    }
-
-    const uploadFile = fileList?.[0]?.originFileObj ?? fileList?.[0];
-
-    setIsSubmitting(true);
-
-    try {
-      await updateHoSoTaiLieu(benhNhanId, formState.id, {
-        phieu_kham_id: Number(formState.phieu_kham_id ?? phieuKhamId),
-        loai_tai_lieu: formState.loai_tai_lieu,
-        ten_tai_lieu: formState.ten_tai_lieu,
-        ngay_tao: formState.ngay_tao,
-        ghi_chu: formState.ghi_chu || null,
-      });
-
-      if (uploadFile) {
-        await uploadHoSoTaiLieuFile(benhNhanId, formState.id, uploadFile);
-      }
-
-      await fetchDocuments();
-      setIsEditModalOpen(false);
-      messageApi.success("Đã cập nhật tài liệu thành công.");
-    } catch (err) {
-      messageApi.error(err?.response?.data?.message ?? "Không thể cập nhật tài liệu.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  }
-
-  function handleSearchChange(event) {
-    const nextValue = event.target.value;
-
-    startTransition(() => {
-      setKeyword(nextValue);
-    });
-  }
 
   return (
     <div className="min-h-screen p-6 md:p-8" style={{ background: "linear-gradient(180deg, #ECFDF5 0%, #F8FAFC 18%, #F8FAFC 100%)" }}>
@@ -302,14 +72,11 @@ export default function HoSoTaiLieuPage({ benhNhanId, phieuKhamId, isLocked = fa
                 Quản lí lưu trữ hồ sơ, tài liệu
               </h1>
               <p className="mt-2 max-w-3xl text-sm leading-6 text-slate-500">
-                Màn hình FE mô phỏng nghiệp vụ lưu trữ tài liệu khám bệnh theo đúng các trường trong bảng tai_lieu_ho_so, đồng thời hiển thị liên kết tới phiếu khám và bệnh nhân tương ứng.
-              </p>
-              <p className="mt-2 text-sm font-medium text-[#0F766E]">
-                Bệnh nhân: BN#{benhNhanId} | Phiếu khám đang xem: {phieuKhamId ? `PK#${phieuKhamId}` : "Chưa chọn"}
+                Xem và quản lý các hồ sơ, tài liệu liên quan đến hồ sơ bệnh án này
               </p>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 lg:w-[420px]">
+            <div className="grid grid-cols-2 gap-3 lg:w-105">
               <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4">
                 <div className="text-xs uppercase tracking-[0.16em] text-slate-400">Tổng tài liệu</div>
                 <div className="mt-2 text-3xl font-semibold text-[#0F172A]">{totalDocuments}</div>
@@ -339,7 +106,8 @@ export default function HoSoTaiLieuPage({ benhNhanId, phieuKhamId, isLocked = fa
             setKeyword("");
             setTypeFilter("all");
           }}
-          onAdd={handleOpenAddModal}
+          onAdd={() => handleOpenAddModal(isLocked)}
+          addDisabled={isLocked}
           documentTypeOptions={DOCUMENT_TYPE_OPTIONS}
         />
 
@@ -356,8 +124,8 @@ export default function HoSoTaiLieuPage({ benhNhanId, phieuKhamId, isLocked = fa
                 onSelect={handleSelectDocument}
                 onPreview={handleOpenPreviewModal}
                 onDetail={handleOpenDetailModal}
-                onEdit={handleOpenEditModal}
-                onDelete={handleDeleteDocument}
+                onEdit={(document) => handleOpenEditModal(document, isLocked)}
+                onDelete={(document) => handleDeleteDocument(document, isLocked)}
                 disabled={isLocked}
               />
             </div>

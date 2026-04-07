@@ -20,6 +20,7 @@ import {
 	UserOutlined,
 } from '@ant-design/icons'
 import { getThongTinNhanVienHienTai } from '../../../Services/schedulingService'
+import { getApiErrorMessage } from '../../../utils/apiError'
 
 const { Paragraph, Text, Title } = Typography
 
@@ -63,9 +64,7 @@ export default function StaffProfilePage() {
 			const response = await getThongTinNhanVienHienTai()
 			setProfile(response || null)
 		} catch (error) {
-			message.error(
-				error?.response?.data?.message || 'Không thể tải hồ sơ nhân viên.',
-			)
+			message.error(getApiErrorMessage(error, 'Không thể tải hồ sơ nhân viên.'))
 		} finally {
 			setLoading(false)
 		}

@@ -1,8 +1,48 @@
 import { useEffect, useMemo, useState } from "react";
-import { SearchOutlined } from "@ant-design/icons";
-import { Alert, Avatar, Button, Empty, Input, Spin, Table } from "antd";
-import { getPhieuKhamList } from "../../../Services/clinicalService";
+import { EyeOutlined, SearchOutlined } from "@ant-design/icons";
+import { Alert, Avatar, Button, Descriptions, Empty, Input, Modal, Space, Spin, Table, Tag, message } from "antd";
+import { getPhieuKhamList, startPhieuKham } from "../../../Services/clinicalService";
+import { getApiErrorMessage } from "../../../utils/apiError";
+import DoctorClinicalVisitWorkspace from "../components/DoctorClinicalVisitWorkspace";
 import LichSuKhamPage from "./LichSuKhamPage";
+
+const VISIT_STATUS_META = {
+  tiep_nhan: { label: "Tiếp nhận", color: "default" },
+  dang_kham: { label: "Đang khám", color: "processing" },
+  hoan_thanh: { label: "Hoàn thành", color: "success" },
+};
+
+function formatDateVi(value, { includeTime = false } = {}) {
+  if (!value) {
+    return "-";
+  }
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return String(value);
+  }
+
+  return new Intl.DateTimeFormat("vi-VN", {
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+    ...(includeTime
+      ? {
+        hour: "2-digit",
+        minute: "2-digit",
+      }
+      : {}),
+  }).format(date);
+}
+
+function toTimestamp(value) {
+  if (!value) {
+    return 0;
+  }
+
+  const time = new Date(value).getTime();
+  return Number.isNaN(time) ? 0 : time;
+}
 
 function computeAgeFromDate(dateOfBirth) {
   if (!dateOfBirth) {
@@ -63,6 +103,15 @@ function buildPatientListFromExams(exams = []) {
         code: patient?.ma || patient?.ma_benh_nhan || `BN#${patientKey}`,
         age: computeAgeFromDate(patient?.ngay_sinh || patient?.date_of_birth),
         gender: normalizeGender(patient?.gioi_tinh),
+        phone: patient?.so_dien_thoai || patient?.sdt || "",
+        dateOfBirth: patient?.ngay_sinh || patient?.date_of_birth || null,
+        medicalHistory: patient?.tien_su_benh || "",
+        allergyHistory: patient?.tien_su_di_ung || "",
+        latestVisitAt: exam?.thoi_gian_tiep_nhan || exam?.created_at || null,
+        latestVisitCode: exam?.ma_phieu_kham || null,
+        latestVisitStatus: exam?.trang_thai || null,
+        latestVisitReason: exam?.ly_do_kham || exam?.lich_hen?.ly_do_kham || "",
+        latestVisitTimestamp: toTimestamp(exam?.thoi_gian_tiep_nhan || exam?.created_at),
         statusCount: { pending: 0, active: 0, other: 0 },
       });
     } else if (!map.get(patientKey).benhNhanId && benhNhanId) {
@@ -72,9 +121,23 @@ function buildPatientListFromExams(exams = []) {
     const current = map.get(patientKey);
     const rawStatus = String(exam?.trang_thai || "").toLowerCase();
 
+    current.phone = current.phone || patient?.so_dien_thoai || patient?.sdt || "";
+    current.dateOfBirth = current.dateOfBirth || patient?.ngay_sinh || patient?.date_of_birth || null;
+    current.medicalHistory = current.medicalHistory || patient?.tien_su_benh || "";
+    current.allergyHistory = current.allergyHistory || patient?.tien_su_di_ung || "";
+
+    const examTimestamp = toTimestamp(exam?.thoi_gian_tiep_nhan || exam?.created_at);
+    if (examTimestamp >= (current.latestVisitTimestamp || 0)) {
+      current.latestVisitTimestamp = examTimestamp;
+      current.latestVisitAt = exam?.thoi_gian_tiep_nhan || exam?.created_at || null;
+      current.latestVisitCode = exam?.ma_phieu_kham || current.latestVisitCode;
+      current.latestVisitStatus = exam?.trang_thai || current.latestVisitStatus;
+      current.latestVisitReason = exam?.ly_do_kham || exam?.lich_hen?.ly_do_kham || current.latestVisitReason;
+    }
+
     if (["dang_ky", "da_dat_lich", "cho_kham", "tiep_nhan"].includes(rawStatus)) {
       current.statusCount.pending += 1;
-    } else if (["dang_kham", "cho_ke_don", "cho_chi_dinh"].includes(rawStatus)) {
+    } else if (["dang_kham", "cho_chi_dinh"].includes(rawStatus)) {
       current.statusCount.active += 1;
     } else {
       current.statusCount.other += 1;
@@ -94,6 +157,10 @@ export default function QuanLyBenhNhanPage({ onSelectPatient }) {
   const [allExams, setAllExams] = useState([]);
   const [patientNameKeyword, setPatientNameKeyword] = useState("");
   const [selectedPatient, setSelectedPatient] = useState(null);
+  const [selectedPhieuKham, setSelectedPhieuKham] = useState(null);
+  const [quickViewPatient, setQuickViewPatient] = useState(null);
+  const [historyRefreshKey, setHistoryRefreshKey] = useState(0);
+  const [messageApi, contextHolder] = message.useMessage();
 
   const patients = useMemo(() => buildPatientListFromExams(allExams), [allExams]);
 
@@ -161,20 +228,30 @@ export default function QuanLyBenhNhanPage({ onSelectPatient }) {
         width: "22%",
         align: "right",
         render: (_, record) => (
-          <Button
-            type="primary"
-            size="middle"
-            className="bg-teal-600! hover:bg-teal-700! border-teal-600!"
-            onClick={() => {
-              if (typeof onSelectPatient === "function") {
-                onSelectPatient(record);
-              }
+          <Space size="small">
+            <Button
+              size="middle"
+              icon={<EyeOutlined />}
+              onClick={() => setQuickViewPatient(record)}
+            >
+              Xem nhanh
+            </Button>
 
-              setSelectedPatient(record);
-            }}
-          >
-            Xem lịch sử phiếu khám
-          </Button>
+            <Button
+              type="primary"
+              size="middle"
+              className="bg-teal-600! hover:bg-teal-700! border-teal-600!"
+              onClick={() => {
+                if (typeof onSelectPatient === "function") {
+                  onSelectPatient(record);
+                }
+
+                setSelectedPatient(record);
+              }}
+            >
+              Xem lịch sử phiếu khám
+            </Button>
+          </Space>
         ),
       },
     ],
@@ -200,7 +277,7 @@ export default function QuanLyBenhNhanPage({ onSelectPatient }) {
           return;
         }
 
-        setLoadError(error?.response?.data?.message || "Không tải được danh sách bệnh nhân của bác sĩ.");
+        setLoadError(getApiErrorMessage(error, "Không tải được danh sách bệnh nhân của bác sĩ."));
       } finally {
         if (mounted) {
           setLoading(false);
@@ -215,13 +292,71 @@ export default function QuanLyBenhNhanPage({ onSelectPatient }) {
     };
   }, []);
 
+  async function handleSelectPhieuKham(record, actionMeta = {}) {
+    if (!record?.id) {
+      messageApi.error("Không xác định được phiếu khám để mở chi tiết.");
+      return;
+    }
+
+    const actionType = String(actionMeta?.type || "view").toLowerCase();
+
+    if (actionType !== "start") {
+      setSelectedPhieuKham(record);
+      return;
+    }
+
+    try {
+      const updated = await startPhieuKham(record.id);
+      setSelectedPhieuKham(updated ?? { ...record, trang_thai: "dang_kham" });
+      messageApi.success("Đã bắt đầu khám và mở không gian làm việc lâm sàng.");
+    } catch (error) {
+      messageApi.error(getApiErrorMessage(error, "Không thể bắt đầu khám cho phiếu này."));
+    }
+  }
+
+  if (selectedPatient && selectedPhieuKham) {
+    return (
+      <div className="p-8 min-h-screen" style={{ background: "#F8FAFC" }}>
+        {contextHolder}
+        <div className="max-w-7xl mx-auto">
+          <DoctorClinicalVisitWorkspace
+            selectedPatient={selectedPatient}
+            selectedPhieuKham={selectedPhieuKham}
+            onBack={() => {
+              setSelectedPhieuKham(null);
+              setHistoryRefreshKey((prev) => prev + 1);
+            }}
+            onCompleted={(updatedVisit) => {
+              setSelectedPhieuKham(null);
+              setHistoryRefreshKey((prev) => prev + 1);
+
+              if (!updatedVisit?.id) {
+                return;
+              }
+
+              setAllExams((prev) =>
+                prev.map((exam) => (String(exam.id) === String(updatedVisit.id) ? { ...exam, ...updatedVisit } : exam)),
+              );
+            }}
+          />
+        </div>
+      </div>
+    );
+  }
+
   if (selectedPatient) {
     return (
       <div className="p-8 min-h-screen" style={{ background: "#F8FAFC" }}>
+        {contextHolder}
         <div className="max-w-6xl mx-auto">
           <LichSuKhamPage
             selectedPatient={selectedPatient}
-            onBack={() => setSelectedPatient(null)}
+            refreshKey={historyRefreshKey}
+            onBack={() => {
+              setSelectedPhieuKham(null);
+              setSelectedPatient(null);
+            }}
+            onSelectPhieuKham={handleSelectPhieuKham}
           />
         </div>
       </div>
@@ -231,6 +366,7 @@ export default function QuanLyBenhNhanPage({ onSelectPatient }) {
   if (loading) {
     return (
       <div className="p-8 min-h-screen" style={{ background: "#F8FAFC" }}>
+        {contextHolder}
         <div className="max-w-6xl mx-auto flex items-center justify-center">
           <Spin size="large" tip="Đang tải danh sách bệnh nhân..." />
         </div>
@@ -241,6 +377,7 @@ export default function QuanLyBenhNhanPage({ onSelectPatient }) {
   if (loadError) {
     return (
       <div className="p-8 min-h-screen" style={{ background: "#F8FAFC" }}>
+        {contextHolder}
         <div className="max-w-6xl mx-auto">
           <Alert type="error" showIcon message={loadError} />
         </div>
@@ -250,6 +387,7 @@ export default function QuanLyBenhNhanPage({ onSelectPatient }) {
 
   return (
     <div className="p-8 min-h-screen" style={{ background: "#F8FAFC" }}>
+      {contextHolder}
       <div className="max-w-6xl mx-auto">
         <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
           <div className="border-b border-slate-100 px-6 py-5">
@@ -282,8 +420,9 @@ export default function QuanLyBenhNhanPage({ onSelectPatient }) {
               columns={columns}
               dataSource={filteredPatients}
               pagination={{
-                pageSize: 4,
+                pageSize: 5,
                 showSizeChanger: false,
+                hideOnSinglePage: true,
                 showTotal: (total, range) => `Đang hiển thị ${range[0]}-${range[1]} trong số ${total} bệnh nhân`,
               }}
               className="[&_.ant-table-thead>tr>th]:bg-slate-50! [&_.ant-table-thead>tr>th]:text-slate-500! [&_.ant-table-thead>tr>th]:font-semibold! [&_.ant-table-thead>tr>th]:text-xs! [&_.ant-table-tbody>tr>td]:py-5!"
@@ -291,6 +430,76 @@ export default function QuanLyBenhNhanPage({ onSelectPatient }) {
           )}
         </div>
       </div>
+
+      <Modal
+        open={Boolean(quickViewPatient)}
+        title="Thông tin bệnh nhân"
+        onCancel={() => setQuickViewPatient(null)}
+        width={760}
+        footer={[
+          <Button key="close" onClick={() => setQuickViewPatient(null)}>
+            Đóng
+          </Button>,
+          <Button
+            key="history"
+            type="primary"
+            className="bg-teal-600! hover:bg-teal-700! border-teal-600!"
+            onClick={() => {
+              if (!quickViewPatient) {
+                return;
+              }
+
+              if (typeof onSelectPatient === "function") {
+                onSelectPatient(quickViewPatient);
+              }
+
+              setSelectedPatient(quickViewPatient);
+              setQuickViewPatient(null);
+            }}
+          >
+            Xem lịch sử phiếu khám
+          </Button>,
+        ]}
+      >
+        {quickViewPatient ? (
+          <div className="space-y-4">
+            <div className="rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+              <div className="text-lg font-semibold text-slate-900">{quickViewPatient.name}</div>
+              <div className="text-sm text-slate-500">Mã bệnh nhân: {quickViewPatient.code}</div>
+            </div>
+
+            <Descriptions column={2} size="small" bordered>
+              <Descriptions.Item label="Tuổi">{Number.isFinite(quickViewPatient.age) ? `${quickViewPatient.age}` : "-"}</Descriptions.Item>
+              <Descriptions.Item label="Giới tính">{quickViewPatient.gender || "-"}</Descriptions.Item>
+              <Descriptions.Item label="Ngày sinh">{formatDateVi(quickViewPatient.dateOfBirth)}</Descriptions.Item>
+              <Descriptions.Item label="Số điện thoại">{quickViewPatient.phone || "-"}</Descriptions.Item>
+              <Descriptions.Item label="Lần khám gần nhất">
+                {formatDateVi(quickViewPatient.latestVisitAt, { includeTime: true })}
+              </Descriptions.Item>
+              <Descriptions.Item label="Mã phiếu gần nhất">
+                {quickViewPatient.latestVisitCode || "-"}
+              </Descriptions.Item>
+              <Descriptions.Item label="Trạng thái gần nhất">
+                <Tag color={VISIT_STATUS_META[quickViewPatient.latestVisitStatus]?.color || "default"}>
+                  {VISIT_STATUS_META[quickViewPatient.latestVisitStatus]?.label || quickViewPatient.latestVisitStatus || "-"}
+                </Tag>
+              </Descriptions.Item>
+              <Descriptions.Item label="Tổng lượt gần đây">
+                {quickViewPatient.statusCount.pending + quickViewPatient.statusCount.active + quickViewPatient.statusCount.other}
+              </Descriptions.Item>
+              <Descriptions.Item label="Lý do khám gần nhất" span={2}>
+                {quickViewPatient.latestVisitReason || "-"}
+              </Descriptions.Item>
+              <Descriptions.Item label="Tiền sử bệnh" span={2}>
+                {quickViewPatient.medicalHistory || "-"}
+              </Descriptions.Item>
+              <Descriptions.Item label="Tiền sử dị ứng" span={2}>
+                {quickViewPatient.allergyHistory || "-"}
+              </Descriptions.Item>
+            </Descriptions>
+          </div>
+        ) : null}
+      </Modal>
     </div>
   );
 }

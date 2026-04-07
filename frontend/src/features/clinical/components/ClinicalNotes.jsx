@@ -1,4 +1,4 @@
-import { Input } from "antd";
+import { Input, Select } from "antd";
 import {
   ExclamationCircleOutlined,
   MedicineBoxOutlined,
@@ -38,8 +38,22 @@ function formatDate(value) {
   return `${year}-${month}-${day}`;
 }
 
-export default function ClinicalNotes({ data, editable = false, onChange = () => {}, sourceData }) {
+export default function ClinicalNotes({
+  data,
+  editable = false,
+  onChange = () => { },
+  sourceData,
+  icd10Options = [],
+  isLoadingIcd10 = false,
+  onSearchIcd10 = () => { },
+  onSelectIcd10 = () => { },
+}) {
   const icdDisplay = data?.ma_icd10_chinh || "";
+  const severityOptions = [
+    { value: "nhe", label: "Nhẹ" },
+    { value: "trung_binh", label: "Trung bình" },
+    { value: "nang", label: "Nặng" },
+  ];
 
   function getInputProps(field) {
     if (!editable) {
@@ -111,11 +125,24 @@ export default function ClinicalNotes({ data, editable = false, onChange = () =>
       >
         <Input
           value={icdDisplay}
-          {...getInputProps("ma_icd10_chinh")}
+          readOnly
           placeholder="Chưa có dữ liệu"
           style={{ borderRadius: 8, borderColor: "#E2E8F0", marginBottom: 10 }}
         />
         <div className="mt-2 text-xs text-gray-500 mb-2">Mã ICD-10 chính (nếu có)</div>
+
+        <Select
+          showSearch
+          filterOption={false}
+          value={data?.ma_icd10_chinh || undefined}
+          onChange={onSelectIcd10}
+          onSearch={onSearchIcd10}
+          options={icd10Options}
+          loading={isLoadingIcd10}
+          placeholder="Tìm và chọn mã ICD-10"
+          disabled={!editable}
+          className="w-full mb-4"
+        />
 
         <div className="mt-3 grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
@@ -131,7 +158,14 @@ export default function ClinicalNotes({ data, editable = false, onChange = () =>
 
           <div>
             <label className="block text-xs text-gray-500 mb-1">Tình trạng</label>
-            <Input value={data?.tinh_trang || ""} {...getInputProps("tinh_trang")} placeholder="Chưa có dữ liệu" style={{ borderRadius: 8, borderColor: "#E2E8F0" }} />
+            <Select
+              value={data?.tinh_trang || undefined}
+              onChange={(value) => onChange("tinh_trang", value)}
+              options={severityOptions}
+              placeholder="Chọn mức độ"
+              disabled={!editable}
+              className="w-full"
+            />
           </div>
         </div>
       </SectionCard>

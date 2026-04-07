@@ -1,45 +1,107 @@
-import { formatDate } from "../utils/lichSuKhamUtils";
+import { formatDate, getTrangThaiLabel } from "../utils/lichSuKhamUtils";
+import { Button, Card, Table, Tag, Typography } from "antd";
 
-export default function ExamHistoryList({ records, onViewDetail }) {
+const { Text } = Typography;
+
+const STATUS_TAG_COLOR = {
+  tiep_nhan: "default",
+  dang_kham: "processing",
+  hoan_thanh: "success",
+  da_hoan_tat: "success",
+  da_hoan_thanh: "success",
+};
+
+export default function ExamHistoryList({ records, onViewDetail, resolveAction }) {
+  const dataSource = records.map((record) => {
+    const action = resolveAction?.(record) || {
+      type: "view",
+      label: "Xem chi tiết",
+    };
+
+    return {
+      ...record,
+      key: record.id,
+      action,
+      ngayKham: formatDate(record.thoi_gian_tiep_nhan || record.created_at),
+    };
+  });
+
+  const columns = [
+    {
+      title: "Ngày khám",
+      dataIndex: "ngayKham",
+      key: "ngayKham",
+      width: 160,
+      render: (value) => <Text strong>{value}</Text>,
+    },
+    {
+      title: "Bác sĩ",
+      key: "doctor",
+      width: 220,
+      render: (_, row) => row.doctor?.ho_ten || "--",
+    },
+    {
+      title: "Chuyên khoa",
+      key: "specialty",
+      width: 220,
+      render: (_, row) => row.specialty?.ten_chuyen_khoa || "--",
+    },
+    {
+      title: "Chẩn đoán",
+      key: "chanDoan",
+      render: (_, row) => row.chan_doan || "--",
+    },
+    {
+      title: "Trạng thái",
+      key: "status",
+      width: 140,
+      render: (_, row) => <Tag color={STATUS_TAG_COLOR[row.trang_thai] || "default"}>{getTrangThaiLabel(row.trang_thai)}</Tag>,
+    },
+    {
+      title: "Thao tác",
+      key: "action",
+      width: 160,
+      render: (_, row) => (
+        <Button type="link" onClick={() => onViewDetail?.(row, row.action)}>
+          {row.action.label}
+        </Button>
+      ),
+    },
+  ];
+
   return (
-    <div className="flex flex-col gap-3">
-      {records.map((record) => {
-        const ngayKham = formatDate(record.thoi_gian_tiep_nhan || record.created_at);
+    <div className="space-y-3">
+      <div className="hidden md:block">
+        <Table
+          dataSource={dataSource}
+          columns={columns}
+          pagination={false}
+          rowKey="id"
+          className="[&_.ant-table-thead>tr>th]:bg-slate-50!"
+          scroll={{ x: 980 }}
+        />
+      </div>
 
-        return (
-          <div key={record.id} className="grid grid-cols-12 items-center gap-4 rounded-2xl border border-slate-200 bg-white px-4 py-4">
-            <div className="col-span-12 md:col-span-2">
-              <div className="text-xs text-slate-500">Ngày khám</div>
-              <div className="font-semibold text-slate-900">{ngayKham}</div>
+      <div className="md:hidden space-y-3">
+        {dataSource.map((row) => (
+          <Card key={row.id} className="rounded-xl border border-slate-200">
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Text strong>{row.ngayKham}</Text>
+                <Tag color={STATUS_TAG_COLOR[row.trang_thai] || "default"}>{getTrangThaiLabel(row.trang_thai)}</Tag>
+              </div>
+              <div className="text-sm text-slate-700">Bác sĩ: {row.doctor?.ho_ten || "--"}</div>
+              <div className="text-sm text-slate-700">Chuyên khoa: {row.specialty?.ten_chuyen_khoa || "--"}</div>
+              <div className="text-sm text-slate-700">Chẩn đoán: {row.chan_doan || "--"}</div>
+              <div className="pt-1">
+                <Button type="link" className="px-0!" onClick={() => onViewDetail?.(row, row.action)}>
+                  {row.action.label}
+                </Button>
+              </div>
             </div>
-
-            <div className="col-span-12 md:col-span-2">
-              <div className="text-xs text-slate-500">Bác sĩ</div>
-              <div className="font-semibold text-slate-900">{record.doctor?.ho_ten || "--"}</div>
-            </div>
-
-            <div className="col-span-12 md:col-span-3">
-              <div className="text-xs text-slate-500">Chuyên khoa</div>
-              <div className="font-semibold text-slate-900">{record.specialty?.ten_chuyen_khoa || "--"}</div>
-            </div>
-
-            <div className="col-span-12 md:col-span-3">
-              <div className="text-xs text-slate-500">Chẩn đoán</div>
-              <div className="font-medium text-slate-700">{record.chan_doan || "--"}</div>
-            </div>
-
-            <div className="col-span-12 text-right md:col-span-2">
-              <button
-                onClick={() => onViewDetail?.(record)}
-                className="inline-flex items-center gap-1 text-sm font-semibold text-teal-700 hover:text-teal-800"
-              >
-                Chi tiết
-                <span>›</span>
-              </button>
-            </div>
-          </div>
-        );
-      })}
+          </Card>
+        ))}
+      </div>
     </div>
   );
 }

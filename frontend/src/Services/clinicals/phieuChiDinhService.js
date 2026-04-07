@@ -19,10 +19,11 @@ export async function getDichVuList() {
     const items = response.data ?? [];
 
     return items.map((item) => ({
-        id: item.id,
-        name: item.ten_dich_vu,
-        price: Number(item.gia_dich_vu ?? 0),
-        category: LOAI_LABEL[item.loai_dich_vu] ?? 'Khác',
+        id: Number(item?.loai_nguon === 'goi_kham' ? (item?.goi_kham_id ?? item?.id) : (item?.dich_vu_id ?? item?.id)),
+        type: item?.loai_nguon === 'goi_kham' ? 'goi_kham' : 'dich_vu',
+        name: item?.loai_nguon === 'goi_kham' ? (item?.ten_goi_kham || 'Gói khám') : (item?.ten_dich_vu || 'Dịch vụ'),
+        price: Number(item?.loai_nguon === 'goi_kham' ? (item?.gia_goi_kham ?? 0) : (item?.gia_dich_vu ?? 0)),
+        category: item?.loai_nguon === 'goi_kham' ? 'Gói khám' : (LOAI_LABEL[item.loai_dich_vu] ?? 'Khác'),
     }));
 }
 

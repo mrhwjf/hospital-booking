@@ -15,7 +15,9 @@ class PatientService
 {
     private const PENDING_FILE_PUBLIC_ID_PREFIX = 'PENDING:';
 
-    public function __construct(private CloudinaryService $cloudinaryService) {}
+    public function __construct(private CloudinaryService $cloudinaryService)
+    {
+    }
 
     private const LICH_SU_RELATIONS = [
         'bacSi.chuyenKhoas',
@@ -213,18 +215,7 @@ class PatientService
 
     private function generateMaTaiLieu(string $maPhieuKham): string
     {
-        $normalizedMaPhieuKham = strtoupper(trim($maPhieuKham));
-        $baseCode = 'TL' . now()->format('dmYHis') . '-' . $normalizedMaPhieuKham;
-
-        $candidate = $baseCode;
-        $counter = 1;
-
-        while (TaiLieuHoSo::query()->where('ma_tai_lieu', $candidate)->exists()) {
-            $candidate = $baseCode . '-' . $counter;
-            $counter++;
-        }
-
-        return $candidate;
+        return 'TL-' . now()->format('Ymd-Hisv');
     }
 
     private function isPendingFilePublicId(?string $filePublicId): bool

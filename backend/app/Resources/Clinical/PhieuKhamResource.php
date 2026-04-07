@@ -70,7 +70,14 @@ class PhieuKhamResource extends JsonResource
             ],
             'nguoi_tao' => [
                 'id' => $this->nguoiTao?->id,
+                'ho_ten' => $this->nguoiTao?->nhanVien?->ho_ten ?? $this->nguoiTao?->ho_ten,
+                'ten' => $this->nguoiTao?->nhanVien?->ho_ten ?? $this->nguoiTao?->ho_ten,
                 'email' => $this->nguoiTao?->email,
+                'ma_nhan_vien' => $this->nguoiTao?->nhanVien?->ma_nhan_vien,
+                'nhan_vien' => $this->nguoiTao?->nhanVien ? [
+                    'ho_ten' => $this->nguoiTao->nhanVien->ho_ten,
+                    'ma_nhan_vien' => $this->nguoiTao->nhanVien->ma_nhan_vien,
+                ] : null,
             ],
             'lich_hen' => [
                 'id' => $this->lichHen?->id,
@@ -79,6 +86,27 @@ class PhieuKhamResource extends JsonResource
                 'ly_do_kham' => $this->lichHen?->ly_do_kham,
                 'ghi_chu' => $this->lichHen?->ghi_chu,
                 'ghi_chu_noi_bo' => $this->lichHen?->ghi_chu_noi_bo,
+                'dich_vu_lich_hen' => $this->lichHen?->dichVuLichHens
+                    ? $this->lichHen->dichVuLichHens->map(fn($item) => [
+                        'id' => $item->id,
+                        'dich_vu_id' => $item->dich_vu_id,
+                        'goi_kham_id' => $item->goi_kham_id,
+                        'so_luong' => $item->so_luong,
+                        'ghi_chu' => $item->ghi_chu,
+                        'dich_vu' => $item->dichVu ? [
+                            'id' => $item->dichVu->id,
+                            'ma_dich_vu' => $item->dichVu->ma_dich_vu,
+                            'ten_dich_vu' => $item->dichVu->ten_dich_vu,
+                            'gia_dich_vu' => $item->dichVu->gia_dich_vu,
+                            'loai_dich_vu' => $item->dichVu->loai_dich_vu,
+                        ] : null,
+                        'goi_kham' => $item->goiKham ? [
+                            'id' => $item->goiKham->id,
+                            'ma_goi_kham' => $item->goiKham->ma_goi_kham,
+                            'ten_goi_kham' => $item->goiKham->ten_goi_kham,
+                        ] : null,
+                    ])->values()
+                    : [],
             ],
         ];
     }

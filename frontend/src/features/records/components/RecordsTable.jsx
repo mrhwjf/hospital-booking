@@ -10,6 +10,7 @@ export default function RecordsTable({
   onDetail,
   onEdit,
   onDelete,
+  disabled = false,
 }) {
   const columns = [
     {
@@ -102,6 +103,7 @@ export default function RecordsTable({
             <Button
               size="small"
               icon={<EditOutlined />}
+              disabled={disabled}
               onClick={(event) => {
                 event.stopPropagation();
                 onEdit(record);
@@ -117,11 +119,13 @@ export default function RecordsTable({
               okText="Xóa"
               cancelText="Hủy"
               onConfirm={() => onDelete(record)}
+              disabled={disabled}
             >
               <Button
                 size="small"
                 danger
                 icon={<DeleteOutlined />}
+                disabled={disabled}
                 onClick={(event) => event.stopPropagation()}
               >
                 Xóa
@@ -149,7 +153,7 @@ export default function RecordsTable({
           rowKey="id"
           columns={columns}
           dataSource={documents}
-          pagination={{ pageSize: 5, showSizeChanger: false }}
+          pagination={{ pageSize: 5, showSizeChanger: false, hideOnSinglePage: true }}
           rowClassName={(record) => (record.id === selectedDocumentId ? "bg-[#F0FDFA]" : "")}
           onRow={(record) => ({
             onClick: () => onSelect(record),

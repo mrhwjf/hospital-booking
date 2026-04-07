@@ -32,7 +32,7 @@ return new class extends Migration {
 			$table->date('hen_tai_kham')->nullable();
 			$table->text('ghi_chu_noi_bo')->nullable();
 
-			$table->enum('trang_thai', ['tiep_nhan', 'dang_kham', 'cho_ke_don', 'hoan_thanh'])->default('tiep_nhan');
+			$table->enum('trang_thai', ['tiep_nhan', 'dang_kham', 'hoan_thanh'])->default('tiep_nhan');
 			$table->timestamps();
 
 			$table->index('benh_nhan_id');

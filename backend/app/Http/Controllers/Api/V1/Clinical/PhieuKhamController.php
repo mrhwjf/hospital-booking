@@ -10,6 +10,7 @@ use App\Services\ClinicalService;
 use App\Models\PhieuKham;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
+use Illuminate\Validation\ValidationException;
 
 class PhieuKhamController extends Controller
 {
@@ -91,11 +92,68 @@ class PhieuKhamController extends Controller
         }
 
         $phieuKhams = $query
-            ->orderByRaw("FIELD(trang_thai, 'cho_ke_don', 'dang_kham', 'tiep_nhan', 'hoan_thanh')")
+            ->orderByRaw("FIELD(trang_thai, 'dang_kham', 'tiep_nhan', 'hoan_thanh')")
             ->orderBy('thoi_gian_tiep_nhan', 'asc')
             ->get();
 
         return ApiResponse::success(PhieuKhamResource::collection($phieuKhams), 'Danh sách phiếu khám');
+    }
+
+    public function complete(Request $request, int $id)
+    {
+        $phieuKham = $this->clinicalService->getPhieuKham($id);
+        $this->authorize('update', $phieuKham);
+
+        if ($phieuKham->trang_thai === 'hoan_thanh') {
+            return ApiResponse::success(new PhieuKhamResource($phieuKham), 'Phiếu khám đã ở trạng thái hoàn thành.');
+        }
+
+        if ($phieuKham->trang_thai !== 'dang_kham') {
+            throw ValidationException::withMessages([
+                'trang_thai' => ['Chỉ có thể hoàn tất khi phiếu khám đang ở trạng thái đang khám.'],
+            ]);
+        }
+
+        $completed = $this->clinicalService->completePhieuKham($phieuKham);
+
+        return ApiResponse::success(new PhieuKhamResource($completed), 'Hoàn tất khám thành công.');
+    }
+
+    public function start(Request $request, int $id)
+    {
+        $phieuKham = $this->clinicalService->getPhieuKham($id);
+        $this->authorize('update', $phieuKham);
+
+        if ($phieuKham->trang_thai === 'hoan_thanh') {
+            throw ValidationException::withMessages([
+                'trang_thai' => ['Không thể bắt đầu khám lại khi phiếu đã hoàn thành.'],
+            ]);
+        }
+
+        if ($phieuKham->trang_thai === 'dang_kham') {
+            return ApiResponse::success(new PhieuKhamResource($phieuKham), 'Phiếu khám đang ở trạng thái đang khám.');
+        }
+
+        $started = $this->clinicalService->startPhieuKham($phieuKham);
+
+        return ApiResponse::success(new PhieuKhamResource($started), 'Đã chuyển phiếu khám sang trạng thái đang khám.');
+    }
+
+    public function icd10List(Request $request)
+    {
+        $query = trim((string) $request->query('q', ''));
+        $limit = (int) $request->query('limit', 30);
+
+        $items = $this->clinicalService->searchIcd10($query, $limit)
+            ->map(fn($row) => [
+                'ma_icd10' => $row->ma_icd10,
+                'ten_chan_doan' => $row->ten_chan_doan,
+                'nhom_chuong' => $row->nhom_chuong,
+                'label' => trim(($row->nhom_chuong ? $row->nhom_chuong . ' - ' : '') . $row->ma_icd10 . ' - ' . $row->ten_chan_doan),
+            ])
+            ->values();
+
+        return ApiResponse::success($items);
     }
 }
 
