@@ -2,14 +2,18 @@
 
 namespace App\Requests\Admin;
 
+use App\Models\BacSi;
+use App\Requests\Concerns\AuthorizesPolicyAbility;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class TaoBacSiRequest extends FormRequest
 {
+    use AuthorizesPolicyAbility;
+
     public function authorize(): bool
     {
-        return true;
+        return $this->authorizeClassAbility('create', BacSi::class);
     }
 
     public function rules(): array

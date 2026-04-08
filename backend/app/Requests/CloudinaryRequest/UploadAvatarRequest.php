@@ -1,13 +1,17 @@
 <?php
 namespace App\Requests\Cloudinary;
 
+use App\Models\NguoiDung;
+use App\Requests\Concerns\AuthorizesPolicyAbility;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UploadAvatarRequest extends FormRequest
 {
+	use AuthorizesPolicyAbility;
+
 	public function authorize(): bool
 	{
-		return true;
+		return $this->authorizeModelAbility('update', NguoiDung::class, 'nguoiDungId');
 	}
 
 	public function rules(): array

@@ -6,7 +6,50 @@ import LockIcon from "./icon/LockIcon";
 import EyeIcon from "./icon/EyeIcon";
 import EyeOffIcon from "./icon/EyeOffIcon";
 import { getMe, login } from "../../api/authApi";
-import { setStoredUserProfile } from "../../utils/userProfileSync";
+import {
+  getStoredPermissions,
+  setStoredPermissions,
+  setStoredUserProfile,
+} from "../../utils/userProfileSync";
+
+const normalizeRole = (role) => String(role ?? "").trim().toUpperCase();
+
+const resolveHomePath = (permissions = [], role = "") => {
+  const normalized = new Set(
+    Array.isArray(permissions)
+      ? permissions
+        .map((permission) => String(permission ?? "").trim().toLowerCase())
+        .filter(Boolean)
+      : [],
+  );
+
+  if (normalized.has("quan_tri:nguoi_dung")) {
+    return "/admin/dashboard";
+  }
+
+  if (normalized.has("nghiep_vu:quan_ly_lich_hen")) {
+    return "/staff/appointments";
+  }
+
+  if (normalized.has("nghiep_vu:kham_benh")) {
+    return "/doctor/thong-tin";
+  }
+
+  if (normalized.has("nghiep_vu:dat_lich")) {
+    return "/patient/dashboard";
+  }
+
+  switch (normalizeRole(role)) {
+    case "ADMIN":
+      return "/admin/dashboard";
+    case "NHANVIEN":
+      return "/staff/appointments";
+    case "BACSI":
+      return "/doctor/thong-tin";
+    default:
+      return "/patient/dashboard";
+  }
+};
 
 function LoginPage() {
   const navigate = useNavigate();
@@ -33,6 +76,14 @@ function LoginPage() {
       localStorage.setItem("user_name", data.nguoi_dung.ho_ten);
       localStorage.setItem("payload", JSON.stringify(data.payload));
 
+      const loginPermissions = Array.isArray(data?.nguoi_dung?.permissions)
+        ? data.nguoi_dung.permissions
+        : Array.isArray(data?.payload?.permissions)
+          ? data.payload.permissions
+          : [];
+
+      setStoredPermissions(loginPermissions);
+
       if (data?.nguoi_dung?.benh_nhan_id) {
         localStorage.setItem("benh_nhan_id", String(data.nguoi_dung.benh_nhan_id));
       } else {
@@ -50,21 +101,12 @@ function LoginPage() {
           userName: me?.ho_ten,
           avatarUrl: me?.hinh_anh,
         });
+        setStoredPermissions(me?.permissions ?? loginPermissions);
       } catch {
         // Keep login flow non-blocking if profile sync fails.
       }
 
-      const vaiTro = data.nguoi_dung.vai_tro;
-      if (vaiTro === "ADMIN") {
-        navigate("/admin/dashboard");
-      } else if (vaiTro === "NHANVIEN") {
-        navigate("/staff/appointments");
-      } else if (vaiTro === "BACSI") {
-        navigate("/doctor/thong-tin");
-      } else {
-        // Bệnh nhân - dùng route theo phiên đăng nhập, không truyền ID trên URL
-        navigate("/patient/dashboard");
-      }
+      navigate(resolveHomePath(getStoredPermissions(), data?.nguoi_dung?.vai_tro));
     } catch (err) {
       console.error("Login error:", err);
       const msg =

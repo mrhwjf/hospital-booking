@@ -2,13 +2,16 @@
 
 namespace App\Requests\Reports;
 
+use App\Enums\PermissionEnum;
 use Illuminate\Foundation\Http\FormRequest;
 
 class BaoCaoDoanhThuRequest extends FormRequest
 {
     public function authorize(): bool
     {
-        return true;
+        $user = $this->user();
+
+        return $user !== null && $user->hasPermission(PermissionEnum::QUAN_TRI_BAO_CAO);
     }
 
     public function rules(): array

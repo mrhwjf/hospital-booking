@@ -2,13 +2,17 @@
 
 namespace App\Requests\Admin;
 
+use App\Models\VaiTro;
+use App\Requests\Concerns\AuthorizesPolicyAbility;
 use Illuminate\Foundation\Http\FormRequest;
 
 class ChiTietVaiTroRequest extends FormRequest
 {
+    use AuthorizesPolicyAbility;
+
     public function authorize(): bool
     {
-        return true;
+        return $this->authorizeModelAbility('view', VaiTro::class, 'id');
     }
 
     public function rules(): array

@@ -33,18 +33,18 @@ Route::prefix('v1')->group(function () {
     require base_path('routes/api/v1/cloudinary.php');
 });
 
-Route::prefix('doctors')->middleware('role:public')->group(function () {
+Route::prefix('doctors')->group(function () {
     Route::get('/', [DoctorController::class, 'index'])->name('doctors.index');
     Route::get('/{id}', [DoctorController::class, 'show'])
         ->whereNumber('id')
         ->name('doctors.show');
 });
 
-Route::prefix('specialties')->middleware('role:public')->group(function () {
+Route::prefix('specialties')->group(function () {
     Route::get('/', [SpecialtyController::class, 'index'])->name('specialties.index');
 });
 
-Route::prefix('services')->middleware('role:public')->group(function () {
+Route::prefix('services')->group(function () {
     Route::get('/', [ServiceController::class, 'index'])->name('services.index');
     Route::get('/{id}', [ServiceController::class, 'show'])
         ->whereNumber('id')

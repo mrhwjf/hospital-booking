@@ -2,14 +2,18 @@
 
 namespace App\Requests\Admin\Schedule;
 
+use App\Models\BacSiNghi;
+use App\Requests\Concerns\AuthorizesPolicyAbility;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
 class StoreDoctorLeaveRequest extends FormRequest
 {
+	use AuthorizesPolicyAbility;
+
 	public function authorize(): bool
 	{
-		return true;
+		return $this->authorizeClassAbility('create', BacSiNghi::class);
 	}
 
 	public function rules(): array

@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Enums\PermissionEnum;
 use App\Models\NguoiDung;
 use App\Models\PhieuKham;
 
@@ -9,13 +10,20 @@ class PhieuKhamPolicy
 {
     public function viewAny(NguoiDung $user): bool
     {
-        return $this->isElevatedUser($user)
-            || $this->resolvePatientId($user) !== null
-            || $this->resolveDoctorId($user) !== null;
+        return $user->hasPermission(PermissionEnum::PHIEU_KHAM_READ)
+            && (
+                $this->isElevatedUser($user)
+                || $this->resolvePatientId($user) !== null
+                || $this->resolveDoctorId($user) !== null
+            );
     }
 
     public function view(NguoiDung $user, PhieuKham $phieuKham): bool
     {
+        if (!$user->hasPermission(PermissionEnum::PHIEU_KHAM_READ)) {
+            return false;
+        }
+
         if ($this->isElevatedUser($user)) {
             return true;
         }
@@ -31,11 +39,15 @@ class PhieuKhamPolicy
 
     public function create(NguoiDung $user): bool
     {
-        return $this->isElevatedUser($user) || $this->resolveDoctorId($user) !== null;
+        return $user->hasPermission(PermissionEnum::PHIEU_KHAM_CREATE);
     }
 
     public function update(NguoiDung $user, PhieuKham $phieuKham): bool
     {
+        if (!$user->hasPermission(PermissionEnum::PHIEU_KHAM_UPDATE)) {
+            return false;
+        }
+
         if ($this->isElevatedUser($user)) {
             return true;
         }
@@ -51,7 +63,7 @@ class PhieuKhamPolicy
 
     public function delete(NguoiDung $user, PhieuKham $phieuKham): bool
     {
-        return $this->isElevatedUser($user);
+        return $user->hasPermission(PermissionEnum::PHIEU_KHAM_DELETE);
     }
 
     private function resolvePatientId(NguoiDung $user): ?int
@@ -78,8 +90,9 @@ class PhieuKhamPolicy
 
     private function isElevatedUser(NguoiDung $user): bool
     {
-        $role = strtoupper((string) $user->vaiTro?->ma_vai_tro);
-
-        return in_array($role, ['ADMIN', 'BACSI'], true);
+        return $user->hasAnyPermissions([
+            PermissionEnum::QUAN_TRI_NGUOI_DUNG,
+            PermissionEnum::NGHIEP_VU_KHAM_BENH,
+        ]);
     }
 }

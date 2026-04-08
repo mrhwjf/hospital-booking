@@ -2,13 +2,17 @@
 
 namespace App\Requests\Scheduling;
 
+use App\Models\BenhNhan;
+use App\Requests\Concerns\AuthorizesPolicyAbility;
 use Illuminate\Foundation\Http\FormRequest;
 
 class CreateBenhNhanRequest extends FormRequest
 {
+	use AuthorizesPolicyAbility;
+
 	public function authorize(): bool
 	{
-		return true;
+		return $this->authorizeClassAbility('create', BenhNhan::class);
 	}
 
 	public function rules(): array

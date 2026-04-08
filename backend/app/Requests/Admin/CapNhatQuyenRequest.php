@@ -2,14 +2,18 @@
 
 namespace App\Requests\Admin;
 
+use App\Models\Quyen;
+use App\Requests\Concerns\AuthorizesPolicyAbility;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
 class CapNhatQuyenRequest extends FormRequest
 {
+    use AuthorizesPolicyAbility;
+
     public function authorize(): bool
     {
-        return true;
+        return $this->authorizeModelAbility('update', Quyen::class, 'id');
     }
 
     public function rules(): array

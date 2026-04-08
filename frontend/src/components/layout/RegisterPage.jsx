@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import HospitalIcon from "./icon/HospitalIcon";
 import { register } from "../../api/authApi";
+import { setStoredPermissions } from "../../utils/userProfileSync";
 
 function RegisterPage() {
   const navigate = useNavigate();
@@ -34,6 +35,12 @@ function RegisterPage() {
       const data = await register(form);
       localStorage.setItem("auth_token", data.token);
       localStorage.setItem("vai_tro", data.nguoi_dung.vai_tro);
+      const permissions = Array.isArray(data?.nguoi_dung?.permissions)
+        ? data.nguoi_dung.permissions
+        : Array.isArray(data?.payload?.permissions)
+          ? data.payload.permissions
+          : [];
+      setStoredPermissions(permissions);
       alert(`Chào mừng ${form.ho_ten} đã đến với Hệ Thống Y Tế ABC`);
       navigate("/login");
     } catch (err) {

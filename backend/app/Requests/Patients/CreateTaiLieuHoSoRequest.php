@@ -2,13 +2,19 @@
 
 namespace App\Requests\Patients;
 
+use App\Models\BenhNhan;
+use App\Models\TaiLieuHoSo;
+use App\Requests\Concerns\AuthorizesPolicyAbility;
 use Illuminate\Foundation\Http\FormRequest;
 
 class CreateTaiLieuHoSoRequest extends FormRequest
 {
+    use AuthorizesPolicyAbility;
+
     public function authorize(): bool
     {
-        return true;
+        return $this->authorizeModelAbility('view', BenhNhan::class, 'benhNhanId')
+            && $this->authorizeClassAbility('create', TaiLieuHoSo::class);
     }
 
     public function rules(): array

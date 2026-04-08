@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Enums\PermissionEnum;
 use App\Models\NhanVien;
 use App\Models\NguoiDung;
 
@@ -9,11 +10,16 @@ class NhanVienPolicy
 {
 	public function viewAny(NguoiDung $user): bool
 	{
-		return $this->isPrivilegedUser($user) || $this->resolveNhanVienId($user) !== null;
+		return $user->hasPermission(PermissionEnum::NHAN_VIEN_READ)
+			&& ($this->isPrivilegedUser($user) || $this->resolveNhanVienId($user) !== null);
 	}
 
 	public function view(NguoiDung $user, NhanVien $nhanVien): bool
 	{
+		if (!$user->hasPermission(PermissionEnum::NHAN_VIEN_READ)) {
+			return false;
+		}
+
 		if ($this->isPrivilegedUser($user)) {
 			return true;
 		}
@@ -57,8 +63,6 @@ class NhanVienPolicy
 
 	private function isPrivilegedUser(NguoiDung $user): bool
 	{
-		$role = strtoupper((string) $user->vaiTro?->ma_vai_tro);
-
-		return in_array($role, ['ADMIN'], true);
+		return $user->hasPermission(PermissionEnum::QUAN_TRI_HO_SO_NHAN_VIEN);
 	}
 }

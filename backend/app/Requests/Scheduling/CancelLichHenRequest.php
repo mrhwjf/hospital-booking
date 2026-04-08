@@ -2,14 +2,18 @@
 
 namespace App\Requests\Scheduling;
 
+use App\Models\LichHen;
+use App\Requests\Concerns\AuthorizesPolicyAbility;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
 class CancelLichHenRequest extends FormRequest
 {
+	use AuthorizesPolicyAbility;
+
 	public function authorize(): bool
 	{
-		return true;
+		return $this->authorizeModelAbility('update', LichHen::class, 'id');
 	}
 
 	public function rules(): array

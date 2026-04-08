@@ -2,11 +2,15 @@
 
 namespace App\Requests\Scheduling;
 
+use App\Models\LichHen;
+use App\Requests\Concerns\AuthorizesPolicyAbility;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
 class CreateLichHenRequest extends FormRequest
 {
+	use AuthorizesPolicyAbility;
+
 	protected function prepareForValidation(): void
 	{
 		$authenticatedPatientId = $this->user()?->benhNhan?->id;
@@ -20,7 +24,7 @@ class CreateLichHenRequest extends FormRequest
 
 	public function authorize(): bool
 	{
-		return true;
+		return $this->authorizeClassAbility('create', LichHen::class);
 	}
 
 	public function rules(): array

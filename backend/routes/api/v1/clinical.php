@@ -1,5 +1,6 @@
 <?php
 
+use App\Enums\PermissionEnum;
 use App\Http\Controllers\Api\V1\Clinical\NhanVienController;
 use Illuminate\Support\Facades\Route;
 
@@ -8,11 +9,11 @@ use App\Http\Controllers\Api\V1\Clinical\PhieuKhamController;
 use App\Http\Controllers\Api\V1\Clinical\DonThuocController;
 use App\Http\Controllers\Api\V1\Clinical\ThongTinBacSiController;
 
-Route::middleware(['auth.jwt', 'role:NHANVIEN'])->prefix('staff-profile')->group(function () {
+Route::middleware(['auth.jwt', 'permission:' . PermissionEnum::NHAN_VIEN_READ->value])->prefix('staff-profile')->group(function () {
 	Route::get('/me', [NhanVienController::class, 'me']);
 });
 
-Route::middleware(['auth.jwt', 'role:BACSI'])->group(function () {
+Route::middleware(['auth.jwt', 'permission:' . PermissionEnum::NGHIEP_VU_KHAM_BENH->value])->group(function () {
 	// Phiếu khám
 	Route::get('/phieu-kham', [PhieuKhamController::class, 'indexByDoctor']);
 	Route::get('/phieu-kham/{id}', [PhieuKhamController::class, 'show']);

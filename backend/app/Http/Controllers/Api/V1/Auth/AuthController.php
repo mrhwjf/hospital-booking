@@ -13,7 +13,9 @@ use Illuminate\Support\Facades\Validator;
 use App\Services\CloudinaryService;
 class AuthController extends Controller
 {
-    public function __construct(private JwtService $jwtService, private CloudinaryService $cloudinaryService) {}
+    public function __construct(private JwtService $jwtService, private CloudinaryService $cloudinaryService)
+    {
+    }
 
     /**
      * Đăng nhập người dùng
@@ -35,8 +37,8 @@ class AuthController extends Controller
             ], 422);
         }
 
-        // Eager load vaiTro relationship
-        $user = NguoiDung::with('vaiTro')->where('email', $request->email)->first();
+        // Eager load role and inherited permissions
+        $user = NguoiDung::with(['vaiTro.quyens', 'benhNhan'])->where('email', $request->email)->first();
 
         if (!$user || !Hash::check($request->mat_khau, $user->mat_khau)) {
             return response()->json([
@@ -48,11 +50,8 @@ class AuthController extends Controller
         // Tạo JWT token
         $token = $this->jwtService->createToken($user);
 
-        // Lấy thông tin bệnh nhân nếu là bệnh nhân
-        $benhNhan = null;
-        if ($user->vaiTro?->ma_vai_tro === 'BENHNHAN') {
-            $benhNhan = BenhNhan::where('nguoi_dung_id', $user->id)->first();
-        }
+        $permissions = $user->permissions()->all();
+        $benhNhan = $user->benhNhan;
 
         return response()->json([
             'success' => true,
@@ -65,12 +64,14 @@ class AuthController extends Controller
                 'email' => $user->email,
                 'vai_tro' => $user->vaiTro?->ma_vai_tro,
                 'benh_nhan_id' => $benhNhan?->id ?? null,
+                'permissions' => $permissions,
             ],
             'payload' => [
                 'userId' => $user->id,
                 'name' => $user->ho_ten,
                 'role' => $user->vaiTro?->ma_vai_tro,
                 'email' => $user->email,
+                'permissions' => $permissions,
             ]
         ], 200);
     }
@@ -122,6 +123,8 @@ class AuthController extends Controller
             ]);
 
             $token = $this->jwtService->createToken($user);
+            $user->load('vaiTro.quyens');
+            $permissions = $user->permissions()->all();
 
             return response()->json([
                 'success' => true,
@@ -134,11 +137,13 @@ class AuthController extends Controller
                     'email' => $user->email,
                     'vai_tro' => 'BENHNHAN',
                     'benh_nhan_id' => $benhNhan->id,
+                    'permissions' => $permissions,
                 ],
                 'payload' => [
                     'userId' => $user->id,
                     'name' => $user->ho_ten,
                     'role' => 'BENHNHAN',
+                    'permissions' => $permissions,
                 ]
             ], 201);
         } catch (\Exception $e) {
@@ -172,7 +177,7 @@ class AuthController extends Controller
      */
     public function me(Request $request)
     {
-        $user = $request->user()->load('vaiTro');
+        $user = $request->user()->load('vaiTro.quyens');
 
         return response()->json([
             'success' => true,
@@ -183,15 +188,16 @@ class AuthController extends Controller
                 'hinh_anh_public_id' => $user->hinh_anh_public_id,
                 'email' => $user->email,
                 'vai_tro' => $user->vaiTro?->ma_vai_tro,
+                'permissions' => $user->permissions()->all(),
             ]
         ]);
     }
-    
+
     /**
      * Cập nhật avatar tài khoản hiện tại
      */
     public function updateAvatar(Request $request)
-    {        
+    {
         $file = $request->file('avatar');
         if (!$file || !$file->isValid()) {
 
@@ -226,7 +232,7 @@ class AuthController extends Controller
      */
     public function updateMe(Request $request)
     {
-        $user = $request->user()->load('vaiTro');
+        $user = $request->user()->load('vaiTro.quyens');
 
         $validator = Validator::make($request->all(), [
             'email' => 'required|email|unique:nguoi_dung,email,' . $user->id,
@@ -242,13 +248,11 @@ class AuthController extends Controller
         $user->email = $request->email;
         $user->save();
 
-        // Đồng bộ email hồ sơ bệnh nhân nếu tài khoản là bệnh nhân
-        if ($user->vaiTro?->ma_vai_tro === 'BENHNHAN') {
-            $benhNhan = BenhNhan::where('nguoi_dung_id', $user->id)->first();
-            if ($benhNhan) {
-                $benhNhan->email = $user->email;
-                $benhNhan->save();
-            }
+        // Đồng bộ email hồ sơ bệnh nhân nếu tài khoản có liên kết hồ sơ bệnh nhân
+        $benhNhan = $user->benhNhan()->first();
+        if ($benhNhan) {
+            $benhNhan->email = $user->email;
+            $benhNhan->save();
         }
 
         return response()->json([
@@ -261,6 +265,7 @@ class AuthController extends Controller
                 'vai_tro' => $user->vaiTro?->ma_vai_tro,
                 'hinh_anh' => $user->hinh_anh,
                 'hinh_anh_public_id' => $user->hinh_anh_public_id,
+                'permissions' => $user->permissions()->all(),
             ]
         ]);
     }

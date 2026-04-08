@@ -22,7 +22,7 @@ import {
 	message,
 } from 'antd'
 import { MENU_CONFIG } from '../../app/menuConfig'
-import { clearStoredAuthState, getStoredUserAvatar } from '../../utils/userProfileSync'
+import { clearStoredAuthState, getStoredUserAvatar, hasStoredAllPermissions } from '../../utils/userProfileSync'
 
 const { Header, Sider, Content } = Layout
 const { useBreakpoint } = Grid
@@ -37,8 +37,8 @@ const iconMap = {
 	logout: <LogoutOutlined />,
 }
 
-const getSelectedRoute = (pathname) => {
-	const matched = STAFF_MENU_ITEMS.find((item) => pathname.startsWith(item.route))
+const getSelectedRoute = (pathname, items) => {
+	const matched = items.find((item) => pathname.startsWith(item.route))
 	return matched?.route || '/staff/appointments'
 }
 
@@ -49,21 +49,26 @@ export default function StaffLayout({ staffName = 'Nhân viên mô phỏng', chi
 	const [drawerOpen, setDrawerOpen] = useState(false)
 	const [collapsed, setCollapsed] = useState(false)
 
+	const staffMenuItems = useMemo(
+		() => STAFF_MENU_ITEMS.filter((item) => hasStoredAllPermissions(item.permissions || [])),
+		[],
+	)
+
 	const isMobile = !screens.lg
-	const selectedRoute = getSelectedRoute(location.pathname)
+	const selectedRoute = getSelectedRoute(location.pathname, staffMenuItems)
 
 	const mainMenuItems = useMemo(
 		() =>
-			STAFF_MENU_ITEMS.filter((item) => item.icon !== 'logout').map((item) => ({
+			staffMenuItems.filter((item) => item.icon !== 'logout').map((item) => ({
 				key: item.route,
 				icon: iconMap[item.icon] || <AppstoreOutlined />,
 				label: item.label,
 			})),
-		[],
+		[staffMenuItems],
 	)
 
 	const logoutItem = useMemo(() => {
-		const item = STAFF_MENU_ITEMS.find((menuItem) => menuItem.icon === 'logout')
+		const item = staffMenuItems.find((menuItem) => menuItem.icon === 'logout')
 		if (!item) {
 			return null
 		}
@@ -74,7 +79,7 @@ export default function StaffLayout({ staffName = 'Nhân viên mô phỏng', chi
 			label: item.label,
 			className: 'text-red-500! hover:bg-red-50!',
 		}
-	}, [])
+	}, [staffMenuItems])
 
 	const handleLogout = () => {
 		clearStoredAuthState()

@@ -28,7 +28,6 @@ class BenhNhanController extends Controller
             $benhNhan = $this->visitHistoryService->getCurrentPatient(
                 (int) $request->validated('benh_nhan_id')
             );
-            $this->authorize('view', $benhNhan);
 
             return ApiResponse::success(
                 new BenhNhanProfileResource($benhNhan),

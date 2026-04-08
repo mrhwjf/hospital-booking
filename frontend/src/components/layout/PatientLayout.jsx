@@ -21,6 +21,8 @@ import {
   getStoredAuthToken,
   getStoredUserAvatar,
   getStoredUserName,
+  hasStoredAllPermissions,
+  setStoredPermissions,
   setStoredUserProfile,
   subscribeUserProfileUpdates,
 } from '../../utils/userProfileSync'
@@ -43,12 +45,12 @@ const patientIconMap = {
   logout: <LogoutOutlined />,
 }
 
-const getSelectedRoute = (pathname) => {
+const getSelectedRoute = (pathname, items) => {
   if (pathname.startsWith('/patient/kham-pha/doctors/')) {
     return '/patient/kham-pha/explore'
   }
 
-  const matched = PATIENT_MENU_ITEMS
+  const matched = items
     .filter((item) => item.icon !== 'logout')
     .find((item) => pathname === item.route || pathname.startsWith(`${item.route}/`))
 
@@ -76,8 +78,13 @@ export default function PatientLayout({ patientName, children }) {
     avatarUrl: getStoredUserAvatar(),
   }))
 
+  const patientMenuItems = useMemo(
+    () => PATIENT_MENU_ITEMS.filter((item) => hasStoredAllPermissions(item.permissions || [])),
+    [],
+  )
+
   const isMobile = !screens.lg
-  const selectedRoute = getSelectedRoute(location.pathname)
+  const selectedRoute = getSelectedRoute(location.pathname, patientMenuItems)
   const resolvedPatientName = patientName || profileSnapshot.userName || 'Tài khoản'
   const resolvedAvatarUrl = profileSnapshot.avatarUrl || undefined
 
@@ -101,6 +108,7 @@ export default function PatientLayout({ patientName, children }) {
             userName: me?.ho_ten,
             avatarUrl: me?.hinh_anh,
           })
+          setStoredPermissions(me?.permissions || [])
         })
         .catch(() => {
           // Keep layout responsive even if profile bootstrap fails.
@@ -112,16 +120,16 @@ export default function PatientLayout({ patientName, children }) {
 
   const mainMenuItems = useMemo(
     () =>
-      PATIENT_MENU_ITEMS.filter((item) => item.icon !== 'logout').map((item) => ({
+      patientMenuItems.filter((item) => item.icon !== 'logout').map((item) => ({
         key: item.route,
         icon: patientIconMap[item.icon] || <FileTextOutlined />,
         label: item.label,
       })),
-    [],
+    [patientMenuItems],
   )
 
   const logoutItem = useMemo(() => {
-    const item = PATIENT_MENU_ITEMS.find((menuItem) => menuItem.icon === 'logout')
+    const item = patientMenuItems.find((menuItem) => menuItem.icon === 'logout')
     if (!item) {
       return null
     }
@@ -132,7 +140,7 @@ export default function PatientLayout({ patientName, children }) {
       label: item.label,
       className: 'text-red-500! hover:bg-red-50!',
     }
-  }, [])
+  }, [patientMenuItems])
 
   const handleLogout = () => {
     clearStoredAuthState()

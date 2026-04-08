@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use App\Enums\PermissionEnum;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
+use Illuminate\Support\Collection;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
 
@@ -88,5 +90,65 @@ class NguoiDung extends Authenticatable
 	public function thongBaos(): HasMany
 	{
 		return $this->hasMany(ThongBao::class, 'nguoi_nhan_id');
+	}
+
+	public function permissions(): Collection
+	{
+		$this->loadMissing('vaiTro.quyens');
+
+		return collect($this->vaiTro?->quyens ?? [])
+			->pluck('ma_quyen')
+			->map(static fn($permission) => strtolower(trim((string) $permission)))
+			->filter()
+			->unique()
+			->values();
+	}
+
+	public function hasPermission(PermissionEnum|string $permission): bool
+	{
+		$code = $permission instanceof PermissionEnum
+			? $permission->value
+			: (string) $permission;
+
+		$normalized = strtolower(trim($code));
+		if ($normalized === '') {
+			return false;
+		}
+
+		return $this->permissions()->contains($normalized);
+	}
+
+	public function hasAllPermissions(array $permissions): bool
+	{
+		$required = collect($permissions)
+			->map(static fn($permission) => $permission instanceof PermissionEnum ? $permission->value : (string) $permission)
+			->map(static fn($permission) => strtolower(trim($permission)))
+			->filter()
+			->values();
+
+		if ($required->isEmpty()) {
+			return true;
+		}
+
+		$available = $this->permissions();
+
+		return $required->every(static fn(string $permission) => $available->contains($permission));
+	}
+
+	public function hasAnyPermissions(array $permissions): bool
+	{
+		$required = collect($permissions)
+			->map(static fn($permission) => $permission instanceof PermissionEnum ? $permission->value : (string) $permission)
+			->map(static fn($permission) => strtolower(trim($permission)))
+			->filter()
+			->values();
+
+		if ($required->isEmpty()) {
+			return true;
+		}
+
+		$available = $this->permissions();
+
+		return $required->contains(static fn(string $permission) => $available->contains($permission));
 	}
 }

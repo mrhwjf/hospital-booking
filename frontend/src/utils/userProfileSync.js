@@ -3,6 +3,7 @@ export const USER_PROFILE_UPDATED_EVENT = "hb:user-profile-updated";
 const STORAGE_KEYS = {
     authToken: "auth_token",
     role: "vai_tro",
+    permissions: "permissions",
     userId: "user_id",
     patientId: "benh_nhan_id",
     userName: "user_name",
@@ -12,6 +13,22 @@ const STORAGE_KEYS = {
 
 const trimString = (value) =>
     typeof value === "string" ? value.trim() : "";
+
+const normalizePermission = (value) => trimString(value).toLowerCase();
+
+const normalizePermissions = (permissions) => {
+    if (!Array.isArray(permissions)) {
+        return [];
+    }
+
+    return Array.from(
+        new Set(
+            permissions
+                .map((permission) => normalizePermission(permission))
+                .filter(Boolean),
+        ),
+    );
+};
 
 const setStorageValue = (key, rawValue) => {
     const value = trimString(rawValue);
@@ -39,6 +56,52 @@ export const emitUserProfileUpdated = () => {
 
 export const getStoredAuthToken = () =>
     localStorage.getItem(STORAGE_KEYS.authToken) || "";
+
+export const getStoredPermissions = () => {
+    const raw = localStorage.getItem(STORAGE_KEYS.permissions);
+
+    if (!raw) {
+        return [];
+    }
+
+    try {
+        return normalizePermissions(JSON.parse(raw));
+    } catch {
+        return [];
+    }
+};
+
+export const setStoredPermissions = (permissions = []) => {
+    const normalized = normalizePermissions(permissions);
+    const nextValue = normalized.length > 0 ? JSON.stringify(normalized) : "";
+    const currentValue = localStorage.getItem(STORAGE_KEYS.permissions) || "";
+
+    if (nextValue) {
+        if (currentValue !== nextValue) {
+            localStorage.setItem(STORAGE_KEYS.permissions, nextValue);
+            emitUserProfileUpdated();
+        }
+
+        return;
+    }
+
+    if (currentValue) {
+        localStorage.removeItem(STORAGE_KEYS.permissions);
+        emitUserProfileUpdated();
+    }
+};
+
+export const hasStoredAllPermissions = (requiredPermissions = []) => {
+    const required = normalizePermissions(requiredPermissions);
+
+    if (required.length === 0) {
+        return true;
+    }
+
+    const available = new Set(getStoredPermissions());
+
+    return required.every((permission) => available.has(permission));
+};
 
 export const getStoredUserName = () =>
     localStorage.getItem(STORAGE_KEYS.userName) || "";

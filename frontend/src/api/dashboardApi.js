@@ -4,7 +4,7 @@ import httpClient from './httpClient';
  * Get patient dashboard overview
  * 
  * API: GET /api/v1/dashboard/patient
- * Auth: Bearer token (role: BENHNHAN)
+ * Auth: Bearer token (tai khoan benh nhan)
  * 
  * Returns:
  * - patient_info: Mã BN, nhóm máu, thông tin cơ bản

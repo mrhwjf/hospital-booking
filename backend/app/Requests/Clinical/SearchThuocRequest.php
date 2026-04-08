@@ -2,6 +2,7 @@
 
 namespace App\Requests\Clinical;
 
+use App\Enums\PermissionEnum;
 use Illuminate\Foundation\Http\FormRequest;
 
 
@@ -12,7 +13,9 @@ class SearchThuocRequest extends FormRequest
      */
     public function authorize(): bool
     {
-        return $this->user()?->vaiTro?->ma_vai_tro === 'BACSI';
+        $user = $this->user();
+
+        return $user !== null && $user->hasPermission(PermissionEnum::NGHIEP_VU_KHAM_BENH);
     }
 
     /**

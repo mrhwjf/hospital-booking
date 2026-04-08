@@ -2,13 +2,17 @@
 
 namespace App\Requests\Admin;
 
+use App\Models\CauHinhHeThong;
+use App\Requests\Concerns\AuthorizesPolicyAbility;
 use Illuminate\Foundation\Http\FormRequest;
 
 class CapNhatCauHinhHeThongRequest extends FormRequest
 {
+    use AuthorizesPolicyAbility;
+
     public function authorize(): bool
     {
-        return true;
+        return $this->authorizeClassAbility('update', CauHinhHeThong::class);
     }
 
     public function rules(): array

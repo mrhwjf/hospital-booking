@@ -14,7 +14,7 @@ Route::middleware('auth.jwt')->prefix('dashboard')->group(function () {
      * 
      * GET /api/v1/dashboard/patient
      * 
-     * Auth: Bearer token (role: BENHNHAN)
+     * Auth: Bearer token (tai khoan benh nhan)
      * 
      * Response:
      * - patient_info: Mã BN, nhóm máu, thông tin cơ bản

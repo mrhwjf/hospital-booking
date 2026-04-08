@@ -2,13 +2,17 @@
 
 namespace App\Requests\Patients;
 
+use App\Models\BenhNhan;
+use App\Requests\Concerns\AuthorizesPolicyAbility;
 use Illuminate\Foundation\Http\FormRequest;
 
 class ListTaiLieuHoSoRequest extends FormRequest
 {
+    use AuthorizesPolicyAbility;
+
     public function authorize(): bool
     {
-        return true;
+        return $this->authorizeModelAbility('view', BenhNhan::class, 'benhNhanId');
     }
 
     public function rules(): array

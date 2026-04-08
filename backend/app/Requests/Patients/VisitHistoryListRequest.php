@@ -2,11 +2,15 @@
 
 namespace App\Requests\Patients;
 
+use App\Models\PhieuKham;
+use App\Requests\Concerns\AuthorizesPolicyAbility;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
 class VisitHistoryListRequest extends FormRequest
 {
+	use AuthorizesPolicyAbility;
+
 	protected function prepareForValidation(): void
 	{
 		$authenticatedPatientId = $this->user()?->benhNhan?->id;
@@ -31,7 +35,7 @@ class VisitHistoryListRequest extends FormRequest
 			return false;
 		}
 
-		return true;
+		return $this->authorizeClassAbility('viewAny', PhieuKham::class);
 	}
 
 	public function rules(): array

@@ -2,14 +2,18 @@
 
 namespace App\Requests\Admin\Schedule;
 
+use App\Models\LichLamViecBacSi;
+use App\Requests\Concerns\AuthorizesPolicyAbility;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Validator;
 
 class UpdateAssignedShiftRequest extends FormRequest
 {
+	use AuthorizesPolicyAbility;
+
 	public function authorize(): bool
 	{
-		return true;
+		return $this->authorizeModelAbility('update', LichLamViecBacSi::class, 'id');
 	}
 
 	public function rules(): array

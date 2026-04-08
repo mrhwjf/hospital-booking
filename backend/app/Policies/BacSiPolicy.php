@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Enums\PermissionEnum;
 use App\Models\BacSi;
 use App\Models\NguoiDung;
 
@@ -9,11 +10,16 @@ class BacSiPolicy
 {
 	public function viewAny(NguoiDung $user): bool
 	{
-		return $this->isElevatedUser($user) || $this->resolveDoctorId($user) !== null;
+		return $user->hasPermission(PermissionEnum::BAC_SI_READ)
+			&& ($this->isElevatedUser($user) || $this->resolveDoctorId($user) !== null);
 	}
 
 	public function view(NguoiDung $user, BacSi $bacSi): bool
 	{
+		if (!$user->hasPermission(PermissionEnum::BAC_SI_READ)) {
+			return false;
+		}
+
 		if ($this->isElevatedUser($user)) {
 			return true;
 		}
@@ -57,8 +63,9 @@ class BacSiPolicy
 
 	private function isElevatedUser(NguoiDung $user): bool
 	{
-		$role = strtoupper((string) $user->vaiTro?->ma_vai_tro);
-
-		return in_array($role, ['ADMIN', 'NHANVIEN'], true);
+		return $user->hasAnyPermissions([
+			PermissionEnum::QUAN_TRI_HO_SO_NHAN_VIEN,
+			PermissionEnum::NGHIEP_VU_QUAN_LY_LICH_HEN,
+		]);
 	}
 }

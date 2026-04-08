@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Api\V1\Scheduling;
 
+use App\Enums\PermissionEnum;
 use App\Http\Controllers\Controller;
 use App\Models\LichHen;
 use App\Requests\Scheduling\CancelLichHenRequest;
@@ -27,7 +28,6 @@ class LichHenController extends Controller
     {
         try {
             $payload = $request->validated();
-            $this->authorize('create', LichHen::class);
 
             if ($this->isPatientActor($request)) {
                 $patientId = $this->resolveAuthenticatedPatientId($request);
@@ -150,8 +150,6 @@ class LichHenController extends Controller
     public function huy(int $id, CancelLichHenRequest $request): JsonResponse
     {
         try {
-            $this->authorizePatientAppointment($id, 'update');
-
             $lichHen = $this->schedulingService->cancelLichHen($id, $request->validated());
 
             return ApiResponse::success(new LichHenResource($lichHen), 'Hủy lịch hẹn thành công.');
@@ -173,8 +171,6 @@ class LichHenController extends Controller
     public function doiLich(int $id, DoiLichHenRequest $request): JsonResponse
     {
         try {
-            $this->authorizePatientAppointment($id, 'update');
-
             $lichHen = $this->schedulingService->doiLichHen($id, $request->validated());
 
             return ApiResponse::success(new LichHenResource($lichHen), 'Đổi lịch hẹn thành công.');
@@ -196,8 +192,6 @@ class LichHenController extends Controller
     public function checkIn(int $id, CheckInLichHenRequest $request): JsonResponse
     {
         try {
-            $this->authorizePatientAppointment($id, 'update');
-
             $lichHen = $this->schedulingService->checkInLichHen($id, $request->validated());
 
             return ApiResponse::success(new LichHenResource($lichHen), 'Check-in bệnh nhân thành công.');
@@ -218,9 +212,14 @@ class LichHenController extends Controller
 
     private function isPatientActor(Request $request): bool
     {
-        $role = strtoupper((string) $request->user()?->vaiTro?->ma_vai_tro);
+        $user = $request->user();
 
-        return $role === 'BENHNHAN';
+        if ($user === null || $this->resolveAuthenticatedPatientId($request) === null) {
+            return false;
+        }
+
+        return $user->hasPermission(PermissionEnum::LICH_HEN_DAT_LICH)
+            && !$user->hasPermission(PermissionEnum::LICH_HEN_CREATE);
     }
 
     private function resolveAuthenticatedPatientId(Request $request): ?int

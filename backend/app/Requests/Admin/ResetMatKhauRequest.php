@@ -2,13 +2,17 @@
 
 namespace App\Requests\Admin;
 
+use App\Models\NguoiDung;
+use App\Requests\Concerns\AuthorizesPolicyAbility;
 use Illuminate\Foundation\Http\FormRequest;
 
 class ResetMatKhauRequest extends FormRequest
 {
+    use AuthorizesPolicyAbility;
+
     public function authorize(): bool
     {
-        return true;
+        return $this->authorizeModelAbility('update', NguoiDung::class, 'id');
     }
 
     public function rules(): array
@@ -22,7 +26,7 @@ class ResetMatKhauRequest extends FormRequest
     {
         return [
             'mat_khau_moi.required' => 'Mật khẩu mới là bắt buộc.',
-            'mat_khau_moi.min'      => 'Mật khẩu mới phải có ít nhất 8 ký tự.',
+            'mat_khau_moi.min' => 'Mật khẩu mới phải có ít nhất 8 ký tự.',
         ];
     }
 }

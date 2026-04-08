@@ -3,7 +3,6 @@
 namespace App\Http\Controllers\Api\V1\Patients;
 
 use App\Http\Controllers\Controller;
-use App\Models\PhieuKham;
 use App\Requests\Patients\VisitHistoryListRequest;
 use App\Requests\Patients\VisitHistoryScopedRequest;
 use App\Resources\ApiResponse;
@@ -26,8 +25,6 @@ class LichSuKhamController extends Controller
 	public function index(VisitHistoryListRequest $request): JsonResponse
 	{
 		try {
-			$this->authorize('viewAny', PhieuKham::class);
-
 			$paginator = $this->visitHistoryService->getVisitHistory($request->validated());
 
 			return ApiResponse::paginated(
@@ -57,7 +54,6 @@ class LichSuKhamController extends Controller
 				$id,
 				(int) $request->validated('benh_nhan_id')
 			);
-			$this->authorize('view', $bundle['visit']);
 
 			return ApiResponse::success(
 				[
@@ -88,12 +84,6 @@ class LichSuKhamController extends Controller
 	public function chiDinh(int $id, VisitHistoryScopedRequest $request): JsonResponse
 	{
 		try {
-			$visit = $this->visitHistoryService->getVisitDetail(
-				$id,
-				(int) $request->validated('benh_nhan_id')
-			);
-			$this->authorize('view', $visit);
-
 			$items = $this->visitHistoryService->getVisitChiDinhs(
 				$id,
 				(int) $request->validated('benh_nhan_id')
@@ -122,12 +112,6 @@ class LichSuKhamController extends Controller
 	public function donThuoc(int $id, VisitHistoryScopedRequest $request): JsonResponse
 	{
 		try {
-			$visit = $this->visitHistoryService->getVisitDetail(
-				$id,
-				(int) $request->validated('benh_nhan_id')
-			);
-			$this->authorize('view', $visit);
-
 			$donThuoc = $this->visitHistoryService->getVisitDonThuoc(
 				$id,
 				(int) $request->validated('benh_nhan_id')
@@ -159,12 +143,6 @@ class LichSuKhamController extends Controller
 	public function taiLieu(int $id, VisitHistoryScopedRequest $request): JsonResponse
 	{
 		try {
-			$visit = $this->visitHistoryService->getVisitDetail(
-				$id,
-				(int) $request->validated('benh_nhan_id')
-			);
-			$this->authorize('view', $visit);
-
 			$items = $this->visitHistoryService->getVisitTaiLieus(
 				$id,
 				(int) $request->validated('benh_nhan_id')
@@ -193,12 +171,6 @@ class LichSuKhamController extends Controller
 	public function taiLieuSignedUrl(int $id, int $taiLieuId, VisitHistoryScopedRequest $request): JsonResponse
 	{
 		try {
-			$visit = $this->visitHistoryService->getVisitDetail(
-				$id,
-				(int) $request->validated('benh_nhan_id')
-			);
-			$this->authorize('view', $visit);
-
 			$data = $this->visitHistoryService->getVisitTaiLieuSignedUrl(
 				$id,
 				$taiLieuId,

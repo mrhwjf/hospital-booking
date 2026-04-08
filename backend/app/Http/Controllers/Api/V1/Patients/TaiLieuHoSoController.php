@@ -25,8 +25,6 @@ class TaiLieuHoSoController extends Controller
     public function index(ListTaiLieuHoSoRequest $request, int $benhNhanId): JsonResponse
     {
         try {
-            $this->authorizePatientScope($benhNhanId);
-
             $filters = $request->validated();
             $paginator = $this->patientService->getTaiLieuHoSoByBenhNhan($benhNhanId, $filters);
 
@@ -41,7 +39,6 @@ class TaiLieuHoSoController extends Controller
     public function store(CreateTaiLieuHoSoRequest $request, int $benhNhanId): JsonResponse
     {
         try {
-            $this->authorizePatientScope($benhNhanId);
             $item = $this->patientService->createTaiLieuHoSo($benhNhanId, $request->validated());
 
             return ApiResponse::success(new TaiLieuHoSoResource($item), 'Đã tạo hồ sơ tài liệu thành công.', 201);
@@ -55,7 +52,6 @@ class TaiLieuHoSoController extends Controller
     public function update(UpdateTaiLieuHoSoRequest $request, int $benhNhanId, int $taiLieuId): JsonResponse
     {
         try {
-            $this->authorizePatientScope($benhNhanId);
             $item = $this->patientService->updateTaiLieuHoSo($benhNhanId, $taiLieuId, $request->validated());
 
             return ApiResponse::success(new TaiLieuHoSoResource($item), 'Đã cập nhật hồ sơ tài liệu thành công.');
@@ -69,7 +65,6 @@ class TaiLieuHoSoController extends Controller
     public function upload(UploadMedicalDocumentRequest $request, int $benhNhanId, int $taiLieuId): JsonResponse
     {
         try {
-            $this->authorizePatientScope($benhNhanId);
             $item = $this->patientService->uploadTaiLieuHoSoFile($benhNhanId, $taiLieuId, $request->file('tai_lieu'));
 
             return ApiResponse::success([

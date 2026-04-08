@@ -2,13 +2,17 @@
 
 namespace App\Requests\Admin;
 
+use App\Models\NguoiDung;
+use App\Requests\Concerns\AuthorizesPolicyAbility;
 use Illuminate\Foundation\Http\FormRequest;
 
 class DanhSachTaiKhoanBacSiRequest extends FormRequest
 {
+    use AuthorizesPolicyAbility;
+
     public function authorize(): bool
     {
-        return true;
+        return $this->authorizeClassAbility('viewAny', NguoiDung::class);
     }
 
     public function rules(): array

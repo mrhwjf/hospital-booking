@@ -2,13 +2,17 @@
 
 namespace App\Requests\Patients;
 
+use App\Models\TaiLieuHoSo;
+use App\Requests\Concerns\AuthorizesPolicyAbility;
 use Illuminate\Foundation\Http\FormRequest;
 
 class UpdateTaiLieuHoSoRequest extends FormRequest
 {
+    use AuthorizesPolicyAbility;
+
     public function authorize(): bool
     {
-        return true;
+        return $this->authorizeModelAbility('update', TaiLieuHoSo::class, 'taiLieuId');
     }
 
     public function rules(): array

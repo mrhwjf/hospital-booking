@@ -2,13 +2,17 @@
 
 namespace App\Requests\Admin\Schedule;
 
+use App\Models\NgayNghiLe;
+use App\Requests\Concerns\AuthorizesPolicyAbility;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreHolidayRequest extends FormRequest
 {
+	use AuthorizesPolicyAbility;
+
 	public function authorize(): bool
 	{
-		return true;
+		return $this->authorizeClassAbility('create', NgayNghiLe::class);
 	}
 
 	public function rules(): array

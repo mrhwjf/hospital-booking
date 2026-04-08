@@ -2,6 +2,7 @@
 
 namespace App\Requests\Patients;
 
+use App\Models\BenhNhan;
 use Illuminate\Foundation\Http\FormRequest;
 
 class CurrentPatientRequest extends FormRequest
@@ -34,7 +35,9 @@ class CurrentPatientRequest extends FormRequest
 			'benh_nhan_id' => $authPatientId,
 		]);
 
-		return true;
+		$benhNhan = BenhNhan::query()->find($authPatientId);
+
+		return $benhNhan !== null && (bool) $this->user()?->can('view', $benhNhan);
 	}
 
 	public function rules(): array

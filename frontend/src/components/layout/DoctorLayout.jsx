@@ -13,7 +13,7 @@ import {
 } from '@ant-design/icons'
 import { Avatar, Button, Drawer, Grid, Layout, Menu, Space, Typography } from 'antd'
 import { MENU_CONFIG } from '../../app/menuConfig'
-import { clearStoredAuthState, getStoredUserAvatar } from '../../utils/userProfileSync'
+import { clearStoredAuthState, getStoredUserAvatar, hasStoredAllPermissions } from '../../utils/userProfileSync'
 
 const { Header, Sider, Content } = Layout
 const { useBreakpoint } = Grid
@@ -40,21 +40,26 @@ export default function DoctorLayout({ doctorName = 'Bác sĩ', children }) {
 	const [collapsed, setCollapsed] = useState(false)
 	const [drawerOpen, setDrawerOpen] = useState(false)
 
+	const doctorMenu = useMemo(
+		() => DOCTOR_MENU.filter((item) => hasStoredAllPermissions(item.permissions || [])),
+		[],
+	)
+
 	const isMobile = screens.md
-	const selectedRoute = getSelectedRoute(location.pathname, DOCTOR_MENU)
+	const selectedRoute = getSelectedRoute(location.pathname, doctorMenu)
 
 	const mainMenuItems = useMemo(
 		() =>
-			DOCTOR_MENU.filter((item) => item.icon !== 'logout').map((item) => ({
+			doctorMenu.filter((item) => item.icon !== 'logout').map((item) => ({
 				key: item.route,
 				icon: iconMap[item.icon] || <BarsOutlined />,
 				label: item.label,
 			})),
-		[],
+		[doctorMenu],
 	)
 
 	const logoutItem = useMemo(() => {
-		const item = DOCTOR_MENU.find((menuItem) => menuItem.icon === 'logout')
+		const item = doctorMenu.find((menuItem) => menuItem.icon === 'logout')
 		if (!item) {
 			return null
 		}
@@ -65,7 +70,7 @@ export default function DoctorLayout({ doctorName = 'Bác sĩ', children }) {
 			label: item.label,
 			className: 'text-red-500! hover:bg-red-50!',
 		}
-	}, [])
+	}, [doctorMenu])
 
 	const handleMenuClick = ({ key }) => {
 		if (key === '/doctor/logout') {

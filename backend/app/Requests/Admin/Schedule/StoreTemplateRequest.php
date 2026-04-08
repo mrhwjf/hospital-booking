@@ -2,13 +2,17 @@
 
 namespace App\Requests\Admin\Schedule;
 
+use App\Models\LichLamViec;
+use App\Requests\Concerns\AuthorizesPolicyAbility;
 use Illuminate\Foundation\Http\FormRequest;
 
 class StoreTemplateRequest extends FormRequest
 {
+	use AuthorizesPolicyAbility;
+
 	public function authorize(): bool
 	{
-		return true;
+		return $this->authorizeClassAbility('create', LichLamViec::class);
 	}
 
 	public function rules(): array

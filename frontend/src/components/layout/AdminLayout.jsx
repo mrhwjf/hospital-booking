@@ -28,7 +28,7 @@ import {
   CalendarOutlined,
 } from '@ant-design/icons'
 import { MENU_CONFIG } from '../../app/menuConfig'
-import { clearStoredAuthState } from '../../utils/userProfileSync'
+import { clearStoredAuthState, hasStoredAllPermissions } from '../../utils/userProfileSync'
 
 const { Header, Sider, Content } = Layout
 const { Title, Text } = Typography
@@ -48,26 +48,16 @@ const resolveAdminIcon = (iconName) => {
 
 const ADMIN_NAV_CONFIG = MENU_CONFIG.ADMIN
 
-const ADMIN_MENU_ITEMS = ADMIN_NAV_CONFIG.map((item) => ({
-  key: item.route,
-  icon: resolveAdminIcon(item.icon),
-  label: item.label,
-}))
-
-const PAGE_TITLES = Object.fromEntries(
-  ADMIN_NAV_CONFIG.map((item) => [item.route, item.label]),
-)
-
-const getSelectedMenuKey = (pathname) => {
+const getSelectedMenuKey = (pathname, menuItems) => {
   if (pathname.startsWith('/admin/reports/revenue')) return '/admin/reports/revenue'
   if (pathname.startsWith('/admin/reports/appointments')) return '/admin/reports/appointments'
 
-  const matched = ADMIN_MENU_ITEMS.find((item) => pathname.startsWith(item.key))
+  const matched = menuItems.find((item) => pathname.startsWith(item.key))
   return matched?.key || '/admin/dashboard'
 }
 
-const makeBreadcrumbItems = (pathname) => {
-  const currentTitle = PAGE_TITLES[getSelectedMenuKey(pathname)] || 'Trang quản trị'
+const makeBreadcrumbItems = (pathname, pageTitles, menuItems) => {
+  const currentTitle = pageTitles[getSelectedMenuKey(pathname, menuItems)] || 'Trang quản trị'
 
   return [
     { title: 'Admin' },
@@ -136,9 +126,35 @@ export default function AdminLayout() {
   const [collapsed, setCollapsed] = useState(false)
   const [mobileOpen, setMobileOpen] = useState(false)
 
-  const selectedKey = useMemo(() => getSelectedMenuKey(location.pathname), [location.pathname])
-  const pageTitle = PAGE_TITLES[selectedKey] || 'Trang quản trị'
-  const breadcrumbItems = useMemo(() => makeBreadcrumbItems(location.pathname), [location.pathname])
+  const adminNavConfig = useMemo(
+    () => ADMIN_NAV_CONFIG.filter((item) => hasStoredAllPermissions(item.permissions || [])),
+    [],
+  )
+
+  const adminMenuItems = useMemo(
+    () =>
+      adminNavConfig.map((item) => ({
+        key: item.route,
+        icon: resolveAdminIcon(item.icon),
+        label: item.label,
+      })),
+    [adminNavConfig],
+  )
+
+  const pageTitles = useMemo(
+    () => Object.fromEntries(adminNavConfig.map((item) => [item.route, item.label])),
+    [adminNavConfig],
+  )
+
+  const selectedKey = useMemo(
+    () => getSelectedMenuKey(location.pathname, adminMenuItems),
+    [location.pathname, adminMenuItems],
+  )
+  const pageTitle = pageTitles[selectedKey] || 'Trang quản trị'
+  const breadcrumbItems = useMemo(
+    () => makeBreadcrumbItems(location.pathname, pageTitles, adminMenuItems),
+    [location.pathname, pageTitles, adminMenuItems],
+  )
 
   const handleLogout = () => {
     Modal.confirm({
@@ -182,7 +198,7 @@ export default function AdminLayout() {
             <Menu
               mode="inline"
               selectedKeys={[selectedKey]}
-              items={ADMIN_MENU_ITEMS}
+              items={adminMenuItems}
               onClick={onSelectMenu}
               style={{ borderInlineEnd: 'none', paddingTop: 10 }}
             />
@@ -216,7 +232,7 @@ export default function AdminLayout() {
             <Menu
               mode="inline"
               selectedKeys={[selectedKey]}
-              items={ADMIN_MENU_ITEMS}
+              items={adminMenuItems}
               onClick={onSelectMenu}
               style={{ borderInlineEnd: 'none', paddingTop: 10 }}
             />

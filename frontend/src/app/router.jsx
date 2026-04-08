@@ -28,7 +28,12 @@ import DatLichPage from '../features/scheduling/pages/patients/DatLichPage'
 import LichHenCuaToiPage from '../features/scheduling/pages/patients/LichHenCuaToiPage'
 import LeTanQuanLyLichHenPage from '../features/scheduling/pages/receptionist/LeTanQuanLyLichHenPage'
 import QuanLyBenhNhanPage from '../features/clinical/pages/QuanLyBenhNhanPage'
-import { clearStoredAuthState, getStoredAuthToken } from '../utils/userProfileSync'
+import {
+	clearStoredAuthState,
+	getStoredAuthToken,
+	getStoredPermissions,
+	hasStoredAllPermissions,
+} from '../utils/userProfileSync'
 import AccountProfile from '../features/auth/pages/ProfilePage'
 
 const DEFAULT_HOME_BY_ROLE = {
@@ -39,6 +44,13 @@ const DEFAULT_HOME_BY_ROLE = {
 	BENHNHAN: '/patient/dashboard',
 }
 
+const DEFAULT_HOME_BY_PERMISSION = [
+	['quan_tri:nguoi_dung', '/admin/dashboard'],
+	['nghiep_vu:quan_ly_lich_hen', '/staff/appointments'],
+	['nghiep_vu:kham_benh', '/doctor/thong-tin'],
+	['nghiep_vu:dat_lich', '/patient/dashboard'],
+]
+
 const enableLayoutPlayground = import.meta.env.DEV || import.meta.env.VITE_ENABLE_LAYOUT_PLAYGROUND === 'true'
 
 const normalizeRole = (role) => String(role ?? '').trim().toUpperCase()
@@ -46,6 +58,26 @@ const normalizeRole = (role) => String(role ?? '').trim().toUpperCase()
 const getStoredRole = () => normalizeRole(localStorage.getItem('vai_tro'))
 
 const resolveHomeByRole = (role) => DEFAULT_HOME_BY_ROLE[normalizeRole(role)] || '/login'
+
+const resolveHomeByPermission = (permissions = []) => {
+	const permissionSet = new Set(
+		Array.isArray(permissions)
+			? permissions
+				.map((permission) => String(permission ?? '').trim().toLowerCase())
+				.filter(Boolean)
+			: [],
+	)
+
+	for (const [permission, path] of DEFAULT_HOME_BY_PERMISSION) {
+		if (permissionSet.has(permission)) {
+			return path
+		}
+	}
+
+	return null
+}
+
+const resolveHomePath = (role, permissions = []) => resolveHomeByPermission(permissions) || resolveHomeByRole(role)
 
 function NotFoundPage() {
 	return (
@@ -77,17 +109,41 @@ function LayoutPreviewContent({ title, description }) {
 	)
 }
 
-function RequireAuth({ allowedRoles = [] }) {
+function ForbiddenPage() {
+	const role = getStoredRole()
+	const permissions = getStoredPermissions()
+
+	return (
+		<div
+			style={{
+				minHeight: '70vh',
+				display: 'grid',
+				placeItems: 'center',
+				background: 'linear-gradient(160deg, #FFF7ED 0%, #FFF1F2 100%)',
+			}}
+		>
+			<div style={{ textAlign: 'center', padding: 16 }}>
+				<h2 style={{ marginBottom: 8 }}>403 - Truy cập bị từ chối</h2>
+				<p style={{ color: '#64748B', marginBottom: 16 }}>Bạn không có quyền truy cập trang này.</p>
+				<Space>
+					<Link to={resolveHomePath(role, permissions)}>Quay về trang chính</Link>
+				</Space>
+			</div>
+		</div>
+	)
+}
+
+function RequireAuth({ requiredPermissions = [] }) {
 	const location = useLocation()
 	const token = getStoredAuthToken()
-	const role = getStoredRole()
+	const permissions = getStoredPermissions()
 
 	if (!token) {
 		return <Navigate to="/login" replace state={{ from: location }} />
 	}
 
-	if (allowedRoles.length > 0 && !allowedRoles.includes(role)) {
-		return <Navigate to={resolveHomeByRole(role)} replace />
+	if (requiredPermissions.length > 0 && !hasStoredAllPermissions(requiredPermissions)) {
+		return <Navigate to="/forbidden" replace state={{ from: location }} />
 	}
 
 	return <Outlet />
@@ -96,9 +152,10 @@ function RequireAuth({ allowedRoles = [] }) {
 function PublicOnlyRoute() {
 	const token = getStoredAuthToken()
 	const role = getStoredRole()
+	const permissions = getStoredPermissions()
 
 	if (token) {
-		return <Navigate to={resolveHomeByRole(role)} replace />
+		return <Navigate to={resolveHomePath(role, permissions)} replace />
 	}
 
 	return <Outlet />
@@ -107,12 +164,13 @@ function PublicOnlyRoute() {
 function RootRedirect() {
 	const token = getStoredAuthToken()
 	const role = getStoredRole()
+	const permissions = getStoredPermissions()
 
 	if (!token) {
 		return <LandingPage />
 	}
 
-	return <Navigate to={resolveHomeByRole(role)} replace />
+	return <Navigate to={resolveHomePath(role, permissions)} replace />
 }
 
 function LogoutRedirect() {
@@ -133,7 +191,7 @@ export default function AppRouter() {
 
 			{enableLayoutPlayground ? <Route path="/__visual-test/layouts" element={<LayoutPlaygroundPage />} /> : null}
 
-			<Route element={<RequireAuth allowedRoles={['ADMIN']} />}>
+			<Route element={<RequireAuth requiredPermissions={['quan_tri:nguoi_dung']} />}>
 				<Route path="/admin" element={<AdminLayout />}>
 					<Route index element={<Navigate to="dashboard" replace />} />
 					<Route path="dashboard" element={<DashboardPage />} />
@@ -148,7 +206,7 @@ export default function AppRouter() {
 				</Route>
 			</Route>
 
-			<Route element={<RequireAuth allowedRoles={['NHANVIEN']} />}>
+			<Route element={<RequireAuth requiredPermissions={['nghiep_vu:quan_ly_lich_hen']} />}>
 				<Route path="/staff" element={<StaffLayout />}>
 					<Route index element={<Navigate to="appointments" replace />} />
 					<Route path="appointments" element={<LeTanQuanLyLichHenPage />} />
@@ -158,7 +216,7 @@ export default function AppRouter() {
 				</Route>
 			</Route>
 
-			<Route element={<RequireAuth allowedRoles={['BACSI']} />}>
+			<Route element={<RequireAuth requiredPermissions={['nghiep_vu:kham_benh']} />}>
 				<Route path="/doctor" element={<DoctorLayout />}>
 					<Route index element={<Navigate to="thong-tin" replace />} />
 					<Route path="thong-tin" element={<ThongTinBS />} />
@@ -168,7 +226,7 @@ export default function AppRouter() {
 				</Route>
 			</Route>
 
-			<Route element={<RequireAuth allowedRoles={['BENHNHAN']} />}>
+			<Route element={<RequireAuth requiredPermissions={['nghiep_vu:dat_lich']} />}>
 				<Route path="/patient" element={<PatientLayout />}>
 					<Route index element={<Navigate to="dashboard" replace />} />
 					<Route path="dashboard" element={<Tongquan />} />
@@ -183,6 +241,7 @@ export default function AppRouter() {
 				</Route>
 			</Route>
 
+			<Route path="/forbidden" element={<ForbiddenPage />} />
 			<Route path="*" element={<NotFoundPage />} />
 		</Routes>
 	)

@@ -2,13 +2,17 @@
 
 namespace App\Requests\Admin;
 
+use App\Models\Quyen;
+use App\Requests\Concerns\AuthorizesPolicyAbility;
 use Illuminate\Foundation\Http\FormRequest;
 
 class TaoQuyenRequest extends FormRequest
 {
+    use AuthorizesPolicyAbility;
+
     public function authorize(): bool
     {
-        return true;
+        return $this->authorizeClassAbility('create', Quyen::class);
     }
 
     public function rules(): array
