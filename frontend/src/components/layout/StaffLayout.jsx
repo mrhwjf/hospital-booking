@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
 	AppstoreOutlined,
@@ -21,8 +21,18 @@ import {
 	Typography,
 	message,
 } from 'antd'
+import { getMe } from '../../api/authApi'
 import { MENU_CONFIG } from '../../app/menuConfig'
-import { clearStoredAuthState, getStoredUserAvatar, hasStoredAllPermissions } from '../../utils/userProfileSync'
+import {
+	clearStoredAuthState,
+	getStoredAuthToken,
+	getStoredUserAvatar,
+	getStoredUserName,
+	hasStoredAllPermissions,
+	setStoredPermissions,
+	setStoredUserProfile,
+	subscribeUserProfileUpdates,
+} from '../../utils/userProfileSync'
 
 const { Header, Sider, Content } = Layout
 const { useBreakpoint } = Grid
@@ -42,12 +52,26 @@ const getSelectedRoute = (pathname, items) => {
 	return matched?.route || '/staff/appointments'
 }
 
-export default function StaffLayout({ staffName = 'Nhân viên mô phỏng', children }) {
+const getAvatarFallback = (name) => {
+	const trimmedName = String(name || '').trim()
+
+	if (!trimmedName) {
+		return <UserOutlined />
+	}
+
+	return trimmedName.charAt(0).toUpperCase()
+}
+
+export default function StaffLayout({ staffName, children }) {
 	const screens = useBreakpoint()
 	const location = useLocation()
 	const navigate = useNavigate()
 	const [drawerOpen, setDrawerOpen] = useState(false)
 	const [collapsed, setCollapsed] = useState(false)
+	const [profileSnapshot, setProfileSnapshot] = useState(() => ({
+		userName: getStoredUserName(),
+		avatarUrl: getStoredUserAvatar(),
+	}))
 
 	const staffMenuItems = useMemo(
 		() => STAFF_MENU_ITEMS.filter((item) => hasStoredAllPermissions(item.permissions || [])),
@@ -56,6 +80,38 @@ export default function StaffLayout({ staffName = 'Nhân viên mô phỏng', chi
 
 	const isMobile = !screens.lg
 	const selectedRoute = getSelectedRoute(location.pathname, staffMenuItems)
+	const resolvedStaffName = staffName || profileSnapshot.userName || 'Tài khoản'
+	const resolvedAvatarUrl = profileSnapshot.avatarUrl || undefined
+
+	useEffect(() => {
+		const syncProfileSnapshot = () => {
+			setProfileSnapshot({
+				userName: getStoredUserName(),
+				avatarUrl: getStoredUserAvatar(),
+			})
+		}
+
+		syncProfileSnapshot()
+
+		const unsubscribe = subscribeUserProfileUpdates(syncProfileSnapshot)
+
+		const token = getStoredAuthToken()
+		if (token && (!getStoredUserName() || !getStoredUserAvatar())) {
+			getMe()
+				.then((me) => {
+					setStoredUserProfile({
+						userName: me?.ho_ten,
+						avatarUrl: me?.hinh_anh,
+					})
+					setStoredPermissions(me?.permissions || [])
+				})
+				.catch(() => {
+					// Keep layout responsive even if profile bootstrap fails.
+				})
+		}
+
+		return unsubscribe
+	}, [])
 
 	const mainMenuItems = useMemo(
 		() =>
@@ -84,7 +140,7 @@ export default function StaffLayout({ staffName = 'Nhân viên mô phỏng', chi
 	const handleLogout = () => {
 		clearStoredAuthState()
 		message.success('Đã đăng xuất khỏi khu vực nhân viên.')
-		navigate('/login', { replace: true })
+		navigate('/', { replace: true })
 	}
 
 	const handleProfileMenuClick = ({ key }) => {
@@ -130,7 +186,7 @@ export default function StaffLayout({ staffName = 'Nhân viên mô phỏng', chi
 				selectedKeys={selectedRoute ? [selectedRoute] : []}
 				onClick={handleMenuClick}
 				items={mainMenuItems}
-				className="flex-1 border-0"
+				className="hb-sidebar-menu flex-1 border-0"
 			/>
 
 			{logoutItem ? (
@@ -140,7 +196,7 @@ export default function StaffLayout({ staffName = 'Nhân viên mô phỏng', chi
 						selectedKeys={selectedRoute ? [selectedRoute] : []}
 						onClick={handleMenuClick}
 						items={[logoutItem]}
-						className="border-0"
+						className="hb-sidebar-menu border-0"
 					/>
 				</div>
 			) : null}
@@ -168,8 +224,10 @@ export default function StaffLayout({ staffName = 'Nhân viên mô phỏng', chi
 
 				<Dropdown menu={profileMenu} trigger={['hover', 'click']}>
 					<div className="flex cursor-pointer items-center gap-2 rounded-lg px-2 py-1 hover:bg-[#F8FAFC]">
-						<Avatar size="large" src={getStoredUserAvatar()} className="bg-[#0F766E]" />
-						<Text className="hidden md:inline">{staffName}</Text>
+						<Avatar size="large" src={resolvedAvatarUrl} className="bg-[#0F766E]">
+							{!resolvedAvatarUrl ? getAvatarFallback(resolvedStaffName) : null}
+						</Avatar>
+						{/* <Text className="hidden md:inline">{resolvedStaffName}</Text> */}
 					</div>
 				</Dropdown>
 			</Header>

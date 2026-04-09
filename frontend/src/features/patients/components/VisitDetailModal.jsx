@@ -37,7 +37,7 @@ export default function VisitDetailModal({
 			open={open}
 			onCancel={onClose}
 			footer={null}
-			width={isMobile ? 'calc(100vw - 12px)' : 900}
+			width={isMobile ? 'calc(100vw - 12px)' : '90vw'}
 			style={isMobile ? { top: 8, paddingBottom: 8 } : MODAL_STYLES.verticalStatic}
 			styles={{
 				body: {

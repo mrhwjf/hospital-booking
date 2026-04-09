@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { getStoredAuthToken } from '../../../utils/userProfileSync'
 
 const servicesHttpClient = axios.create({
   baseURL: `${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api`,
@@ -8,6 +9,15 @@ const servicesHttpClient = axios.create({
 const catalogHttpClient = axios.create({
   baseURL: `${import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'}/api/v1`,
   timeout: 15000,
+})
+
+catalogHttpClient.interceptors.request.use((config) => {
+  const token = getStoredAuthToken()
+  if (token) {
+    config.headers.Authorization = `Bearer ${token}`
+  }
+
+  return config
 })
 
 const specialtiesCache = new Map()
@@ -42,56 +52,24 @@ function normalizeStandaloneServiceItem(item) {
   }
 }
 
-function normalizePackageListItem(item) {
-  const includedServices = Array.isArray(item?.chi_tiet_goi_khams)
-    ? item.chi_tiet_goi_khams
-      .map((detail) => {
-        const service = detail?.dich_vu
-        if (!service) {
-          return null
-        }
-
-        return {
-          id: service?.id,
-          code: service?.ma_dich_vu,
-          name: service?.ten_dich_vu,
-          description: service?.mo_ta,
-          price: toNumberOrNull(service?.gia_dich_vu),
-          duration: toNumberOrNull(service?.thoi_gian_du_kien),
-          service_type: service?.loai_dich_vu || 'dich_vu',
-          special_requirement: service?.yeu_cau_dac_biet || null,
-          status: service?.trang_thai,
-          specialty: {
-            id: service?.chuyen_khoa?.id,
-            name: service?.chuyen_khoa?.ten_chuyen_khoa,
-          },
-        }
-      })
-      .filter(Boolean)
-    : []
-
-  const primarySpecialty = includedServices.find((service) => service?.specialty?.id)?.specialty
+function normalizePublicPackageListItem(item) {
+  const normalized = normalizePackageDetail(item)
 
   return {
+    ...normalized,
     id: item?.id,
     catalog_type: 'goi_kham',
-    code: item?.ma_goi_kham,
-    name: item?.ten_goi_kham,
-    description_short: item?.mo_ta || '',
-    description_full: item?.mo_ta || '',
-    price: toNumberOrNull(item?.gia_goi_kham),
-    duration: toNumberOrNull(item?.thoi_gian_du_kien),
+    code: item?.code,
+    name: item?.name,
+    status: item?.status,
     service_type: 'goi_kham',
-    status: item?.trang_thai,
-    specialty_id: primarySpecialty?.id ?? null,
-    specialty_name: primarySpecialty?.name ?? null,
-    special_requirements: null,
-    requirements: [],
-    included_services: includedServices,
-    total_base_price: includedServices
-      .map((service) => toNumberOrNull(service?.price))
-      .filter((value) => value !== null)
-      .reduce((sum, value) => sum + value, 0),
+    specialty_id: item?.specialty_id ?? normalized.specialty_id,
+    specialty_name: item?.specialty_name ?? normalized.specialty_name,
+    special_requirements:
+      normalized.special_requirements ||
+      (Array.isArray(item?.requirements) ? item.requirements.join('\n') : null),
+    total_base_price:
+      normalized.total_base_price ?? toNumberOrNull(item?.stats?.total_included_services_price),
   }
 }
 
@@ -177,20 +155,32 @@ export async function getSpecialties() {
 }
 
 export async function getServices(specialtyId) {
-  const params = specialtyId ? { chuyen_khoa_id: specialtyId } : {}
+  const params = specialtyId ? { specialty_id: specialtyId } : {}
   const cacheKey = JSON.stringify(params)
 
   if (servicesCache.has(cacheKey)) {
     return servicesCache.get(cacheKey)
   }
 
-  const [standaloneServices, packages] = await Promise.all([
-    fetchAllCatalogPages('/dich-vu', params),
-    fetchAllCatalogPages('/goi-kham', params),
-  ])
+  const packageResponse = await servicesHttpClient.get('/services', { params })
+  const packageItems = Array.isArray(packageResponse?.data?.data)
+    ? packageResponse.data.data
+    : []
 
-  const normalizedStandaloneServices = standaloneServices.map(normalizeStandaloneServiceItem)
-  const normalizedPackages = packages.map(normalizePackageListItem)
+  let normalizedStandaloneServices = []
+  try {
+    const standaloneServices = await fetchAllCatalogPages('/dich-vu',
+      specialtyId ? { chuyen_khoa_id: specialtyId } : {},
+    )
+    normalizedStandaloneServices = standaloneServices.map(normalizeStandaloneServiceItem)
+  } catch (error) {
+    const status = Number(error?.response?.status || 0)
+    if (status !== 401 && status !== 403) {
+      throw error
+    }
+  }
+
+  const normalizedPackages = packageItems.map(normalizePublicPackageListItem)
 
   const combined = [...normalizedStandaloneServices, ...normalizedPackages].sort((first, second) =>
     String(first?.name || '').localeCompare(String(second?.name || ''), 'vi'),

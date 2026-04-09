@@ -1,9 +1,7 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Outlet, useLocation, useNavigate } from 'react-router-dom'
 import {
-	AppstoreOutlined,
 	BarsOutlined,
-	CalendarOutlined,
 	LogoutOutlined,
 	MedicineBoxOutlined,
 	MenuOutlined,
@@ -12,8 +10,18 @@ import {
 	SettingOutlined,
 } from '@ant-design/icons'
 import { Avatar, Button, Drawer, Grid, Layout, Menu, Space, Typography } from 'antd'
+import { getMe } from '../../api/authApi'
 import { MENU_CONFIG } from '../../app/menuConfig'
-import { clearStoredAuthState, getStoredUserAvatar, hasStoredAllPermissions } from '../../utils/userProfileSync'
+import {
+	clearStoredAuthState,
+	getStoredAuthToken,
+	getStoredUserAvatar,
+	getStoredUserName,
+	hasStoredAllPermissions,
+	setStoredPermissions,
+	setStoredUserProfile,
+	subscribeUserProfileUpdates,
+} from '../../utils/userProfileSync'
 
 const { Header, Sider, Content } = Layout
 const { useBreakpoint } = Grid
@@ -33,12 +41,26 @@ const getSelectedRoute = (pathname, items) => {
 	return matched?.route || items[0]?.route
 }
 
-export default function DoctorLayout({ doctorName = 'Bác sĩ', children }) {
+const getAvatarFallback = (name) => {
+	const trimmedName = String(name || '').trim()
+
+	if (!trimmedName) {
+		return <UserOutlined />
+	}
+
+	return trimmedName.charAt(0).toUpperCase()
+}
+
+export default function DoctorLayout({ doctorName, children }) {
 	const screens = useBreakpoint()
 	const location = useLocation()
 	const navigate = useNavigate()
 	const [collapsed, setCollapsed] = useState(false)
 	const [drawerOpen, setDrawerOpen] = useState(false)
+	const [profileSnapshot, setProfileSnapshot] = useState(() => ({
+		userName: getStoredUserName(),
+		avatarUrl: getStoredUserAvatar(),
+	}))
 
 	const doctorMenu = useMemo(
 		() => DOCTOR_MENU.filter((item) => hasStoredAllPermissions(item.permissions || [])),
@@ -47,6 +69,38 @@ export default function DoctorLayout({ doctorName = 'Bác sĩ', children }) {
 
 	const isMobile = screens.md
 	const selectedRoute = getSelectedRoute(location.pathname, doctorMenu)
+	const resolvedDoctorName = doctorName || profileSnapshot.userName || 'Tài khoản'
+	const resolvedAvatarUrl = profileSnapshot.avatarUrl || undefined
+
+	useEffect(() => {
+		const syncProfileSnapshot = () => {
+			setProfileSnapshot({
+				userName: getStoredUserName(),
+				avatarUrl: getStoredUserAvatar(),
+			})
+		}
+
+		syncProfileSnapshot()
+
+		const unsubscribe = subscribeUserProfileUpdates(syncProfileSnapshot)
+
+		const token = getStoredAuthToken()
+		if (token && (!getStoredUserName() || !getStoredUserAvatar())) {
+			getMe()
+				.then((me) => {
+					setStoredUserProfile({
+						userName: me?.ho_ten,
+						avatarUrl: me?.hinh_anh,
+					})
+					setStoredPermissions(me?.permissions || [])
+				})
+				.catch(() => {
+					// Keep layout responsive even if profile bootstrap fails.
+				})
+		}
+
+		return unsubscribe
+	}, [])
 
 	const mainMenuItems = useMemo(
 		() =>
@@ -75,7 +129,7 @@ export default function DoctorLayout({ doctorName = 'Bác sĩ', children }) {
 	const handleMenuClick = ({ key }) => {
 		if (key === '/doctor/logout') {
 			clearStoredAuthState()
-			navigate('/login', { replace: true })
+			navigate('/', { replace: true })
 			return
 		}
 
@@ -90,7 +144,7 @@ export default function DoctorLayout({ doctorName = 'Bác sĩ', children }) {
 				selectedKeys={selectedRoute ? [selectedRoute] : []}
 				onClick={handleMenuClick}
 				items={mainMenuItems}
-				className="flex-1 border-0"
+				className="hb-sidebar-menu flex-1 border-0"
 			/>
 
 			{logoutItem ? (
@@ -100,7 +154,7 @@ export default function DoctorLayout({ doctorName = 'Bác sĩ', children }) {
 						selectedKeys={selectedRoute ? [selectedRoute] : []}
 						onClick={handleMenuClick}
 						items={[logoutItem]}
-						className="border-0"
+						className="hb-sidebar-menu border-0"
 					/>
 				</div>
 			) : null}
@@ -127,8 +181,10 @@ export default function DoctorLayout({ doctorName = 'Bác sĩ', children }) {
 				</Space>
 
 				<Space size={8} align="center">
-					<Avatar size="large" src={getStoredUserAvatar()} className="bg-teal-700" />
-					<Text className="hidden md:inline">{doctorName}</Text>
+					<Avatar size="large" src={resolvedAvatarUrl} className="bg-teal-700">
+						{!resolvedAvatarUrl ? getAvatarFallback(resolvedDoctorName) : null}
+					</Avatar>
+					{/* <Text className="hidden md:inline">{resolvedDoctorName}</Text> */}
 				</Space>
 			</Header>
 

@@ -21,6 +21,8 @@ class UpdateAssignedShiftRequest extends FormRequest
 		return [
 			'phong_kham_id' => ['nullable', 'integer', 'exists:phong_kham,id'],
 			'ghi_chu' => ['nullable', 'string', 'max:2000'],
+			'trang_thai' => ['nullable', 'in:hoat_dong,tam_ngung,huy'],
+			'xac_nhan_huy_lich_hen' => ['nullable', 'boolean'],
 		];
 	}
 
@@ -30,9 +32,10 @@ class UpdateAssignedShiftRequest extends FormRequest
 			$input = $this->all();
 			$hasRoomField = array_key_exists('phong_kham_id', $input);
 			$hasNoteField = array_key_exists('ghi_chu', $input);
+			$hasStatusField = array_key_exists('trang_thai', $input);
 
-			if (!$hasRoomField && !$hasNoteField) {
-				$validator->errors()->add('payload', 'Cần cung cấp ít nhất một trường để cập nhật (phong_kham_id hoặc ghi_chu).');
+			if (!$hasRoomField && !$hasNoteField && !$hasStatusField) {
+				$validator->errors()->add('payload', 'Cần cung cấp ít nhất một trường để cập nhật (phong_kham_id, ghi_chu hoặc trang_thai).');
 			}
 		});
 	}

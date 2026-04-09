@@ -10,7 +10,9 @@ use Illuminate\Support\Facades\Auth;
 
 class AuthenticateJwt
 {
-    public function __construct(private JwtService $jwtService) {}
+    public function __construct(private JwtService $jwtService)
+    {
+    }
 
     public function handle(Request $request, Closure $next)
     {
@@ -31,6 +33,10 @@ class AuthenticateJwt
             $user = NguoiDung::with('vaiTro')->find($userId);
             if (!$user) {
                 return $this->unauthorized('Người dùng không tồn tại');
+            }
+
+            if ($user->trang_thai !== 'hoat_dong') {
+                return $this->unauthorized('Tài khoản của bạn đã bị vô hiệu hóa');
             }
 
             Auth::setUser($user);

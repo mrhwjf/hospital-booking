@@ -129,6 +129,12 @@ class BookingValidationService
 				]);
 			}
 
+			if ($slot->lichLamViecBacSi->lichLamViec?->trang_thai !== 'hoat_dong') {
+				throw ValidationException::withMessages([
+					'khung_gio_id' => ['Ca làm việc của khung giờ đã tạm ngưng hoặc bị hủy.'],
+				]);
+			}
+
 			if (
 				in_array($slot->trang_thai, ['da_dat', 'khoa'], true) &&
 				(int) $slot->id !== (int) ($allowedBookedSlotId ?? 0)
@@ -168,6 +174,12 @@ class BookingValidationService
 		if ($schedule->lichLamViec === null) {
 			throw ValidationException::withMessages([
 				'lich_lam_viec_bac_si_id' => ['Không tìm thấy thông tin ca làm việc của bác sĩ.'],
+			]);
+		}
+
+		if ($schedule->lichLamViec->trang_thai !== 'hoat_dong') {
+			throw ValidationException::withMessages([
+				'lich_lam_viec_bac_si_id' => ['Ca làm việc của bác sĩ đã tạm ngưng hoặc bị hủy.'],
 			]);
 		}
 

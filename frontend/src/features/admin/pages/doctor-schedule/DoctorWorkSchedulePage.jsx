@@ -28,9 +28,11 @@ import {
 	DeleteOutlined,
 	EditOutlined,
 	EyeOutlined,
+	PauseCircleOutlined,
 	LeftOutlined,
 	PlusOutlined,
 	ReloadOutlined,
+	RedoOutlined,
 	RightOutlined,
 	SearchOutlined,
 } from '@ant-design/icons'
@@ -43,7 +45,6 @@ import {
 	getApiErrorMessage,
 	submitCreateAssignment,
 	submitCreateWorkTemplate,
-	submitDeleteAssignedSchedule,
 	submitDeleteWorkTemplate,
 	submitPreviewAssignment,
 	submitUpdateAssignedSchedule,
@@ -102,6 +103,7 @@ const buildOverviewEvents = (overview) => {
 		}
 
 		const roomLabel = item?.phong_kham?.ten_phong || 'Chưa gán phòng'
+		const isActive = item?.trang_thai === 'hoat_dong'
 
 		return [
 			{
@@ -110,8 +112,8 @@ const buildOverviewEvents = (overview) => {
 				startTime: shift.gio_bat_dau,
 				endTime: shift.gio_ket_thuc,
 				title: shift.ten_ca || 'Ca làm việc',
-				subtitle: roomLabel,
-				type: 'shift',
+				subtitle: `${roomLabel}${isActive ? '' : ' • Không hoạt động'}`,
+				type: isActive ? 'shift' : 'inactive',
 			},
 		]
 	})
@@ -123,7 +125,7 @@ const buildOverviewEvents = (overview) => {
 		endTime: leave.gio_ket_thuc || '17:00:00',
 		title: leave.gio_bat_dau && leave.gio_ket_thuc ? 'Nghỉ phép' : 'Nghỉ phép cả ngày',
 		subtitle: leave.ly_do || 'Nghỉ theo điều phối',
-		type: 'leave',
+		type: 'doctor_leave',
 	}))
 
 	const holidayEvents = (overview.ngay_nghi_le || []).map((holiday) => ({
@@ -133,7 +135,7 @@ const buildOverviewEvents = (overview) => {
 		endTime: '17:00:00',
 		title: `Nghỉ lễ: ${holiday.ten_ngay_nghi}`,
 		subtitle: 'Ngày nghỉ lễ toàn viện',
-		type: 'leave',
+		type: 'holiday',
 	}))
 
 	return [...shiftEvents, ...leaveEvents, ...holidayEvents]
@@ -280,6 +282,29 @@ export default function DoctorWorkSchedulePage() {
 	}, [previewData, roomMap])
 
 	const activePreviewWeek = previewWeekGroups[previewWeekIndex] || null
+	const selectedAssignmentDate = assignFormValues?.tuan_bat_dau
+
+	const selectedAssignmentWeekday = useMemo(() => {
+		if (!selectedAssignmentDate) {
+			return null
+		}
+
+		const weekday = dayjs(selectedAssignmentDate).day()
+		return weekday === 0 ? 7 : weekday
+	}, [selectedAssignmentDate])
+
+	const filteredTemplateOptions = useMemo(() => {
+		if (!selectedAssignmentWeekday) {
+			return activeTemplateOptions
+		}
+
+		return activeTemplateOptions.filter((template) => Number(template.thu_trong_tuan) === selectedAssignmentWeekday)
+	}, [activeTemplateOptions, selectedAssignmentWeekday])
+
+	const filteredTemplateOptionIds = useMemo(
+		() => new Set(filteredTemplateOptions.map((template) => Number(template.id))),
+		[filteredTemplateOptions],
+	)
 
 	const canPreviewAssignment = useMemo(() => {
 		const mauCa = assignFormValues?.mau_ca || []
@@ -429,6 +454,35 @@ export default function DoctorWorkSchedulePage() {
 	useEffect(() => {
 		setPreviewWeekIndex(0)
 	}, [previewData])
+
+	useEffect(() => {
+		if (!assignModalOpen) {
+			return
+		}
+
+		const currentRows = assignForm.getFieldValue('mau_ca')
+		if (!Array.isArray(currentRows) || currentRows.length === 0) {
+			return
+		}
+
+		let hasInvalidTemplate = false
+		const nextRows = currentRows.map((row) => {
+			const templateId = Number(row?.lich_lam_viec_id)
+			if (!templateId || filteredTemplateOptionIds.has(templateId)) {
+				return row
+			}
+
+			hasInvalidTemplate = true
+			return {
+				...row,
+				lich_lam_viec_id: undefined,
+			}
+		})
+
+		if (hasInvalidTemplate) {
+			assignForm.setFieldValue('mau_ca', nextRows)
+		}
+	}, [assignForm, assignModalOpen, filteredTemplateOptionIds])
 
 	const openCreateTemplateModal = () => {
 		setEditingTemplate(null)
@@ -604,14 +658,46 @@ export default function DoctorWorkSchedulePage() {
 		}
 	}
 
-	const handleDeleteAssignment = async (assignmentId) => {
+	const handleToggleAssignmentStatus = async (assignment, forceCancelAppointments = false) => {
+		const nextStatus = assignment?.trang_thai === 'hoat_dong' ? 'huy' : 'hoat_dong'
+		const requestPayload = forceCancelAppointments
+			? { trang_thai: nextStatus, xac_nhan_huy_lich_hen: true }
+			: { trang_thai: nextStatus }
+
 		try {
-			await submitDeleteAssignedSchedule(assignmentId)
-			message.success('Hủy ca đã phân công thành công.')
+			const response = await submitUpdateAssignedSchedule(assignment.id, requestPayload)
+			const cancelledCount = response?.thong_tin_huy_lich_hen?.so_luong_lich_hen_bi_huy || 0
+
+			if (nextStatus === 'hoat_dong') {
+				message.success('Kích hoạt lại ca làm việc thành công.')
+			} else if (cancelledCount > 0) {
+				message.success(`Hủy ca làm việc thành công. Đã hủy ${cancelledCount} lịch hẹn liên quan.`)
+			} else {
+				message.success('Hủy ca làm việc thành công.')
+			}
+
 			await loadOverview()
 			await loadAssignments(assignmentPagination.currentPage, assignmentPagination.pageSize)
 		} catch (error) {
-			message.error(getApiErrorMessage(error, 'Không thể hủy ca đã phân công.'))
+			const confirmMessage = error?.response?.data?.data?.errors?.xac_nhan_huy_lich_hen?.[0]
+			const affectedCountRaw = error?.response?.data?.data?.errors?.so_luong_lich_hen_bi_anh_huong?.[0]
+			const affectedCount = Number(affectedCountRaw)
+
+			if (!forceCancelAppointments && nextStatus !== 'hoat_dong' && confirmMessage) {
+				Modal.confirm({
+					title: 'Xác nhận hủy ca và lịch hẹn liên quan',
+					content: Number.isFinite(affectedCount) && affectedCount > 0
+						? `Ca này hiện có ${affectedCount} lịch hẹn ở trạng thái chờ/thanh toán sẽ bị hủy. Bạn có muốn tiếp tục không?`
+						: `${confirmMessage} Bạn có muốn tiếp tục không?`,
+					okText: 'Xác nhận hủy',
+					cancelText: 'Đóng',
+					centered: true,
+					onOk: () => handleToggleAssignmentStatus(assignment, true),
+				})
+				return
+			}
+
+			message.error(getApiErrorMessage(error, 'Không thể cập nhật trạng thái ca làm việc.'))
 		}
 	}
 
@@ -701,14 +787,24 @@ export default function DoctorWorkSchedulePage() {
 						<Button icon={<EditOutlined />} onClick={() => openEditAssignmentModal(record)} />
 					</Tooltip>
 					<Popconfirm
-						title="Hủy ca đã phân công"
-						description="Bạn có chắc chắn muốn hủy ca này?"
-						onConfirm={() => handleDeleteAssignment(record.id)}
+						title={record?.trang_thai === 'hoat_dong' ? 'Hủy ca đã phân công' : 'Kích hoạt lại ca'}
+						description={
+							record?.trang_thai === 'hoat_dong'
+								? 'Bạn có chắc chắn muốn hủy ca này?'
+								: 'Bạn có chắc chắn muốn kích hoạt lại ca này?'
+						}
+						onConfirm={() => handleToggleAssignmentStatus(record)}
 						okText="Đồng ý"
 						cancelText="Bỏ qua"
 					>
-						<Tooltip title="Hủy ca">
-							<Button danger icon={<DeleteOutlined />} />
+						<Tooltip title={record?.trang_thai === 'hoat_dong' ? 'Hủy ca' : 'Kích hoạt lại'}>
+							<Button
+								type={record?.trang_thai === 'hoat_dong' ? 'default' : 'primary'}
+								danger={record?.trang_thai === 'hoat_dong'}
+								icon={record?.trang_thai === 'hoat_dong' ? <PauseCircleOutlined /> : <RedoOutlined />}
+							>
+								{record?.trang_thai === 'hoat_dong' ? 'Hủy ca' : 'Kích hoạt lại'}
+							</Button>
 						</Tooltip>
 					</Popconfirm>
 				</Space>
@@ -842,6 +938,7 @@ export default function DoctorWorkSchedulePage() {
 										total: doctorPagination.totalItems,
 										showSizeChanger: true,
 										onChange: (page, pageSize) => loadDoctors(page, pageSize),
+										hideOnSinglePage: true,
 									}}
 									onRow={(record) => ({
 										onClick: () => setSelectedDoctorId(record.id),
@@ -892,6 +989,7 @@ export default function DoctorWorkSchedulePage() {
 											pageSize: assignmentPagination.pageSize,
 											total: assignmentPagination.totalItems,
 											onChange: (page, pageSize) => loadAssignments(page, pageSize),
+											hideOnSinglePage: true,
 										}}
 									/>
 								</Space>
@@ -909,7 +1007,7 @@ export default function DoctorWorkSchedulePage() {
 						dataSource={templates}
 						scroll={{ x: 'max-content' }}
 						className={ADMIN_TABLE_STYLES.header}
-						pagination={{ pageSize: 8 }}
+						pagination={{ pageSize: 8, hideOnSinglePage: true }}
 					/>
 				</Card>
 			)}
@@ -1049,7 +1147,8 @@ export default function DoctorWorkSchedulePage() {
 														showSearch
 														placeholder="Chọn mẫu ca"
 														optionFilterProp="label"
-														options={activeTemplateOptions.map((item) => ({
+														notFoundContent={selectedAssignmentWeekday ? 'Không có mẫu ca phù hợp với ngày đã chọn.' : 'Chọn tuần bắt đầu để lọc mẫu ca.'}
+														options={filteredTemplateOptions.map((item) => ({
 															label: `${item.ten_ca} (${String(item.gio_bat_dau).slice(0, 5)}-${String(item.gio_ket_thuc).slice(0, 5)})`,
 															value: item.id,
 														}))}

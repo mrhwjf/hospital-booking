@@ -4,15 +4,14 @@ use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
 
-return new class extends Migration
-{
+return new class extends Migration {
     public function up(): void
     {
         Schema::create('bac_si', function (Blueprint $table) {
 
             $table->id();
 
-            $table->string('ma_bac_si', 20)->unique();
+            $table->string('ma_bac_si', 50)->unique();
 
             $table->foreignId('nguoi_dung_id')
                 ->unique()

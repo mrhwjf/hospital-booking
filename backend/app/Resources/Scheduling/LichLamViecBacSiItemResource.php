@@ -18,6 +18,7 @@ class LichLamViecBacSiItemResource extends JsonResource
 			'trang_thai' => $resource['trang_thai'] ?? null,
 			'ca_lam_viec' => $resource['ca_lam_viec'] ?? null,
 			'ngay_nghi_le' => $resource['ngay_nghi_le'] ?? null,
+			'ngay_nghi_bac_si' => $resource['ngay_nghi_bac_si'] ?? null,
 			'khung_gio' => collect($resource['khung_gio'] ?? [])->map(function ($slot) {
 				return (new KhungGioKhamResource($slot))->resolve(request());
 			})->values()->all(),

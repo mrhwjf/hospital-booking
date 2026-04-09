@@ -148,7 +148,7 @@ export default function PatientProfilePage() {
         {!editing && (
           <button
             onClick={() => setEditing(true)}
-            className="px-4 py-2 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2">
+            className="cursor-pointer px-4 py-2 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2">
             <span>✎</span> Cập nhật thông tin
           </button>
         )}
@@ -156,7 +156,7 @@ export default function PatientProfilePage() {
           <button
             onClick={handleCancel}
             disabled={saving}
-            className="px-4 py-2 text-slate-600 font-medium rounded-lg hover:bg-slate-100 transition-colors disabled:opacity-50">
+            className="cursor-pointer px-4 py-2 text-slate-600 font-medium rounded-lg hover:bg-slate-100 transition-colors disabled:opacity-50">
             Hủy
           </button>
         )}
@@ -270,9 +270,9 @@ export default function PatientProfilePage() {
                           setProfile({ ...profile, nhom_mau: blood });
                       }}
                       disabled={!editing}
-                      className={`px-3 py-2 rounded-lg font-medium transition-colors ${profile.nhom_mau === blood
-                          ? "bg-teal-700 text-white"
-                          : "bg-slate-100 text-slate-900 border border-slate-200"
+                      className={`cursor-pointer px-3 py-2 rounded-lg font-medium transition-colors ${profile.nhom_mau === blood
+                        ? "bg-teal-700 text-white"
+                        : "bg-slate-100 text-slate-900 border border-slate-200"
                         } ${!editing ? "cursor-default" : "cursor-pointer hover:bg-slate-200"}`}>
                       {blood}
                     </button>
@@ -425,13 +425,13 @@ export default function PatientProfilePage() {
           <button
             onClick={handleCancel}
             disabled={saving}
-            className="px-6 py-2 border border-slate-300 text-slate-900 font-medium rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
+            className="cursor-pointer px-6 py-2 border border-slate-300 text-slate-900 font-medium rounded-lg hover:bg-slate-50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed">
             Hủy
           </button>
           <button
             onClick={handleSave}
             disabled={saving}
-            className="px-6 py-2 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
+            className="cursor-pointer px-6 py-2 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed">
             {saving ? (
               <>
                 <span className="animate-spin inline-block w-4 h-4 border-2 border-white border-t-transparent rounded-full"></span>

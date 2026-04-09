@@ -145,7 +145,7 @@ export default function PatientLayout({ patientName, children }) {
   const handleLogout = () => {
     clearStoredAuthState()
     message.success('Đã đăng xuất khỏi khu vực bệnh nhân.')
-    navigate('/login', { replace: true })
+    navigate('/', { replace: true })
   }
 
   const handleMenuClick = ({ key }) => {
@@ -196,7 +196,7 @@ export default function PatientLayout({ patientName, children }) {
         selectedKeys={selectedRoute ? [selectedRoute] : []}
         onClick={handleMenuClick}
         items={mainMenuItems}
-        className="flex-1 border-0"
+        className="hb-sidebar-menu flex-1 border-0"
       />
 
       {logoutItem ? (
@@ -206,7 +206,7 @@ export default function PatientLayout({ patientName, children }) {
             selectedKeys={selectedRoute ? [selectedRoute] : []}
             onClick={handleMenuClick}
             items={[logoutItem]}
-            className="border-0"
+            className="hb-sidebar-menu border-0"
           />
         </div>
       ) : null}
@@ -253,7 +253,7 @@ export default function PatientLayout({ patientName, children }) {
               >
                 {!resolvedAvatarUrl ? getAvatarFallback(resolvedPatientName) : null}
               </Avatar>
-              <Text style={{ color: '#0F172A' }} className="hidden md:inline">{resolvedPatientName}</Text>
+              {/* <Text style={{ color: '#0F172A' }} className="hidden md:inline">{resolvedPatientName}</Text> */}
             </button>
           </Dropdown>
         </Space>

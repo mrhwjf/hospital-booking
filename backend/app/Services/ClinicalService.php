@@ -43,12 +43,17 @@ class ClinicalService
 
     public function completePhieuKham(PhieuKham $phieuKham): PhieuKham
     {
-        $phieuKham->update([
-            'trang_thai' => 'hoan_thanh',
-        ]);
-        $phieuKham->load(self::WITH_RELATIONS);
+        return DB::transaction(function () use ($phieuKham) {
+            $phieuKham->update([
+                'trang_thai' => 'hoan_thanh',
+            ]);
 
-        return $phieuKham;
+            $phieuKham->lichHen()->update([
+                'trang_thai' => 'da_hoan_tat',
+            ]);
+
+            return $phieuKham->load(self::WITH_RELATIONS);
+        });
     }
 
     public function startPhieuKham(PhieuKham $phieuKham): PhieuKham

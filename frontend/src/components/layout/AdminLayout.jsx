@@ -200,6 +200,7 @@ export default function AdminLayout() {
               selectedKeys={[selectedKey]}
               items={adminMenuItems}
               onClick={onSelectMenu}
+              className="hb-sidebar-menu"
               style={{ borderInlineEnd: 'none', paddingTop: 10 }}
             />
           </div>
@@ -234,6 +235,7 @@ export default function AdminLayout() {
               selectedKeys={[selectedKey]}
               items={adminMenuItems}
               onClick={onSelectMenu}
+              className="hb-sidebar-menu"
               style={{ borderInlineEnd: 'none', paddingTop: 10 }}
             />
           </div>

@@ -18,6 +18,8 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
 
+use Illuminate\Support\Facades\Log;
+
 class LichHenController extends Controller
 {
     public function __construct(private readonly SchedulingService $schedulingService)
@@ -206,6 +208,7 @@ class LichHenController extends Controller
                 422,
             );
         } catch (\Throwable $throwable) {
+            Log::error('Error checking in lich hen', ['exception' => $throwable]);
             return ApiResponse::error('Không thể check-in lịch hẹn. Vui lòng thử lại.', null, 500);
         }
     }

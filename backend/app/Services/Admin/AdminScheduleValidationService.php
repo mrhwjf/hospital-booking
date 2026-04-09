@@ -123,4 +123,44 @@ class AdminScheduleValidationService
 			],
 		]);
 	}
+
+	public function assertAssignmentCancellationConfirmed(array $payload, Collection $appointments): void
+	{
+		if ($appointments->isEmpty()) {
+			return;
+		}
+
+		$isConfirmed = filter_var($payload['xac_nhan_huy_lich_hen'] ?? false, FILTER_VALIDATE_BOOLEAN);
+		if ($isConfirmed) {
+			return;
+		}
+
+		$affectedCount = $appointments->count();
+		throw ValidationException::withMessages([
+			'xac_nhan_huy_lich_hen' => [
+				"Có {$affectedCount} lịch hẹn đã đặt trong ca này sẽ bị hủy. Gửi xac_nhan_huy_lich_hen=true để xác nhận tạm ngưng/hủy ca và tự động hủy các lịch hẹn liên quan.",
+			],
+			'so_luong_lich_hen_bi_anh_huong' => [(string) $affectedCount],
+		]);
+	}
+
+	public function assertHolidayCancellationConfirmed(array $payload, Collection $appointments): void
+	{
+		if ($appointments->isEmpty()) {
+			return;
+		}
+
+		$isConfirmed = filter_var($payload['xac_nhan_huy_lich_hen'] ?? false, FILTER_VALIDATE_BOOLEAN);
+		if ($isConfirmed) {
+			return;
+		}
+
+		$affectedCount = $appointments->count();
+		throw ValidationException::withMessages([
+			'xac_nhan_huy_lich_hen' => [
+				"Có {$affectedCount} lịch hẹn trong ngày nghỉ toàn viện sẽ bị hủy. Gửi xac_nhan_huy_lich_hen=true để xác nhận tạo/cập nhật ngày nghỉ và tự động hủy các lịch hẹn liên quan.",
+			],
+			'so_luong_lich_hen_bi_anh_huong' => [(string) $affectedCount],
+		]);
+	}
 }

@@ -13,6 +13,11 @@ import EarIcon from "./icon/EarIcon.png";
 import StomachIcon from "./icon/StomachIcon.png";
 import { getMe } from "../../api/authApi";
 import {
+  getDoctors as getExploreDoctors,
+  getSpecialties as getExploreSpecialties,
+} from "../../features/explore/services/exploreService";
+import { getServices } from "../../features/services/services/servicesApi";
+import {
   clearStoredAuthState,
   getStoredAuthToken,
   getStoredUserAvatar,
@@ -42,117 +47,84 @@ const getAvatarContent = (userName) => {
   return trimmedName.charAt(0).toUpperCase();
 };
 
-const specialties = [
-  {
-    id: "01",
-    icon: <HeartIcon />,
-    title: "Tim mạch",
-    description: "Khám và điều trị các bệnh lý về tim mạch, huyết áp.",
-  },
-  {
-    id: "02",
-    icon: <BabyIcon />,
-    title: "Nhi khoa",
-    description: "Chăm sóc sức khỏe toàn diện cho trẻ sơ sinh và trẻ nhỏ.",
-  },
-  {
-    id: "03",
-    icon: (
+const resolveSpecialtyIcon = (specialtyName) => {
+  const normalizedName = String(specialtyName || "").trim().toLowerCase();
+
+  if (normalizedName.includes("tim")) {
+    return <HeartIcon />;
+  }
+
+  if (normalizedName.includes("nhi")) {
+    return <BabyIcon />;
+  }
+
+  if (normalizedName.includes("sản") || normalizedName.includes("phụ")) {
+    return (
       <img
         src={PregnantWomanIcon}
         alt="Sản phụ khoa"
         className="h-6 w-6 object-contain"
       />
-    ),
-    title: "Sản phụ khoa",
-    description: "Theo dõi thai kỳ và điều trị các bệnh lý phụ khoa.",
-  },
-  {
-    id: "04",
-    icon: <PillsIcon />,
-    title: "Nội tổng quát",
-    description: "Chẩn đóan và điều trị các bệnh lý nội khoa thông thường.",
-  },
-  {
-    id: "05",
-    icon: (
-      <img src={SkinIcon} alt="Da liễu" className="h-6 w-6 object-contain" />
-    ),
-    title: "Da liễu",
-    description: "Điều trị mụn, nám và các bệnh lý da liễu thẩm mỹ.",
-  },
-  {
-    id: "06",
-    icon: (
+    );
+  }
+
+  if (normalizedName.includes("nội")) {
+    return <PillsIcon />;
+  }
+
+  if (normalizedName.includes("da")) {
+    return <img src={SkinIcon} alt="Da liễu" className="h-6 w-6 object-contain" />;
+  }
+
+  if (
+    normalizedName.includes("tai") ||
+    normalizedName.includes("mũi") ||
+    normalizedName.includes("họng")
+  ) {
+    return (
       <img
         src={EarIcon}
-        alt="Tai mũi Họng"
+        alt="Tai mũi họng"
         className="h-6 w-6 object-contain"
       />
-    ),
-    title: "Tai mũi Họng",
-    description: "Khám chữa các bệnh lý về tai, mũi, họng cho mọi lứa tuổi.",
-  },
-  {
-    id: "07",
-    icon: <BoneIcon />,
-    title: "Chấn thương chỉnh hình",
-    description: "Xử lý gãy xương, trị khớp và các chấn thương vận động.",
-  },
-  {
-    id: "08",
-    icon: (
+    );
+  }
+
+  if (normalizedName.includes("chấn thương") || normalizedName.includes("xương")) {
+    return <BoneIcon />;
+  }
+
+  if (normalizedName.includes("tiêu") || normalizedName.includes("dạ dày")) {
+    return (
       <img
         src={StomachIcon}
         alt="Tiêu hóa"
         className="h-6 w-6 object-contain"
       />
-    ),
-    title: "Tiêu hóa",
-    description: "Nội soi dạ dày, đại tràng và điều trị các bệnh lý tiêu hóa.",
-  },
-];
+    );
+  }
 
-const doctors = [
-  {
-    specialty: "Tim mạch",
-    name: "ThS. BS Nguyễn Văn A",
-    bio: "15 năm kinh nghiệm điều trị các bệnh lý tim mạch.",
-    image:
-      "https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?auto=format&fit=crop&w=600&q=80",
-  },
-  {
-    specialty: "Nhi khoa",
-    name: "BS.CKI Trần Thị B",
-    bio: "Trường khoa Nhi, chuyên gia dinh dưỡng trẻ em.",
-    image:
-      "https://images.unsplash.com/photo-1559839734-2b71ea197ec2?auto=format&fit=crop&w=600&q=80",
-  },
-  {
-    specialty: "Chấn thương chỉnh hình",
-    name: "TS. BS Lê Văn C",
-    bio: "Chuyên gia phẫu thuật nội soi khớp và chấn thương thể thao.",
-    image:
-      "https://images.unsplash.com/photo-1537368910025-700350fe46c7?auto=format&fit=crop&w=600&q=80",
-  },
-  {
-    specialty: "Da liễu",
-    name: "BS.CKII Phạm Thị D",
-    bio: "20 năm kinh nghiệm điều trị các bệnh lý về da.",
-    image:
-      "https://images.unsplash.com/photo-1582750433449-648ed127bb54?auto=format&fit=crop&w=600&q=80",
-  },
-];
+  return <HospitalIcon className="h-5 w-5" />;
+};
 
-const stats = [
-  { value: "20+", label: "Năm kinh nghiệm" },
-  { value: "50k+", label: "Lượt khám/năm" },
-  { value: "100+", label: "Bác sĩ chuyên khoa" },
-  { value: "24/7", label: "Hỗ trợ y tế" },
-];
+const resolveDoctorImage = (doctor) => {
+  const avatar = String(doctor?.avatar || "").trim();
+  if (avatar) {
+    return avatar;
+  }
+
+  const name = String(doctor?.name || "Bác sĩ").trim();
+  return `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=0f766e&color=ffffff&size=256`;
+};
+
 function LandingPage() {
   const navigate = useNavigate();
   const [authState, setAuthState] = useState(getAuthSnapshot);
+  const [specialties, setSpecialties] = useState([]);
+  const [doctors, setDoctors] = useState([]);
+  const [serviceCount, setServiceCount] = useState(0);
+  const [loadingCatalog, setLoadingCatalog] = useState(true);
+  const [catalogError, setCatalogError] = useState("");
 
   useEffect(() => {
     const syncAuthState = () => {
@@ -179,10 +151,94 @@ function LandingPage() {
     return unsubscribe;
   }, []);
 
+  useEffect(() => {
+    let mounted = true;
+
+    const loadLandingCatalog = async () => {
+      setLoadingCatalog(true);
+      setCatalogError("");
+
+      try {
+        const [specialtyResult, doctorResult, serviceResult] = await Promise.all([
+          getExploreSpecialties(),
+          getExploreDoctors(),
+          getServices(),
+        ]);
+
+        if (!mounted) {
+          return;
+        }
+
+        const nextSpecialties = Array.isArray(specialtyResult?.data)
+          ? specialtyResult.data.slice(0, 8).map((item) => ({
+            id: item.id,
+            icon: resolveSpecialtyIcon(item.name),
+            title: item.name || "Chuyên khoa",
+            description:
+              item.description || "Đội ngũ chuyên gia cùng quy trình khám chữa chuẩn hóa.",
+          }))
+          : [];
+
+        const nextDoctors = Array.isArray(doctorResult?.data)
+          ? doctorResult.data
+            .filter((doctor) => String(doctor?.status || "") !== "nghi_viec")
+            .slice(0, 4)
+            .map((doctor) => ({
+              id: doctor.id,
+              specialty:
+                doctor?.specialty ||
+                doctor?.specialty_details?.name ||
+                "Đa chuyên khoa",
+              name: doctor?.name || "Bác sĩ",
+              bio:
+                doctor?.description ||
+                doctor?.degree ||
+                "Bác sĩ giàu kinh nghiệm với quy trình điều trị chuẩn hóa.",
+              image: resolveDoctorImage(doctor),
+            }))
+          : [];
+
+        const totalServices = Array.isArray(serviceResult?.data)
+          ? serviceResult.data.length
+          : 0;
+
+        setSpecialties(nextSpecialties);
+        setDoctors(nextDoctors);
+        setServiceCount(totalServices);
+      } catch (error) {
+        if (!mounted) {
+          return;
+        }
+
+        setCatalogError(
+          error?.response?.data?.message ||
+          "Không thể tải dữ liệu chuyên khoa, bác sĩ và dịch vụ vào lúc này.",
+        );
+      } finally {
+        if (mounted) {
+          setLoadingCatalog(false);
+        }
+      }
+    };
+
+    loadLandingCatalog();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
   const handleLogout = () => {
     clearStoredAuthState();
-    navigate("/login");
+    navigate("/");
   };
+
+  const stats = [
+    { value: `${specialties.length}+`, label: "Chuyên khoa" },
+    { value: `${doctors.length}+`, label: "Bác sĩ tiêu biểu" },
+    { value: `${serviceCount}+`, label: "Dịch vụ & gói khám" },
+    { value: "24/7", label: "Hỗ trợ y tế" },
+  ];
 
   const profileMenuItems = [
     {
@@ -329,6 +385,16 @@ function LandingPage() {
             </div>
           </div>
 
+          {catalogError ? (
+            <p className="mb-4 rounded-md border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-700">
+              {catalogError}
+            </p>
+          ) : null}
+
+          {loadingCatalog ? (
+            <p className="mb-4 text-xs text-slate-500">Đang tải dữ liệu chuyên khoa...</p>
+          ) : null}
+
           <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
             {specialties.map((item) => (
               <article
@@ -346,6 +412,12 @@ function LandingPage() {
               </article>
             ))}
           </div>
+
+          {!loadingCatalog && specialties.length === 0 ? (
+            <p className="mt-4 rounded-md border border-slate-200 bg-white px-3 py-2 text-xs text-slate-600">
+              Chưa có dữ liệu chuyên khoa để hiển thị.
+            </p>
+          ) : null}
         </section>
 
         <section className="bg-white py-10">
@@ -363,7 +435,7 @@ function LandingPage() {
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 lg:grid-cols-4">
               {doctors.map((doctor) => (
                 <article
-                  key={doctor.name}
+                  key={doctor.id || doctor.name}
                   className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
                   <img
                     src={doctor.image}
@@ -381,7 +453,7 @@ function LandingPage() {
                     <button
                       className="mt-3 w-full rounded-md border border-emerald-600 px-3 py-2 text-xs font-bold text-emerald-700 hover:bg-emerald-700 hover:text-white cursor-pointer"
                       onClick={() =>
-                        window.scrollTo({ top: 0, behavior: "smooth" })
+                        navigate(authState.isAuthenticated ? "/patient/dat-lich" : "/login")
                       }>
                       Đặt khám ngay
                     </button>
@@ -389,6 +461,12 @@ function LandingPage() {
                 </article>
               ))}
             </div>
+
+            {!loadingCatalog && doctors.length === 0 ? (
+              <p className="mt-4 rounded-md border border-slate-200 bg-slate-50 px-4 py-3 text-center text-xs text-slate-600">
+                Chưa có dữ liệu bác sĩ tiêu biểu.
+              </p>
+            ) : null}
           </div>
         </section>
 

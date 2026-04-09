@@ -1,1 +1,27 @@
 @import "tailwindcss";
+
+.hb-sidebar-menu.ant-menu-inline .ant-menu-item {
+	margin-inline: 8px;
+	width: calc(100% - 16px);
+	border-radius: 10px;
+}
+
+.hb-sidebar-menu.ant-menu-inline .ant-menu-item-selected {
+	background-color: #0f766e !important;
+	color: #ffffff !important;
+	box-shadow: 0 6px 14px rgba(15, 118, 110, 0.25);
+}
+
+.hb-sidebar-menu.ant-menu-inline .ant-menu-item-selected::after {
+	border-inline-end: 0 !important;
+}
+
+.hb-sidebar-menu.ant-menu-inline .ant-menu-item-selected .anticon,
+.hb-sidebar-menu.ant-menu-inline .ant-menu-item-selected .ant-menu-title-content {
+	color: #ffffff !important;
+}
+
+.hb-sidebar-menu.ant-menu-inline .ant-menu-item-active:not(.ant-menu-item-selected) {
+	background-color: #e2f5f2 !important;
+	color: #0f766e !important;
+}

@@ -9,7 +9,7 @@ return new class extends Migration {
 	{
 		Schema::create('phieu_kham', function (Blueprint $table) {
 			$table->id();
-			$table->string('ma_phieu_kham', 20)->unique();
+			$table->string('ma_phieu_kham', 50)->unique();
 			$table->foreignId('lich_hen_id')->nullable()->unique()->constrained('lich_hen')->restrictOnDelete();
 			$table->foreignId('benh_nhan_id')->constrained('benh_nhan')->restrictOnDelete();
 			$table->foreignId('bac_si_id')->constrained('bac_si')->restrictOnDelete();

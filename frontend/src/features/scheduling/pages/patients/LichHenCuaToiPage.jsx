@@ -320,7 +320,7 @@ export default function LichHenCuaToiPage() {
 								columns={columns}
 								dataSource={rows}
 								loading={loading}
-								pagination={{ pageSize: 5 }}
+								pagination={{ pageSize: 5, hideOnSinglePage: true }}
 							/>
 						) : (
 							<Space direction="vertical" className="w-full" size={10}>

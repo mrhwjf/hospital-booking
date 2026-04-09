@@ -1,6 +1,128 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import dayjs from 'dayjs'
 import { Link, useParams } from 'react-router-dom'
+import { Alert } from 'antd'
 import { getDoctorById } from '../services/exploreService'
+import WeeklyScheduleGrid from '../../admin/components/WeeklyScheduleGrid'
+import { fetchDoctorSchedule, getApiErrorMessage } from '../../../Services/schedulingService'
+
+const SCHEDULE_WINDOW_DAYS = 30
+
+function toMonday(value = dayjs()) {
+  const dayIndex = value.day()
+  const offset = dayIndex === 0 ? -6 : 1 - dayIndex
+  return value.add(offset, 'day').startOf('day')
+}
+
+function buildDoctorDetailScheduleEvents(scheduleItems = []) {
+  const shiftEvents = []
+  const holidayEvents = []
+  const leaveEvents = []
+
+  const holidayKeys = new Set()
+  const leaveKeys = new Set()
+
+  scheduleItems.forEach((item, index) => {
+    if (!item?.ngay_lam_viec) {
+      return
+    }
+
+    const date = dayjs(item.ngay_lam_viec).format('YYYY-MM-DD')
+    const shift = item?.ca_lam_viec
+    if (shift?.gio_bat_dau && shift?.gio_ket_thuc) {
+      shiftEvents.push({
+        id: `shift-${item.id || `${date}-${index}`}`,
+        date,
+        startTime: shift.gio_bat_dau,
+        endTime: shift.gio_ket_thuc,
+        title: shift.ten_ca || 'Ca làm việc',
+        subtitle: item?.phong_kham?.ten_phong || item?.phong_kham?.ma_phong || 'Chưa gán phòng',
+        type: 'shift',
+      })
+    }
+
+    const holiday = item?.ngay_nghi_le
+    if (holiday?.id || holiday?.ten_ngay_nghi) {
+      const holidayKey = `${date}-${holiday.id || holiday.ten_ngay_nghi}`
+      if (!holidayKeys.has(holidayKey)) {
+        holidayKeys.add(holidayKey)
+        holidayEvents.push({
+          id: `holiday-${holiday.id || holidayKey}`,
+          date,
+          startTime: '07:00:00',
+          endTime: '17:00:00',
+          title: `Nghỉ lễ: ${holiday.ten_ngay_nghi || 'Toàn viện'}`,
+          subtitle: 'Ngày nghỉ lễ toàn viện',
+          type: 'holiday',
+        })
+      }
+    }
+
+    const leave = item?.ngay_nghi_bac_si
+    if (!leave?.co_nghi) {
+      return
+    }
+
+    if (leave.ca_ngay) {
+      const fullDayKey = `${date}-full-day`
+      if (!leaveKeys.has(fullDayKey)) {
+        leaveKeys.add(fullDayKey)
+        leaveEvents.push({
+          id: `leave-${fullDayKey}`,
+          date,
+          startTime: '07:00:00',
+          endTime: '17:00:00',
+          title: 'Bác sĩ nghỉ cả ngày',
+          subtitle: 'Không nhận lịch trong ngày',
+          type: 'doctor_leave',
+        })
+      }
+      return
+    }
+
+    const leaveRanges = Array.isArray(leave.khung_nghi) ? leave.khung_nghi : []
+    if (leaveRanges.length === 0) {
+      const fallbackKey = `${date}-unspecified`
+      if (!leaveKeys.has(fallbackKey)) {
+        leaveKeys.add(fallbackKey)
+        leaveEvents.push({
+          id: `leave-${fallbackKey}`,
+          date,
+          startTime: '07:00:00',
+          endTime: '17:00:00',
+          title: 'Bác sĩ nghỉ',
+          subtitle: 'Không khả dụng theo điều phối',
+          type: 'doctor_leave',
+        })
+      }
+      return
+    }
+
+    leaveRanges.forEach((range, rangeIndex) => {
+      if (!range?.gio_bat_dau || !range?.gio_ket_thuc) {
+        return
+      }
+
+      const leaveKey = `${date}-${range.gio_bat_dau}-${range.gio_ket_thuc}-${range.ly_do || ''}`
+      if (leaveKeys.has(leaveKey)) {
+        return
+      }
+
+      leaveKeys.add(leaveKey)
+      leaveEvents.push({
+        id: `leave-${date}-${rangeIndex}-${String(range.gio_bat_dau).slice(0, 5)}`,
+        date,
+        startTime: range.gio_bat_dau,
+        endTime: range.gio_ket_thuc,
+        title: 'Bác sĩ nghỉ theo giờ',
+        subtitle: range.ly_do || 'Theo lịch nghỉ bác sĩ',
+        type: 'doctor_leave',
+      })
+    })
+  })
+
+  return [...shiftEvents, ...leaveEvents, ...holidayEvents]
+}
 
 function formatDegreeLabel(value) {
   const mapping = {
@@ -19,6 +141,10 @@ function DoctorDetailPage() {
   const [doctor, setDoctor] = useState(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [weekStart, setWeekStart] = useState(toMonday(dayjs()))
+  const [scheduleItems, setScheduleItems] = useState([])
+  const [scheduleLoading, setScheduleLoading] = useState(false)
+  const [scheduleError, setScheduleError] = useState('')
 
   useEffect(() => {
     const loadDoctor = async () => {
@@ -37,6 +163,99 @@ function DoctorDetailPage() {
 
     loadDoctor()
   }, [id])
+
+  useEffect(() => {
+    if (!doctor?.id) {
+      setScheduleItems([])
+      setScheduleError('')
+      return
+    }
+
+    const loadSchedule = async () => {
+      setScheduleLoading(true)
+      setScheduleError('')
+
+      try {
+        const items = await fetchDoctorSchedule({
+          bacSiId: doctor.id,
+          fromDate: toMonday(dayjs()).format('YYYY-MM-DD'),
+          toDate: dayjs().add(SCHEDULE_WINDOW_DAYS, 'day').format('YYYY-MM-DD'),
+        })
+        setScheduleItems(items)
+      } catch (requestError) {
+        setScheduleError(getApiErrorMessage(requestError, 'Không thể tải lịch làm việc của bác sĩ.'))
+      } finally {
+        setScheduleLoading(false)
+      }
+    }
+
+    loadSchedule()
+  }, [doctor?.id])
+
+  const scheduleEvents = useMemo(
+    () => buildDoctorDetailScheduleEvents(scheduleItems),
+    [scheduleItems],
+  )
+
+  const scheduleWeekGroups = useMemo(() => {
+    const groups = scheduleEvents.reduce((accumulator, event) => {
+      const key = toMonday(dayjs(event.date)).format('YYYY-MM-DD')
+      if (!accumulator[key]) {
+        accumulator[key] = []
+      }
+
+      accumulator[key].push(event)
+      return accumulator
+    }, {})
+
+    return Object.entries(groups)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([start, items]) => ({
+        weekStart: start,
+        items,
+      }))
+  }, [scheduleEvents])
+
+  const hasScheduleInCurrentWeek = useMemo(() => {
+    const key = weekStart.format('YYYY-MM-DD')
+    return scheduleWeekGroups.some((group) => group.weekStart === key)
+  }, [scheduleWeekGroups, weekStart])
+
+  useEffect(() => {
+    if (scheduleWeekGroups.length === 0) {
+      return
+    }
+
+    const firstWeek = dayjs(scheduleWeekGroups[0].weekStart)
+    const lastWeek = dayjs(scheduleWeekGroups[scheduleWeekGroups.length - 1].weekStart)
+
+    if (weekStart.isBefore(firstWeek, 'day')) {
+      setWeekStart(firstWeek)
+      return
+    }
+
+    if (weekStart.isAfter(lastWeek, 'day')) {
+      setWeekStart(lastWeek)
+    }
+  }, [scheduleWeekGroups, weekStart])
+
+  const canGoPreviousWeek = useMemo(() => {
+    if (scheduleWeekGroups.length === 0) {
+      return false
+    }
+
+    const firstWeek = dayjs(scheduleWeekGroups[0].weekStart)
+    return weekStart.isAfter(firstWeek, 'day')
+  }, [scheduleWeekGroups, weekStart])
+
+  const canGoNextWeek = useMemo(() => {
+    if (scheduleWeekGroups.length === 0) {
+      return false
+    }
+
+    const lastWeek = dayjs(scheduleWeekGroups[scheduleWeekGroups.length - 1].weekStart)
+    return weekStart.isBefore(lastWeek, 'day')
+  }, [scheduleWeekGroups, weekStart])
 
   if (loading) {
     return <main className="min-h-screen bg-slate-50 px-6 py-12">Đang tải hồ sơ bác sĩ...</main>
@@ -57,7 +276,7 @@ function DoctorDetailPage() {
 
   return (
     <main className="min-h-screen bg-slate-50">
-      <div className="max-w-5xl mx-auto px-6 py-12">
+      <div className="mx-auto px-6 py-12">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Link className="text-teal-700 font-medium hover:underline" to="/patient/kham-pha/explore">
             ← Quay lại danh sách bác sĩ
@@ -153,6 +372,57 @@ function DoctorDetailPage() {
                     </div>
                   ))}
                 </div>
+              )}
+            </div>
+
+            <div className="rounded-xl border border-slate-200 p-4 space-y-4">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <h2 className="text-lg font-bold text-slate-900">Lịch làm việc dự kiến</h2>
+                <span className="text-xs text-slate-500">Xem trước lịch trong {SCHEDULE_WINDOW_DAYS} ngày tới</span>
+              </div>
+
+              {scheduleError ? (
+                <Alert
+                  showIcon
+                  type="warning"
+                  message={scheduleError}
+                />
+              ) : null}
+
+              {scheduleLoading ? (
+                <p className="text-sm text-slate-500">Đang tải lịch làm việc...</p>
+              ) : (
+                <>
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setWeekStart((prev) => prev.subtract(7, 'day'))}
+                      disabled={!canGoPreviousWeek}
+                      className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition enabled:hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Tuần trước
+                    </button>
+
+                    <p className="text-sm font-medium text-slate-600">
+                      Tuần {weekStart.format('DD/MM/YYYY')} - {weekStart.add(6, 'day').format('DD/MM/YYYY')}
+                    </p>
+
+                    <button
+                      type="button"
+                      onClick={() => setWeekStart((prev) => prev.add(7, 'day'))}
+                      disabled={!canGoNextWeek}
+                      className="rounded-md border border-slate-300 bg-white px-3 py-1.5 text-sm font-medium text-slate-700 transition enabled:hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+                    >
+                      Tuần sau
+                    </button>
+                  </div>
+
+                  <WeeklyScheduleGrid
+                    weekStart={weekStart}
+                    events={scheduleEvents}
+                    emptyText={hasScheduleInCurrentWeek ? 'Không có dữ liệu hiển thị cho tuần này.' : 'Bác sĩ chưa có lịch làm việc khả dụng trong tuần đã chọn.'}
+                  />
+                </>
               )}
             </div>
           </div>

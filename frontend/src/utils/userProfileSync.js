@@ -50,6 +50,19 @@ const setStorageValue = (key, rawValue) => {
     return false;
 };
 
+const readJsonStorage = (key) => {
+    try {
+        const raw = localStorage.getItem(key);
+        if (!raw) {
+            return null;
+        }
+
+        return JSON.parse(raw);
+    } catch {
+        return null;
+    }
+};
+
 export const emitUserProfileUpdated = () => {
     window.dispatchEvent(new Event(USER_PROFILE_UPDATED_EVENT));
 };
@@ -103,11 +116,31 @@ export const hasStoredAllPermissions = (requiredPermissions = []) => {
     return required.every((permission) => available.has(permission));
 };
 
-export const getStoredUserName = () =>
-    localStorage.getItem(STORAGE_KEYS.userName) || "";
+export const getStoredUserName = () => {
+    const direct = trimString(localStorage.getItem(STORAGE_KEYS.userName));
+    if (direct) {
+        return direct;
+    }
 
-export const getStoredUserAvatar = () =>
-    localStorage.getItem(STORAGE_KEYS.userAvatar) || "";
+    const payload = readJsonStorage(STORAGE_KEYS.payload);
+    const payloadName = trimString(payload?.name || payload?.ho_ten);
+    if (payloadName) {
+        return payloadName;
+    }
+
+    const user = readJsonStorage("user");
+    return trimString(user?.ho_ten || user?.name);
+};
+
+export const getStoredUserAvatar = () => {
+    const direct = trimString(localStorage.getItem(STORAGE_KEYS.userAvatar));
+    if (direct) {
+        return direct;
+    }
+
+    const user = readJsonStorage("user");
+    return trimString(user?.hinh_anh || user?.avatar);
+};
 
 export const setStoredUserProfile = ({ userName, avatarUrl } = {}) => {
     let hasChanged = false;

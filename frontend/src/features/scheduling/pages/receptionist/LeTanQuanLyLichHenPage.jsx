@@ -41,6 +41,7 @@ import {
 	submitRescheduleAppointment,
 } from '../../../../Services/schedulingService'
 import { MODAL_STYLES, SEGMENTED_STYLES, TABLE_STYLES } from '../../styles/const-styles'
+import useDebounce from '../../../../hooks/useDebounce'
 
 const { Paragraph, Text, Title } = Typography
 const DEFAULT_PAGE_SIZE = 10
@@ -162,19 +163,26 @@ export default function LeTanQuanLyLichHenPage() {
 		return [...serviceRows, ...packageRows]
 	}, [createForm.items.dich_vu, createForm.items.goi_kham, services, packages])
 
+	const debouncedKeyword = useDebounce(keyword, 500)
+
 	const loadAppointments = useCallback(async (nextPage = 1, nextPageSize = DEFAULT_PAGE_SIZE) => {
 		setLoading(true)
 		try {
-			const tuNgay = viewMode === 'sap-toi' ? dayjs().format('YYYY-MM-DD') : dayjs().subtract(365, 'day').format('YYYY-MM-DD')
-			const denNgay = viewMode === 'sap-toi' ? dayjs().add(30, 'day').format('YYYY-MM-DD') : dayjs().add(365, 'day').format('YYYY-MM-DD')
+			const tuNgay = viewMode === 'sap-toi'
+				? dayjs().format('YYYY-MM-DD')
+				: dayjs().subtract(365, 'day').format('YYYY-MM-DD')
+
+			const denNgay = viewMode === 'sap-toi'
+				? dayjs().add(30, 'day').format('YYYY-MM-DD')
+				: dayjs().add(365, 'day').format('YYYY-MM-DD')
 
 			const result = await fetchReceptionistAppointments({
 				page: nextPage,
 				pageSize: nextPageSize,
-				q: keyword,
+				q: debouncedKeyword, // 👈 use debounced value here
 				trangThai: statusFilter || undefined,
-				tuNgay: tuNgay,
-				denNgay: denNgay,
+				tuNgay,
+				denNgay,
 			})
 
 			setAppointments(result.items)
@@ -186,7 +194,7 @@ export default function LeTanQuanLyLichHenPage() {
 		} finally {
 			setLoading(false)
 		}
-	}, [keyword, statusFilter, viewMode])
+	}, [debouncedKeyword, statusFilter, viewMode])
 
 	useEffect(() => {
 		loadAppointments(1, pagination.pageSize)
@@ -538,7 +546,7 @@ export default function LeTanQuanLyLichHenPage() {
 				slotLabel: slot ? `${formatTimeLabel(slot.gio_bat_dau)} - ${formatTimeLabel(slot.gio_ket_thuc)}` : 'Chưa xác định',
 				total,
 				canCheckIn:
-					['dang_cho', 'da_thanh_toan', 'da_xac_nhan'].includes(appointment.trang_thai) &&
+					['dang_cho', 'da_thanh_toan'].includes(appointment.trang_thai) &&
 					!appointment.gio_den_thuc_te,
 			}
 		})
@@ -567,7 +575,7 @@ export default function LeTanQuanLyLichHenPage() {
 			align: 'center',
 			key: 'actions',
 			render: (_, record) => {
-				const canModify = ['dang_cho', 'da_xac_nhan', 'da_thanh_toan'].includes(record.trang_thai)
+				const canModify = ['dang_cho', 'da_thanh_toan'].includes(record.trang_thai)
 
 				return (
 					<Space wrap>
@@ -665,7 +673,7 @@ export default function LeTanQuanLyLichHenPage() {
 					<Space direction="vertical" size={14} className="w-full">
 						<div className="flex flex-wrap items-start justify-between gap-3">
 							<div>
-								<Title level={3} className="mb-1">Lễ tân quản lý lịch hẹn</Title>
+								<Title level={3} className="mb-1">Quản lý lịch hẹn và bệnh nhân</Title>
 								<Paragraph className="mb-0 text-slate-500">
 									Tạo, đổi và hủy lịch hẹn cho bệnh nhân tại quầy.
 								</Paragraph>

@@ -43,6 +43,15 @@ const CONFIG_DEFINITIONS = [
 		requiredMessage: 'Vui lòng nhập số giờ đổi lịch tối thiểu.',
 	},
 	{
+		khoa: 'THOI_GIAN_CHECKIN_SOM_NHAT',
+		label: 'Thời gian check-in sớm nhất (phút)',
+		nhom: 'lich_hen',
+		type: 'number',
+		min: 0,
+		max: 240,
+		requiredMessage: 'Vui lòng nhập số phút cho phép check-in sớm.',
+	},
+	{
 		khoa: 'SO_NGAY_DAT_TRUOC_TOI_DA',
 		label: 'Số ngày đặt trước tối đa',
 		nhom: 'lich_hen',

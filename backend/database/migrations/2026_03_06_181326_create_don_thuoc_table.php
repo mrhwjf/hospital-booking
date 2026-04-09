@@ -9,7 +9,7 @@ return new class extends Migration {
 	{
 		Schema::create('don_thuoc', function (Blueprint $table) {
 			$table->id();
-			$table->string('ma_don_thuoc', 20)->unique();
+			$table->string('ma_don_thuoc', 50)->unique();
 			$table->foreignId('phieu_kham_id')->unique()->constrained('phieu_kham')->cascadeOnDelete();
 			$table->date('ngay_ke');
 			$table->text('ghi_chu')->nullable();

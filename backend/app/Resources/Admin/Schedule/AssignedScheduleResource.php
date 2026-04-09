@@ -10,6 +10,8 @@ class AssignedScheduleResource extends JsonResource
 {
 	public function toArray(Request $request): array
 	{
+		$cancellationSummary = $this->resource->getAttribute('thong_tin_huy_lich_hen');
+
 		return [
 			'id' => $this->id,
 			'bac_si_id' => $this->bac_si_id,
@@ -47,6 +49,7 @@ class AssignedScheduleResource extends JsonResource
 					'trang_thai' => $this->phongKham?->trang_thai,
 				];
 			}),
+			'thong_tin_huy_lich_hen' => $cancellationSummary,
 			'created_at' => $this->created_at,
 			'updated_at' => $this->updated_at,
 		];

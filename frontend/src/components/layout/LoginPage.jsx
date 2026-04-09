@@ -135,14 +135,18 @@ function LoginPage() {
         </div>
 
         <div className="relative z-20 flex flex-col h-full justify-between p-12 text-white">
-          <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => navigate("/")}
+            className="flex w-fit items-center gap-3 rounded-lg px-2 py-1 transition hover:bg-white/10 cursor-pointer"
+          >
             <div className="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
               <HospitalIcon className="h-8 w-8" />
             </div>
             <span className="text-xl font-bold tracking-wide">
               Hệ thống Y tế ABC
             </span>
-          </div>
+          </button>
 
           <div className="mb-12 max-w-lg">
             <h1 className="text-4xl font-bold leading-tight mb-4">
@@ -170,10 +174,14 @@ function LoginPage() {
 
       <div className="w-full lg:w-1/2 flex flex-col justify-center items-center p-6 sm:p-12 bg-white">
         <div className="w-full max-w-120 flex flex-col gap-8">
-          <div className="lg:hidden flex items-center gap-2 mb-4 text-[#0f756d]">
+          <button
+            type="button"
+            onClick={() => navigate("/")}
+            className="lg:hidden mb-4 flex w-fit items-center gap-2 rounded-md px-2 py-1 text-[#0f756d] transition hover:bg-[#e8f3f2] cursor-pointer"
+          >
             <HospitalIcon className="h-8 w-8" />
             <span className="text-xl font-bold">Hệ thống ABC</span>
-          </div>
+          </button>
 
           <div className="flex flex-col gap-2">
             <h2 className="text-[#0e1b1a] text-[32px] font-bold leading-tight tracking-tight">
@@ -182,6 +190,13 @@ function LoginPage() {
             <p className="text-[#4f9690] text-sm font-normal">
               Vui lòng nhập thông tin đăng nhập của bạn để tiếp tục.
             </p>
+            <button
+              type="button"
+              onClick={() => navigate("/")}
+              className="mt-1 w-fit rounded-md border border-[#b9ddda] px-3 py-1.5 text-xs font-semibold text-[#0f756d] transition hover:bg-[#e8f3f2] cursor-pointer"
+            >
+              ← Về trang chủ
+            </button>
           </div>
 
           <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
@@ -273,11 +288,13 @@ function LoginPage() {
 
           <div className="flex justify-center gap-1 text-base text-[#0e1b1a]">
             <p>Chưa có tài khoản?</p>
-            <a
-              className="font-bold text-[#0f756d] hover:text-[#0a554f] hover:underline transition-colors"
-              href="/register">
+            <button
+              type="button"
+              className="font-bold text-[#0f756d] hover:text-[#0a554f] hover:underline transition-colors cursor-pointer"
+              onClick={() => navigate("/register")}
+            >
               Đăng ký ngay
-            </a>
+            </button>
           </div>
         </div>
       </div>

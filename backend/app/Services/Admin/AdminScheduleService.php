@@ -22,6 +22,8 @@ class AdminScheduleService
 	public const DEFAULT_PAGE_SIZE = 10;
 	private const MAX_REPEAT_WEEKS = 4;
 	private const LEAVE_CANCELLED_APPOINTMENT_STATUSES = ['dang_cho', 'da_thanh_toan', 'da_xac_nhan'];
+	private const ASSIGNMENT_DEACTIVATION_CANCELLED_APPOINTMENT_STATUSES = ['dang_cho', 'da_thanh_toan'];
+	private const HOLIDAY_CANCELLED_APPOINTMENT_STATUSES = ['dang_cho', 'da_thanh_toan'];
 
 	public function __construct(
 		private readonly AdminScheduleValidationService $validationService,
@@ -365,51 +367,79 @@ class AdminScheduleService
 
 	public function updateAssignment(int $id, array $payload): LichLamViecBacSi
 	{
-		$assignment = LichLamViecBacSi::query()
-			->with('lichLamViec:id,gio_bat_dau,gio_ket_thuc')
-			->find($id);
+		return DB::transaction(function () use ($id, $payload) {
+			$assignment = LichLamViecBacSi::query()
+				->with('lichLamViec:id,gio_bat_dau,gio_ket_thuc,trang_thai')
+				->lockForUpdate()
+				->find($id);
 
-		if ($assignment === null) {
-			throw ValidationException::withMessages([
-				'id' => ['Ca làm việc bác sĩ không tồn tại.'],
+			if ($assignment === null) {
+				throw ValidationException::withMessages([
+					'id' => ['Ca làm việc bác sĩ không tồn tại.'],
+				]);
+			}
+
+			$newRoomId = array_key_exists('phong_kham_id', $payload)
+				? ($payload['phong_kham_id'] ?: null)
+				: $assignment->phong_kham_id;
+			$nextStatus = array_key_exists('trang_thai', $payload)
+				? (string) $payload['trang_thai']
+				: (string) $assignment->trang_thai;
+			$isDeactivatingAssignment = $assignment->trang_thai === 'hoat_dong'
+				&& in_array($nextStatus, ['tam_ngung', 'huy'], true);
+
+			if ($nextStatus === 'hoat_dong' && $assignment->lichLamViec?->trang_thai !== 'hoat_dong') {
+				throw ValidationException::withMessages([
+					'trang_thai' => ['Không thể kích hoạt ca vì mẫu ca làm việc đang tạm ngưng hoặc đã hủy.'],
+				]);
+			}
+
+			$appointmentsToCancel = collect();
+			if ($isDeactivatingAssignment) {
+				$appointmentsToCancel = $this->getAppointmentsAffectedByAssignmentDeactivation((int) $assignment->id);
+				$this->validationService->assertAssignmentCancellationConfirmed($payload, $appointmentsToCancel);
+			}
+
+			if ($newRoomId !== null && $nextStatus === 'hoat_dong') {
+				$this->conflictCheckerService->assertRoomConflictFree(
+					(int) $newRoomId,
+					Carbon::parse($assignment->ngay_lam_viec)->format('Y-m-d'),
+					(string) $assignment->lichLamViec?->gio_bat_dau,
+					(string) $assignment->lichLamViec?->gio_ket_thuc,
+					$assignment->id,
+				);
+			}
+
+			$data = [];
+			if (array_key_exists('phong_kham_id', $payload)) {
+				$data['phong_kham_id'] = $newRoomId;
+			}
+			if (array_key_exists('ghi_chu', $payload)) {
+				$data['ghi_chu'] = $payload['ghi_chu'];
+			}
+			if (array_key_exists('trang_thai', $payload)) {
+				$data['trang_thai'] = $nextStatus;
+			}
+
+			$assignment->update($data);
+
+			$cancellationSummary = null;
+			if ($isDeactivatingAssignment) {
+				$cancellationSummary = $this->cancelAppointmentsForAssignmentDeactivation($appointmentsToCancel, $assignment);
+			}
+
+			$assignment = $assignment->refresh()->load([
+				'bacSi:id,ma_bac_si,ho_ten,hoc_vi,trang_thai',
+				'lichLamViec:id,ma_ca,ten_ca,thu_trong_tuan,gio_bat_dau,gio_ket_thuc,thoi_luong_kham,trang_thai',
+				'phongKham:id,ma_phong,ten_phong,trang_thai',
 			]);
-		}
 
-		if ($assignment->trang_thai === 'huy') {
-			throw ValidationException::withMessages([
-				'id' => ['Không thể cập nhật ca làm việc đã hủy.'],
-			]);
-		}
+			if ($cancellationSummary !== null) {
+				$assignment->setAttribute('thong_tin_huy_lich_hen', $cancellationSummary);
+			}
 
-		$newRoomId = array_key_exists('phong_kham_id', $payload)
-			? ($payload['phong_kham_id'] ?: null)
-			: $assignment->phong_kham_id;
-
-		if ($newRoomId !== null) {
-			$this->conflictCheckerService->assertRoomConflictFree(
-				(int) $newRoomId,
-				Carbon::parse($assignment->ngay_lam_viec)->format('Y-m-d'),
-				(string) $assignment->lichLamViec?->gio_bat_dau,
-				(string) $assignment->lichLamViec?->gio_ket_thuc,
-				$assignment->id,
-			);
-		}
-
-		$data = [];
-		if (array_key_exists('phong_kham_id', $payload)) {
-			$data['phong_kham_id'] = $newRoomId;
-		}
-		if (array_key_exists('ghi_chu', $payload)) {
-			$data['ghi_chu'] = $payload['ghi_chu'];
-		}
-
-		$assignment->update($data);
-
-		return $assignment->refresh()->load([
-			'bacSi:id,ma_bac_si,ho_ten,hoc_vi,trang_thai',
-			'lichLamViec:id,ma_ca,ten_ca,thu_trong_tuan,gio_bat_dau,gio_ket_thuc,thoi_luong_kham,trang_thai',
-			'phongKham:id,ma_phong,ten_phong,trang_thai',
-		]);
+			return $assignment;
+		});
 	}
 
 	public function softDeleteAssignment(int $id): LichLamViecBacSi
@@ -572,40 +602,77 @@ class AdminScheduleService
 		$this->validationService->assertDateIsTodayOrFuture($payload['ngay'], 'ngay', 'Ngày nghỉ lễ');
 		$this->validationService->assertHolidayDateUnique($payload['ngay'], null);
 
-		return NgayNghiLe::query()->create([
-			'ten_ngay_nghi' => $payload['ten_ngay_nghi'],
-			'ngay' => $payload['ngay'],
-			'mo_ta' => $payload['mo_ta'] ?? null,
-			'trang_thai' => $payload['trang_thai'] ?? 'hoat_dong',
-		]);
+		return DB::transaction(function () use ($payload) {
+			$nextStatus = (string) ($payload['trang_thai'] ?? 'hoat_dong');
+			$appointments = collect();
+
+			if ($nextStatus === 'hoat_dong') {
+				$appointments = $this->getAppointmentsAffectedByHoliday($payload['ngay']);
+				$this->validationService->assertHolidayCancellationConfirmed($payload, $appointments);
+			}
+
+			$holiday = NgayNghiLe::query()->create([
+				'ten_ngay_nghi' => $payload['ten_ngay_nghi'],
+				'ngay' => $payload['ngay'],
+				'mo_ta' => $payload['mo_ta'] ?? null,
+				'trang_thai' => $nextStatus,
+			]);
+
+			if ($nextStatus === 'hoat_dong') {
+				$summary = $this->cancelAppointmentsForHoliday($appointments, $payload['ngay'], $payload['ten_ngay_nghi']);
+				$holiday->setAttribute('thong_tin_huy_lich_hen', $summary);
+			}
+
+			return $holiday;
+		});
 	}
 
 	public function updateHoliday(int $id, array $payload): NgayNghiLe
 	{
-		$holiday = NgayNghiLe::query()->find($id);
-		if ($holiday === null) {
-			throw ValidationException::withMessages([
-				'id' => ['Ngày nghỉ lễ không tồn tại.'],
-			]);
-		}
-
-		$nextDate = $payload['ngay'] ?? Carbon::parse($holiday->ngay)->format('Y-m-d');
-		if (array_key_exists('ngay', $payload)) {
-			$this->validationService->assertDateIsTodayOrFuture($nextDate, 'ngay', 'Ngày nghỉ lễ');
-		}
-		$this->validationService->assertHolidayDateUnique($nextDate, $holiday->id);
-
-		$data = [];
-		$fillable = ['ten_ngay_nghi', 'ngay', 'mo_ta', 'trang_thai'];
-		foreach ($fillable as $field) {
-			if (array_key_exists($field, $payload)) {
-				$data[$field] = $payload[$field];
+		return DB::transaction(function () use ($id, $payload) {
+			$holiday = NgayNghiLe::query()->lockForUpdate()->find($id);
+			if ($holiday === null) {
+				throw ValidationException::withMessages([
+					'id' => ['Ngày nghỉ lễ không tồn tại.'],
+				]);
 			}
-		}
 
-		$holiday->update($data);
+			$nextDate = $payload['ngay'] ?? Carbon::parse($holiday->ngay)->format('Y-m-d');
+			if (array_key_exists('ngay', $payload)) {
+				$this->validationService->assertDateIsTodayOrFuture($nextDate, 'ngay', 'Ngày nghỉ lễ');
+			}
+			$this->validationService->assertHolidayDateUnique($nextDate, $holiday->id);
 
-		return $holiday->refresh();
+			$nextStatus = (string) ($payload['trang_thai'] ?? $holiday->trang_thai);
+			$appointments = collect();
+			$cancellationSummary = null;
+			if ($nextStatus === 'hoat_dong') {
+				$appointments = $this->getAppointmentsAffectedByHoliday($nextDate);
+				$this->validationService->assertHolidayCancellationConfirmed($payload, $appointments);
+			}
+
+			$data = [];
+			$fillable = ['ten_ngay_nghi', 'ngay', 'mo_ta', 'trang_thai'];
+			foreach ($fillable as $field) {
+				if (array_key_exists($field, $payload)) {
+					$data[$field] = $payload[$field];
+				}
+			}
+
+			$holiday->update($data);
+
+			if ($nextStatus === 'hoat_dong') {
+				$holidayName = $data['ten_ngay_nghi'] ?? $holiday->ten_ngay_nghi;
+				$cancellationSummary = $this->cancelAppointmentsForHoliday($appointments, $nextDate, (string) $holidayName);
+			}
+
+			$holiday = $holiday->refresh();
+			if ($cancellationSummary !== null) {
+				$holiday->setAttribute('thong_tin_huy_lich_hen', $cancellationSummary);
+			}
+
+			return $holiday;
+		});
 	}
 
 	public function softDeleteHoliday(int $id): NgayNghiLe
@@ -1119,6 +1186,130 @@ class AdminScheduleService
 				);
 			})
 			->values();
+	}
+
+	private function getAppointmentsAffectedByAssignmentDeactivation(int $assignmentId): Collection
+	{
+		return LichHen::query()
+			->with('khungGioKham:id,lich_lam_viec_bac_si_id,gio_bat_dau,gio_ket_thuc,trang_thai')
+			->whereIn('trang_thai', self::ASSIGNMENT_DEACTIVATION_CANCELLED_APPOINTMENT_STATUSES)
+			->whereHas('khungGioKham', function ($query) use ($assignmentId) {
+				$query->where('lich_lam_viec_bac_si_id', $assignmentId);
+			})
+			->lockForUpdate()
+			->get();
+	}
+
+	private function getAppointmentsAffectedByHoliday(string $ngay): Collection
+	{
+		return LichHen::query()
+			->with('khungGioKham:id,lich_lam_viec_bac_si_id,gio_bat_dau,gio_ket_thuc,trang_thai')
+			->whereDate('ngay_hen', $ngay)
+			->whereIn('trang_thai', self::HOLIDAY_CANCELLED_APPOINTMENT_STATUSES)
+			->whereHas('khungGioKham.lichLamViecBacSi', function ($query) use ($ngay) {
+				$query
+					->whereDate('ngay_lam_viec', $ngay)
+					->where('trang_thai', 'hoat_dong');
+			})
+			->lockForUpdate()
+			->get();
+	}
+
+	private function cancelAppointmentsForAssignmentDeactivation(Collection $appointments, LichLamViecBacSi $assignment): array
+	{
+		if ($appointments->isEmpty()) {
+			return [
+				'so_luong_lich_hen_bi_huy' => 0,
+				'ma_lich_hen_bi_huy' => [],
+				'thong_bao' => null,
+			];
+		}
+
+		$appointmentIds = $appointments->pluck('id')->filter()->values();
+		$slotIds = $appointments->pluck('khung_gio_id')->filter()->unique()->values();
+		$ngayLamViec = Carbon::parse($assignment->ngay_lam_viec)->format('Y-m-d');
+		$cancelReasonNote = "Lịch hẹn bị hủy do ca làm việc bác sĩ ngày {$ngayLamViec} đã được tạm ngưng/hủy bởi quản trị viên.";
+
+		if ($slotIds->isNotEmpty()) {
+			KhungGioKham::query()
+				->whereIn('id', $slotIds->all())
+				->lockForUpdate()
+				->update(['trang_thai' => 'trong']);
+		}
+
+		if ($appointmentIds->isNotEmpty()) {
+			LichHen::query()
+				->whereIn('id', $appointmentIds->all())
+				->update([
+					'trang_thai' => 'da_huy',
+					'ly_do_huy_id' => null,
+					'ly_do_huy_khac' => $cancelReasonNote,
+				]);
+		}
+
+		$cancelledCodes = $appointments
+			->pluck('ma_lich_hen')
+			->filter()
+			->values()
+			->all();
+
+		$cancelledCount = $appointmentIds->count();
+
+		return [
+			'so_luong_lich_hen_bi_huy' => $cancelledCount,
+			'ma_lich_hen_bi_huy' => $cancelledCodes,
+			'thong_bao' => "Đã hủy {$cancelledCount} lịch hẹn do ca làm việc đã được tạm ngưng/hủy.",
+			'lich_lam_viec_bac_si_id' => (int) $assignment->id,
+			'ngay_lam_viec' => $ngayLamViec,
+		];
+	}
+
+	private function cancelAppointmentsForHoliday(Collection $appointments, string $ngay, string $holidayName): array
+	{
+		if ($appointments->isEmpty()) {
+			return [
+				'so_luong_lich_hen_bi_huy' => 0,
+				'ma_lich_hen_bi_huy' => [],
+				'thong_bao' => null,
+			];
+		}
+
+		$appointmentIds = $appointments->pluck('id')->filter()->values();
+		$slotIds = $appointments->pluck('khung_gio_id')->filter()->unique()->values();
+		$cancelReasonNote = "Lịch hẹn bị hủy do ngày nghỉ toàn viện ({$holidayName}) vào ngày {$ngay}.";
+
+		if ($slotIds->isNotEmpty()) {
+			KhungGioKham::query()
+				->whereIn('id', $slotIds->all())
+				->lockForUpdate()
+				->update(['trang_thai' => 'trong']);
+		}
+
+		if ($appointmentIds->isNotEmpty()) {
+			LichHen::query()
+				->whereIn('id', $appointmentIds->all())
+				->update([
+					'trang_thai' => 'da_huy',
+					'ly_do_huy_id' => null,
+					'ly_do_huy_khac' => $cancelReasonNote,
+				]);
+		}
+
+		$cancelledCodes = $appointments
+			->pluck('ma_lich_hen')
+			->filter()
+			->values()
+			->all();
+
+		$cancelledCount = $appointmentIds->count();
+
+		return [
+			'so_luong_lich_hen_bi_huy' => $cancelledCount,
+			'ma_lich_hen_bi_huy' => $cancelledCodes,
+			'thong_bao' => "Đã hủy {$cancelledCount} lịch hẹn do ngày nghỉ toàn viện.",
+			'ngay' => $ngay,
+			'ten_ngay_nghi' => $holidayName,
+		];
 	}
 
 	private function cancelAppointmentsForLeave(Collection $appointments, int $doctorId, string $ngay): array

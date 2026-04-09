@@ -9,7 +9,7 @@ return new class extends Migration {
 	{
 		Schema::create('chuyen_khoa', function (Blueprint $table) {
 			$table->id();
-			$table->string('ma_chuyen_khoa', 20)->unique();
+			$table->string('ma_chuyen_khoa', 50)->unique();
 			$table->string('ten_chuyen_khoa', 100);
 			$table->text('mo_ta')->nullable();
 			$table->string('hinh_anh')->nullable();

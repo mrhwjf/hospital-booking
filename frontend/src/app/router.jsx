@@ -139,7 +139,7 @@ function RequireAuth({ requiredPermissions = [] }) {
 	const permissions = getStoredPermissions()
 
 	if (!token) {
-		return <Navigate to="/login" replace state={{ from: location }} />
+		return <Navigate to="/" replace state={{ from: location }} />
 	}
 
 	if (requiredPermissions.length > 0 && !hasStoredAllPermissions(requiredPermissions)) {
@@ -176,7 +176,7 @@ function RootRedirect() {
 function LogoutRedirect() {
 	clearStoredAuthState()
 
-	return <Navigate to="/login" replace />
+	return <Navigate to="/" replace />
 }
 
 export default function AppRouter() {

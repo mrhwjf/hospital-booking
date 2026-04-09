@@ -22,6 +22,7 @@ class StoreHolidayRequest extends FormRequest
 			'ngay' => ['required', 'date_format:Y-m-d', 'after_or_equal:today'],
 			'mo_ta' => ['nullable', 'string', 'max:2000'],
 			'trang_thai' => ['nullable', 'in:hoat_dong,huy'],
+			'xac_nhan_huy_lich_hen' => ['nullable', 'boolean'],
 		];
 	}
 }

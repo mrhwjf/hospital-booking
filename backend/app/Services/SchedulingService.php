@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Models\BacSi;
 use App\Models\BacSiChuyenKhoa;
+use App\Models\BacSiNghi;
 use App\Models\BenhNhan;
 use App\Models\CauHinhHeThong;
 use App\Models\ChuyenKhoa;
@@ -27,7 +28,7 @@ class SchedulingService
 {
 	public const DEFAULT_PAGE_SIZE = 10;
 	private const THOI_GIAN_CHECKIN_SOM_NHAT = 'THOI_GIAN_CHECKIN_SOM_NHAT';
-	private const CHECKIN_ALLOWED_APPOINTMENT_STATUSES = ['dang_cho', 'da_thanh_toan', 'da_xac_nhan'];
+	private const CHECKIN_ALLOWED_APPOINTMENT_STATUSES = ['dang_cho', 'da_thanh_toan'];
 
 	public function __construct(private readonly BookingValidationService $bookingValidationService)
 	{
@@ -107,9 +108,42 @@ class SchedulingService
 			->get()
 			->keyBy(fn($holiday) => Carbon::parse($holiday->ngay)->format('Y-m-d'));
 
-		$items = $schedules->map(function (LichLamViecBacSi $schedule) use ($holidays) {
+		$doctorLeavesByDate = BacSiNghi::query()
+			->where('bac_si_id', $bacSiId)
+			->whereBetween('ngay', [$fromDate, $toDate])
+			->where('trang_thai', 'hoat_dong')
+			->orderBy('ngay')
+			->orderBy('gio_bat_dau')
+			->get()
+			->groupBy(fn(BacSiNghi $leave) => Carbon::parse($leave->ngay)->format('Y-m-d'));
+
+		$items = $schedules->map(function (LichLamViecBacSi $schedule) use ($holidays, $doctorLeavesByDate) {
 			$dateKey = Carbon::parse($schedule->ngay_lam_viec)->format('Y-m-d');
 			$holiday = $holidays->get($dateKey);
+			$leaves = $doctorLeavesByDate->get($dateKey, collect());
+			$fullDayLeave = $leaves->contains(function (BacSiNghi $leave): bool {
+				return empty($leave->gio_bat_dau) && empty($leave->gio_ket_thuc);
+			});
+			$leaveRanges = $leaves
+				->filter(function (BacSiNghi $leave): bool {
+					return !empty($leave->gio_bat_dau) && !empty($leave->gio_ket_thuc);
+				})
+				->map(function (BacSiNghi $leave): array {
+					return [
+						'id' => $leave->id,
+						'gio_bat_dau' => $leave->gio_bat_dau,
+						'gio_ket_thuc' => $leave->gio_ket_thuc,
+						'ly_do' => $leave->ly_do,
+					];
+				})
+				->values()
+				->all();
+			$doctorLeaveMeta = $leaves->isNotEmpty() ? [
+				'co_nghi' => true,
+				'ca_ngay' => $fullDayLeave,
+				'khung_nghi' => $leaveRanges,
+				'so_luong' => $leaves->count(),
+			] : null;
 
 			return [
 				'id' => $schedule->id,
@@ -132,6 +166,7 @@ class SchedulingService
 					'id' => $holiday->id,
 					'ten_ngay_nghi' => $holiday->ten_ngay_nghi,
 				] : null,
+				'ngay_nghi_bac_si' => $doctorLeaveMeta,
 				'khung_gio' => $this->generateKhungGioForSchedule($schedule),
 			];
 		});
@@ -890,7 +925,8 @@ class SchedulingService
 	{
 		if (!empty($payload['khung_gio_id'])) {
 			$slot = KhungGioKham::query()
-				->with('lichLamViecBacSi:id,bac_si_id,ngay_lam_viec')
+				->with('lichLamViecBacSi:id,bac_si_id,ngay_lam_viec,trang_thai,lich_lam_viec_id')
+				->with('lichLamViecBacSi.lichLamViec:id,trang_thai')
 				->lockForUpdate()
 				->find($payload['khung_gio_id']);
 
@@ -900,7 +936,36 @@ class SchedulingService
 				]);
 			}
 
+			if ($slot->lichLamViecBacSi?->trang_thai !== 'hoat_dong') {
+				throw ValidationException::withMessages([
+					'khung_gio_id' => ['Lịch làm việc của khung giờ không còn hoạt động.'],
+				]);
+			}
+
+			if ($slot->lichLamViecBacSi?->lichLamViec?->trang_thai !== 'hoat_dong') {
+				throw ValidationException::withMessages([
+					'khung_gio_id' => ['Ca làm việc của khung giờ đã tạm ngưng hoặc bị hủy.'],
+				]);
+			}
+
 			return $slot;
+		}
+
+		$schedule = LichLamViecBacSi::query()
+			->with('lichLamViec:id,trang_thai')
+			->lockForUpdate()
+			->find($slotContext['lich_lam_viec_bac_si_id']);
+
+		if ($schedule === null || $schedule->trang_thai !== 'hoat_dong') {
+			throw ValidationException::withMessages([
+				'lich_lam_viec_bac_si_id' => ['Lịch làm việc bác sĩ không còn hoạt động.'],
+			]);
+		}
+
+		if ($schedule->lichLamViec?->trang_thai !== 'hoat_dong') {
+			throw ValidationException::withMessages([
+				'lich_lam_viec_bac_si_id' => ['Ca làm việc của bác sĩ đã tạm ngưng hoặc bị hủy.'],
+			]);
 		}
 
 		$existing = KhungGioKham::query()

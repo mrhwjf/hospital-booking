@@ -9,7 +9,7 @@ return new class extends Migration {
 	{
 		Schema::create('thuoc', function (Blueprint $table) {
 			$table->id();
-			$table->string('ma_thuoc', 20)->unique();
+			$table->string('ma_thuoc', 50)->unique();
 			$table->string('ten_thuoc', 200);
 			$table->string('hoat_chat', 200)->nullable();
 			$table->enum('don_vi', ['vien', 'goi', 'ong', 'ml', 'lo', 'hop', 'chai']);

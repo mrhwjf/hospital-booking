@@ -377,6 +377,10 @@ const Tongquan = () => {
                     <List
                       itemLayout="horizontal"
                       dataSource={upcomingAppointments}
+                      pagination={{
+                        pageSize: 2,
+                        hideOnSinglePage: true,
+                      }}
                       renderItem={(appointment) => (
                         <List.Item
                           actions={[

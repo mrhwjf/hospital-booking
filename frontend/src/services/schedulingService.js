@@ -104,7 +104,9 @@ export const fetchDoctorSchedule = async ({ bacSiId, fromDate, toDate }) => {
 		den_ngay: toDate || dayjs().add(30, 'day').format('YYYY-MM-DD'),
 	})
 
-	return response?.data?.items || []
+	const items = response?.data?.items || []
+
+	return items.filter((item) => item?.trang_thai === 'hoat_dong')
 }
 
 export const fetchBookingSystemConfigs = async () => {

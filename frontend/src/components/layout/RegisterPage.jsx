@@ -66,7 +66,7 @@ function RegisterPage() {
       <div className="relative hidden overflow-hidden bg-[#0f756d] lg:flex lg:w-1/2">
         <div className="absolute inset-0 z-0">
           <div className="absolute inset-0 bg-[#0f756d]/40 mix-blend-multiply z-10" />
-          <div className="absolute inset-0 bg-gradient-to-t from-[#0f756d]/80 via-transparent to-transparent z-20" />
+          <div className="absolute inset-0 bg-linear-to-t from-[#0f756d]/80 via-transparent to-transparent z-20" />
           <img
             alt="Modern hospital interior with friendly staff"
             className="h-full w-full object-cover"
@@ -75,17 +75,21 @@ function RegisterPage() {
         </div>
 
         <div className="relative z-20 flex flex-col h-full justify-between p-12 text-white">
-          <div className="flex items-center gap-3">
+          <button
+            type="button"
+            onClick={() => navigate("/")}
+            className="flex w-fit items-center gap-3 rounded-lg px-2 py-1 transition hover:bg-white/10 cursor-pointer"
+          >
             <div className="bg-white/20 p-2 rounded-lg backdrop-blur-sm">
               <HospitalIcon className="h-8 w-8" />
             </div>
             <span className="text-xl font-bold tracking-wide">
               Hệ thống Y tế ABC
             </span>
-          </div>
+          </button>
 
           <div className="mb-30 max-w-lg">
-            <h1 className="mb-4 text-4xl font-black leading-tight font-bold">
+            <h1 className="mb-4 text-4xl font-black leading-tight">
               Chào mừng đến với Hệ thống Y tế ABC
             </h1>
             <p className="text-white/90 text-lg font-semilight leading-relaxed">
@@ -103,6 +107,24 @@ function RegisterPage() {
 
       <div className="flex w-full flex-col items-center justify-center overflow-y-auto bg-white px-6 py-12 lg:w-1/2 lg:px-20">
         <div className="w-full max-w-md">
+          <div className="mb-6 flex items-center justify-between">
+            <button
+              type="button"
+              onClick={() => navigate("/")}
+              className="flex items-center gap-2 rounded-md px-2 py-1 text-[#0f756d] transition hover:bg-[#e8f3f2] cursor-pointer"
+            >
+              <HospitalIcon className="h-6 w-6" />
+              <span className="text-sm font-bold">Hệ thống ABC</span>
+            </button>
+            <button
+              type="button"
+              onClick={() => navigate("/")}
+              className="rounded-md border border-[#b9ddda] px-3 py-1.5 text-xs font-semibold text-[#0f756d] transition hover:bg-[#e8f3f2] cursor-pointer"
+            >
+              ← Về trang chủ
+            </button>
+          </div>
+
           <div className="mb-8">
             <h2 className="mb-2 text-3xl font-black text-slate-900">
               Đăng ký tài khoản mới

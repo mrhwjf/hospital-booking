@@ -74,7 +74,7 @@ const isValidImageFile = (file) => {
 
 // ── Helpers ────────────────────────────────────────────────
 const roleLabel = (vai_tro) => {
-  const map = { BACSI: 'Bác sĩ', NHANVIEN: 'Lễ tân', ADMIN: 'Quản trị viên', BENHNHAN: 'Bệnh nhân' };
+  const map = { BACSI: 'Bác sĩ', NHANVIEN: 'Nhân viên', ADMIN: 'Quản trị viên', BENHNHAN: 'Bệnh nhân' };
   return map[vai_tro] || vai_tro;
 };
 

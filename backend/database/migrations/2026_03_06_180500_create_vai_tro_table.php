@@ -9,7 +9,7 @@ return new class extends Migration {
 	{
 		Schema::create('vai_tro', function (Blueprint $table) {
 			$table->id();
-			$table->string('ma_vai_tro', 20)->unique();
+			$table->string('ma_vai_tro', 50)->unique();
 			$table->string('ten_vai_tro', 100);
 			$table->text('mo_ta')->nullable();
 			$table->enum('trang_thai', ['hoat_dong', 'khoa'])->default('hoat_dong');

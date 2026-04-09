@@ -14,7 +14,7 @@ return new class extends Migration {
             $table->id();
 
 
-            $table->string('ma_nhan_vien', 20)->unique();
+            $table->string('ma_nhan_vien', 50)->unique();
 
 
             $table->foreignId('nguoi_dung_id')

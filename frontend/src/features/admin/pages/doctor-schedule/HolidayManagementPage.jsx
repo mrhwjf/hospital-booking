@@ -106,10 +106,63 @@ export default function HolidayManagementPage() {
 		setModalOpen(true)
 	}
 
+	const submitHoliday = async (payload, forceCancelAppointments = false) => {
+		setModalSubmitting(true)
+		try {
+			const requestPayload = forceCancelAppointments
+				? { ...payload, xac_nhan_huy_lich_hen: true }
+				: payload
+
+			const response = editingHoliday
+				? await submitUpdateHoliday(editingHoliday.id, requestPayload)
+				: await submitCreateHoliday(requestPayload)
+
+			const cancelledCount = response?.thong_tin_huy_lich_hen?.so_luong_lich_hen_bi_huy || 0
+			if (editingHoliday) {
+				message.success(
+					cancelledCount > 0
+						? `Cập nhật ngày nghỉ lễ thành công. Đã hủy ${cancelledCount} lịch hẹn bị ảnh hưởng.`
+						: 'Cập nhật ngày nghỉ lễ thành công.',
+				)
+			} else {
+				message.success(
+					cancelledCount > 0
+						? `Tạo ngày nghỉ lễ thành công. Đã hủy ${cancelledCount} lịch hẹn bị ảnh hưởng.`
+						: 'Tạo ngày nghỉ lễ thành công.',
+				)
+			}
+
+			setModalOpen(false)
+			setEditingHoliday(null)
+			await loadHolidays(pagination.currentPage, pagination.pageSize)
+		} catch (error) {
+			const confirmMessage = error?.response?.data?.data?.errors?.xac_nhan_huy_lich_hen?.[0]
+			const affectedCountRaw = error?.response?.data?.data?.errors?.so_luong_lich_hen_bi_anh_huong?.[0]
+			const affectedCount = Number(affectedCountRaw)
+
+			if (!forceCancelAppointments && confirmMessage) {
+				Modal.confirm({
+					title: 'Xác nhận tạo/cập nhật ngày nghỉ lễ',
+					content: Number.isFinite(affectedCount) && affectedCount > 0
+						? `Ngày này hiện có ${affectedCount} lịch hẹn ở trạng thái chờ/thanh toán sẽ bị hủy. Bạn có muốn tiếp tục không?`
+						: `${confirmMessage} Bạn có muốn tiếp tục không?`,
+					okText: 'Xác nhận',
+					cancelText: 'Đóng',
+					centered: true,
+					onOk: () => submitHoliday(payload, true),
+				})
+				return
+			}
+
+			message.error(getApiErrorMessage(error, 'Không thể lưu ngày nghỉ lễ.'))
+		} finally {
+			setModalSubmitting(false)
+		}
+	}
+
 	const handleSubmit = async () => {
 		try {
 			const values = await form.validateFields()
-			setModalSubmitting(true)
 
 			const payload = {
 				ten_ngay_nghi: values.ten_ngay_nghi,
@@ -118,24 +171,12 @@ export default function HolidayManagementPage() {
 				trang_thai: values.trang_thai || 'hoat_dong',
 			}
 
-			if (editingHoliday) {
-				await submitUpdateHoliday(editingHoliday.id, payload)
-				message.success('Cập nhật ngày nghỉ lễ thành công.')
-			} else {
-				await submitCreateHoliday(payload)
-				message.success('Tạo ngày nghỉ lễ thành công.')
-			}
-
-			setModalOpen(false)
-			setEditingHoliday(null)
-			await loadHolidays(pagination.currentPage, pagination.pageSize)
+			await submitHoliday(payload)
 		} catch (error) {
 			if (error?.errorFields) {
 				return
 			}
 			message.error(getApiErrorMessage(error, 'Không thể lưu ngày nghỉ lễ.'))
-		} finally {
-			setModalSubmitting(false)
 		}
 	}
 

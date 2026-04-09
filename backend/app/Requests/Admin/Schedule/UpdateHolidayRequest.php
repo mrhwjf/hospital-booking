@@ -22,6 +22,7 @@ class UpdateHolidayRequest extends FormRequest
 			'ngay' => ['sometimes', 'date_format:Y-m-d', 'after_or_equal:today'],
 			'mo_ta' => ['nullable', 'string', 'max:2000'],
 			'trang_thai' => ['sometimes', 'in:hoat_dong,huy'],
+			'xac_nhan_huy_lich_hen' => ['nullable', 'boolean'],
 		];
 	}
 }
